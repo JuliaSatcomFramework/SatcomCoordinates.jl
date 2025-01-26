@@ -1,0 +1,9 @@
+numbertype(::Type{Quantity{T}}) where T  = T
+numbertype(::Type{T}) where T <: Number = T
+numbertype(::T) where T = numbertype(T)
+numbertype(::Type{FieldVectorCoordinate{<:Any, T}}) where T = T
+numbertype(::Type{LengthCartesian{<:Any, T}}) where T = T
+numbertype(::Type{NonSVectorCoordinate{<:Any, T}}) where T = T
+numbertype(::Type{AngularPointing{T}}) where T = T
+numbertype(::Type{PointingVersor{T}}) where T = T
+numbertype(::Type{UV{T}}) where T = T

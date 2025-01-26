@@ -1,0 +1,16 @@
+name = "BasicCoordinates"
+uuid = "d1ae2422-d5a1-41ba-aa52-f237f2f47a73"
+authors = ["Alberto Mengali <disberd@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+BasicTypes = "13e19751-ccd1-416d-be0c-a6724a8caa31"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+
+[compat]
+BasicTypes = "1.0.0"
+LinearAlgebra = "1.11.0"
+StaticArrays = "1.9.10"
+Unitful = "1.22.0"
