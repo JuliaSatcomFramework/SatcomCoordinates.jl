@@ -2,7 +2,7 @@ module SatcomCoordinates
 
 using BasicTypes: BasicTypes, constructor_without_checks, to_degrees, to_meters, Met, Deg, Rad, UnitfulAngleQuantity, °, ValidAngle, Point2D, Point3D, Point, PS
 using StaticArrays: StaticArrays, FieldVector, SVector, @SVector
-using LinearAlgebra: normalize, norm
+using LinearAlgebra: LinearAlgebra, normalize, norm
 using Random: Random, SamplerType, AbstractRNG
 using Unitful: Unitful, Quantity
 
