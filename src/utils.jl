@@ -20,14 +20,14 @@ wrap_spherical_angles_normalized(az::T, el::T, ::Type{<:Union{AzOverEl, ElOverAz
     ifelse(
         abs(el) <= 90°,  # Condition
         (az, el), # First angle is already between -90° and 90°
-        (az - 180° * sign(az), el - 180° * sign(el)) # Need to wrap
+        (az - copysign(180°,az), el - copysign(180°,el)) # Need to wrap
     )
 
 wrap_spherical_angles_normalized(θ::T, φ::T, ::Type{<:ThetaPhi}) where {T <: Deg{<:Real}} =
     ifelse(
         θ >= 0°,  # Condition
         (θ, φ), # First angle is already between -90° and 90°
-        (-θ, φ - 180° * sign(φ)) # Need to wrap
+        (-θ, φ - copysign(180°,φ)) # Need to wrap
     )
 
 """
