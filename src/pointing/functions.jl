@@ -12,21 +12,12 @@ function Base.getproperty(p::PointingVersor, s::Symbol)
     s ∈ (:z, :w) && return getfield(p, :z)
 end
 
-function StaticArrays.adapt_eltype(::Type{SA}, x) where {SA <: PointingVersor}
-    has_eltype(SA) && return SA
-    T = if need_rewrap(SA, x)
-        typeof(x)
-    elseif x isa Tuple
-        promote_tuple_eltype(x)
-    elseif x isa Args
-        promote_tuple_eltype(x.args)
-    else
-        eltype(x)
-    end
-    T <: Real || error("Objects of type $SA can only be created from real numbers")
-    return SA{T <: AbstractFloat ? T : Float64}
-end
+(::Type{P})(pt::Point{3, Real}) where P <: PointingVersor = P(pt[1], pt[2], pt[3])
 
+# Trivial conversions
+Base.convert(::Type{PointingVersor}, p::PointingVersor) = p
+Base.convert(::Type{PointingVersor{T}}, p::PointingVersor{T}) where T <: AbstractFloat = p
+Base.convert(::Type{PointingVersor{T}}, p::PointingVersor) where T <: AbstractFloat = constructor_without_checks(PointingVersor{T}, p.x, p.y, p.z)
 
 # UV
 const UV_CONSTRUCTOR_TOLERANCE = Ref{Float64}(1e-5)
@@ -51,8 +42,7 @@ tolerance = $(tol)")
     constructor_without_checks(UV{T}, u, v)
 end
 
-UV(u::T, v::T) where T <: Real = UV{T <: AbstractFloat ? T : Float64}(u, v)
-UV(u::Real, v::Real) = UV(promote(u, v)...)
+(::Type{P})(pt::Point{2, Real}) where P <: UV = P(pt[1], pt[2])
 
 
 ## Conversions UV <-> PointingVersor
@@ -61,17 +51,24 @@ function Base.convert(::Type{UV{T}}, pv::PointingVersor) where T <: AbstractFloa
     @assert pv.z >= 0 "The provided PointingVersor is located in the half-hemisphere containing the cartesian -Z axis and can not be converted to UV coordinates"
     constructor_without_checks(UV{T}, pv.x, pv.y)
 end
-
-### ThetaPhi ###
-
-function ThetaPhi{T}(θ, φ) where T <: AbstractFloat
-    f = to_degrees
-    (isnan(θ) || isnan(φ)) && return constructor_without_checks(ThetaPhi{T}, f(NaN), f(NaN))
-    θ = f(θ)
-    @assert 0° <= θ <= 180° "The Theta angle must be within the 0° and 180°, while $θ was provided."
-    constructor_without_checks(ThetaPhi{T}, θ, f(φ, RoundNearest))
+## Conversion UV <-> ThetaPhi
+# Specific implementation for slightly faster conversion
+function Base.convert(::Type{U}, tp::ThetaPhi) where U <: UV
+	(;θ,φ) = tp
+	@assert θ <= 90° "The provided ThetaPhi pointing $tp has θ > 90° so it can not be represented in UV"
+	v, u = sin(θ) .* sincos(φ)
+    T = has_eltype(U) ? U : U{numbertype(tp)}
+	return constructor_without_checks(T, u, v)
+end
+function Base.convert(::Type{TP}, uv::UV) where TP <: ThetaPhi
+	(;u,v) = uv
+	θ = asind(sqrt(u^2 + v^2)) |> to_degrees
+	φ = atand(v,u) |> to_degrees
+    T = has_eltype(TP) ? TP : TP{numbertype(uv)}
+	return constructor_without_checks(T, θ, φ)
 end
 
+### ThetaPhi ###
 # getproperty
 function Base.getproperty(p::ThetaPhi, s::Symbol)
     s ∈ (:t, :θ, :theta) && return getfield(p, :θ)
@@ -96,13 +93,15 @@ function Base.convert(::Type{ThetaPhi{T}}, pv::PointingVersor) where T <: Abstra
 end
 
 
-# ### AzOverEl ###
-function (::Type{P})(az, el) where{T <: AbstractFloat, P <: Union{AzOverEl{T}, ElOverAz{T}}}
-    (isnan(az) || isnan(el)) && return constructor_without_checks(AzOverEl{T}, f(NaN), f(NaN))
-    el = to_degrees(el, RoundNearest)
-    az = to_degrees(az, RoundNearest)
-    el, az = wrap_first_angle_normalized(el, az)
-    constructor_without_checks(AzOverEl{T}, az, el)
+### AzOverEl/ElOverAz ###
+
+
+function (::Type{P})(α, β) where{T <: AbstractFloat, P <: Union{AzOverEl{T}, ElOverAz{T}, ThetaPhi{T}}}
+    (isnan(α) || isnan(β)) && return constructor_without_checks(P, f(NaN), f(NaN))
+    α = to_degrees(α, RoundNearest)
+    β = to_degrees(β, RoundNearest)
+    α, β = wrap_spherical_angles_normalized(α, β, P)
+    constructor_without_checks(P, α, β)
 end
 
 # ## Conversions AzOverEl <-> PointingVersor
@@ -122,26 +121,6 @@ end
 #     constructor_without_checks(PointingVersor{T}, x, y, z)
 # end
 
-
-# # ElOverAz
-# """
-#     ElOverAz{T} <: AngularPointing{T}
-
-# Specify a pointing direction in Elevation over Azimuth coordinates. 
-# Following the notation in "Principles of Near Field Antenna Measurements" the Az and El values are related to the u, v, and w components of the `PointingVersor` by the following relations:
-# - El = atan(v, w)
-# - Az = asin(-u)
-
-# # Fields
-# - `el::Deg{T}`
-# - `az::Deg{T}`
-# """
-# struct ElOverAz{T} <: AngularPointing{T}
-#     el::Deg{T}
-#     az::Deg{T}
-
-#     BasicTypes.constructor_without_checks(::Type{ElOverAz{T}}, el::Deg{T}, az::Deg{T}) where {T <: AbstractFloat} = new{T}(el, az)
-# end
 
 # ## Conversions ElOverAz <-> PointingVersor
 # function Base.convert(::Type{ElOverAz{T}}, p::PointingVersor) where T <: AbstractFloat
@@ -167,22 +146,6 @@ end
 # eval(:($AP(a1::ValidAngle, a2::ValidAngle) = $AP{promote_type(numbertype(a1), numbertype(a2))}(a1, a2)))
 # end
 
-# # This is to automatically extract the correct parametric subtype from Tuples/Arrays
-# function StaticArrays.adapt_eltype(::Type{AP}, x) where {AP <: AngularPointing}
-#     has_eltype(AP) && return AP
-#     T = if need_rewrap(AP, x)
-#         typeof(x)
-#     elseif x isa Tuple
-#         promote_tuple_eltype(x)
-#     elseif x isa Args
-#         promote_tuple_eltype(x.args)
-#     else
-#         eltype(x)
-#     end
-#     T <: Union{Real, Deg{<:Real}, Rad{<:Real}} || error("Objects of type $AP can only be created from real numbers or angular quantities from Unitful.jl (i.e. u\"rad\" or u\"°\")")
-#     T = numbertype(T)
-#     return AP{T <: AbstractFloat ? T : Float64}
-# end
 
 # ### Abstract Pointing
 # """
@@ -195,13 +158,37 @@ end
 # """
 # const AbstractPointing{T} = Union{UV{T}, AngularPointing{T}, PointingVersor{T}}
 
-# ### Fallbacks
-# # Conversion with PointingVersor with numbertype not specified
-# Base.convert(::Type{PointingVersor}, p::P) where {T <: AbstractFloat, P <: Union{UV{T}, AngularPointing{T}}} = convert(PointingVersor{T}, p)
-# Base.convert(::Type{P}, p::PointingVersor) where {P <: Union{UV, AngularPointing}} = convert(P{numbertype(p)}, p)
+### Fallbacks
+# Constructors without numbertype, and with tuple or SVector as input
+for P in (:UV, :ThetaPhi, :AzOverEl, :ElOverAz)
+    NT = P === :UV ? :Real : :ValidAngle
+    eval(:(
+    function $P(a1::$NT, a2::$NT) 
+        T = promote_type(numbertype(a1), numbertype(a2))
+        T = T <: AbstractFloat ? T : Float64
+        $P{T}(a1, a2)
+    end
+    ))
+end
 
-# # Conversion between non PointingVersor pointing types, passing through PointingVersor
-# function Base.convert(::Type{D}, p::S) where {D <: Union{UV, AngularPointing}, S <: Union{UV, AngularPointing}}
-#     pv = convert(PointingVersor, p)
-#     return convert(D, pv)
-# end
+# Angular pointing version with Tuple/SVector as input
+(::Type{P})(pt::Point2D) where P <: AngularPointing = P(pt[1], pt[2])
+# AbstractPointing version with AbstractVector
+function (::Type{P})(pt::AbstractVector) where P <: AbstractPointing
+    @assert length(pt) == 2 "The provided vector must have 2 elements"
+    P(pt[1], pt[2])
+end
+function (::Type{P})(pt::AbstractVector) where {P <: PointingVersor}
+    @assert length(pt) == 3 "The provided vector must have 3 elements"
+    P(pt[1], pt[2], pt[3])
+end
+
+# Conversion with PointingVersor with numbertype not specified
+Base.convert(::Type{PointingVersor}, p::P) where {T <: AbstractFloat, P <: AbstractPointing{T}} = convert(PointingVersor{T}, p)
+Base.convert(::Type{P}, p::PointingVersor) where {P <: AbstractPointing} = convert(P{numbertype(p)}, p)
+
+# Conversion between non PointingVersor pointing types, passing through PointingVersor
+function Base.convert(::Type{D}, p::S) where {D <: AbstractPointing, S <: AbstractPointing}
+    pv = convert(PointingVersor, p)
+    return convert(D, pv)
+end

@@ -46,7 +46,7 @@ If either of the inputs is `NaN`, the returned `UV` object will contain `NaN` fo
 
 
 	UV{T}(uv)
-The `UV{T}` can be created using any 2-element Tuple or Vector/StaticVector as input,
+The `UV{T}` can be created using any 2-element Tuple or StaticVector as input,
 which will internally call the 2-arguments constructor.
 
 See also: [`PointingVersor`](@ref), [`ThetaPhi`](@ref)
@@ -151,5 +151,5 @@ struct ElOverAz{T} <: AngularPointing{T}
     az::Deg{T}
     el::Deg{T}
 
-    BasicTypes.constructor_without_checks(::Type{AzOverEl{T}}, az::Deg{T}, el::Deg{T}) where {T <: AbstractFloat} = new{T}(az, el)
+    BasicTypes.constructor_without_checks(::Type{ElOverAz{T}}, az::Deg{T}, el::Deg{T}) where {T <: AbstractFloat} = new{T}(az, el)
 end
