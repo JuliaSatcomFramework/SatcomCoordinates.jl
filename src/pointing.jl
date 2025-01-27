@@ -200,16 +200,63 @@ end
 ## Conversions AzOverEl <-> PointingVersor
 function Base.convert(::Type{AzOverEl{T}}, p::PointingVersor) where T <: AbstractFloat
     (;u,v,w) = p
-    az = atand(w, -u) |> to_degrees
+    az = atand(-u,w) |> to_degrees
     el = asind(v) |> to_degrees
     constructor_without_checks(AzOverEl{T}, az, el)
 end
+function Base.convert(::Type{PointingVersor{T}}, p::AzOverEl) where T <: AbstractFloat
+    (;az, el) = p
+    saz,caz = sincos(az)
+    sel,cel = sincos(el)
+    x = -saz * cel
+    y = sel
+    z = caz * cel
+    constructor_without_checks(PointingVersor{T}, x, y, z)
+end
 
+
+# ElOverAz
+"""
+    ElOverAz{T} <: AngularPointing{T}
+
+Specify a pointing direction in Elevation over Azimuth coordinates. 
+Following the notation in "Principles of Near Field Antenna Measurements" the Az and El values are related to the u, v, and w components of the `PointingVersor` by the following relations:
+- El = atan(v, w)
+- Az = asin(-u)
+
+# Fields
+- `el::Deg{T}`
+- `az::Deg{T}`
+"""
+struct ElOverAz{T} <: AngularPointing{T}
+    el::Deg{T}
+    az::Deg{T}
+
+    BasicTypes.constructor_without_checks(::Type{ElOverAz{T}}, el::Deg{T}, az::Deg{T}) where {T <: AbstractFloat} = new{T}(el, az)
+end
+
+## Conversions ElOverAz <-> PointingVersor
+function Base.convert(::Type{ElOverAz{T}}, p::PointingVersor) where T <: AbstractFloat
+    (;u,v,w) = p
+    el = atand(v, w) |> to_degrees
+    az = asind(-u) |> to_degrees
+    constructor_without_checks(ElOverAz{T}, el, az)
+end
+function Base.convert(::Type{PointingVersor{T}}, p::ElOverAz) where T <: AbstractFloat
+    (;el, az) = p
+    sel,cel = sincos(el)
+    saz,caz = sincos(az)
+    x = -saz
+    y = caz * sel
+    z = caz * cel
+    constructor_without_checks(PointingVersor{T}, x, y, z)
+end
 
 # Generic AngularPointing constructors
-for AP in (:ThetaPhi,)
-eval(:($AP(θ::Deg{T}, φ::Deg{T}) where {T <: Real} = $AP{T <: AbstractFloat ? T : Float64}(θ, φ)))
-eval(:($AP(θ::T, φ::T) where {T <: Real} = $AP{T <: AbstractFloat ? T : Float64}(θ, φ)))
+for AP in (:ThetaPhi, :AzOverEl, :ElOverAz)
+eval(:($AP(a1::Deg{T}, a2::Deg{T}) where {T <: Real} = $AP{T <: AbstractFloat ? T : Float64}(a1, a2)))
+eval(:($AP(a1::T, a2::T) where {T <: Real} = $AP{T <: AbstractFloat ? T : Float64}(a1, a2)))
+eval(:($AP(a1::ValidAngle, a2::ValidAngle) = $AP{promote_type(numbertype(a1), numbertype(a2))}(a1, a2)))
 end
 
 # This is to automatically extract the correct parametric subtype from Tuples/Arrays
