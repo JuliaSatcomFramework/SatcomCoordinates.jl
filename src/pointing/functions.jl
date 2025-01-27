@@ -104,6 +104,12 @@ function (::Type{P})(α, β) where{T <: AbstractFloat, P <: Union{AzOverEl{T}, E
     constructor_without_checks(P, α, β)
 end
 
+# getproperty
+function Base.getproperty(p::Union{AzOverEl, ElOverAz}, s::Symbol)
+    s ∈ (:az, :azimuth) && return getfield(p, :az)
+    s ∈ (:el, :elevation) && return getfield(p, :el)
+end
+
 ## Conversions ElOverAz <-> PointingVersor
 function Base.convert(P::Type{ElOverAz{T}}, p::PointingVersor) where T <: AbstractFloat
     (;u,v,w) = p
@@ -140,25 +146,6 @@ function Base.convert(::Type{PointingVersor{T}}, p::AzOverEl) where T <: Abstrac
     z = caz * cel
     constructor_without_checks(PointingVersor{T}, x, y, z)
 end
-
-# # Generic AngularPointing constructors
-# for AP in (:ThetaPhi, :AzOverEl, :ElOverAz)
-# eval(:($AP(a1::Deg{T}, a2::Deg{T}) where {T <: Real} = $AP{T <: AbstractFloat ? T : Float64}(a1, a2)))
-# eval(:($AP(a1::T, a2::T) where {T <: Real} = $AP{T <: AbstractFloat ? T : Float64}(a1, a2)))
-# eval(:($AP(a1::ValidAngle, a2::ValidAngle) = $AP{promote_type(numbertype(a1), numbertype(a2))}(a1, a2)))
-# end
-
-
-# ### Abstract Pointing
-# """
-#     const AbstractPointing{T} = Union{UV{T}, AngularPointing{T}, PointingVersor{T}}
-
-# Union type representing all of the possible Pointing types. Angular Pointing is
-# the only abstractype out of the 3 elements of the Union, while the other two are
-# concrete types themselves.
-# It needs to be a Union as `UV` and `PointingVersor` need to subtype `FieldVector` directly.
-# """
-# const AbstractPointing{T} = Union{UV{T}, AngularPointing{T}, PointingVersor{T}}
 
 ### Fallbacks
 # Constructors without numbertype, and with tuple or SVector as input
