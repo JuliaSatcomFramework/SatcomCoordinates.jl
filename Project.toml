@@ -1,4 +1,4 @@
-name = "BasicCoordinates"
+name = "SatcomCoordinates"
 uuid = "d1ae2422-d5a1-41ba-aa52-f237f2f47a73"
 authors = ["Alberto Mengali <disberd@gmail.com>"]
 version = "0.1.0"
