@@ -97,7 +97,7 @@ See also: [`PointingVersor`](@ref), [`UV`](@ref)
 struct ThetaPhi{T <: AbstractFloat} <: AngularPointing{T}
 	θ::Deg{T}
 	φ::Deg{T}
-    BasicTypes.constructor_without_checks(::Type{ThetaPhi{T}}, θ::Deg{T}, φ::Deg{T}) where {T <: AbstractFloat} = new{T}(θ, φ)
+    BasicTypes.constructor_without_checks(::Type{ThetaPhi{T}}, θ::Deg, φ::Deg) where {T <: AbstractFloat} = new{T}(θ, φ)
 end
 
 ### AzOverEl ###
@@ -124,7 +124,7 @@ struct AzOverEl{T} <: AngularPointing{T}
     az::Deg{T}
     el::Deg{T}
 
-    BasicTypes.constructor_without_checks(::Type{AzOverEl{T}}, az::Deg{T}, el::Deg{T}) where {T <: AbstractFloat} = new{T}(az, el)
+    BasicTypes.constructor_without_checks(::Type{AzOverEl{T}}, az::Deg, el::Deg) where {T <: AbstractFloat} = new{T}(az, el)
 end
 
 ### ElOverAz ###
@@ -151,5 +151,5 @@ struct ElOverAz{T} <: AngularPointing{T}
     az::Deg{T}
     el::Deg{T}
 
-    BasicTypes.constructor_without_checks(::Type{ElOverAz{T}}, az::Deg{T}, el::Deg{T}) where {T <: AbstractFloat} = new{T}(az, el)
+    BasicTypes.constructor_without_checks(::Type{ElOverAz{T}}, az::Deg, el::Deg) where {T <: AbstractFloat} = new{T}(az, el)
 end

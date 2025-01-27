@@ -104,40 +104,42 @@ function (::Type{P})(α, β) where{T <: AbstractFloat, P <: Union{AzOverEl{T}, E
     constructor_without_checks(P, α, β)
 end
 
-# ## Conversions AzOverEl <-> PointingVersor
-# function Base.convert(::Type{AzOverEl{T}}, p::PointingVersor) where T <: AbstractFloat
-#     (;u,v,w) = p
-#     az = atand(-u,w) |> to_degrees
-#     el = asind(v) |> to_degrees
-#     constructor_without_checks(AzOverEl{T}, az, el)
-# end
-# function Base.convert(::Type{PointingVersor{T}}, p::AzOverEl) where T <: AbstractFloat
-#     (;az, el) = p
-#     saz,caz = sincos(az)
-#     sel,cel = sincos(el)
-#     x = -saz * cel
-#     y = sel
-#     z = caz * cel
-#     constructor_without_checks(PointingVersor{T}, x, y, z)
-# end
+## Conversions ElOverAz <-> PointingVersor
+function Base.convert(P::Type{ElOverAz{T}}, p::PointingVersor) where T <: AbstractFloat
+    (;u,v,w) = p
+    az = atand(-u,w) |> to_degrees
+    el = asind(v) |> to_degrees
+    az, el = wrap_spherical_angles_normalized(az, el, P)
+    constructor_without_checks(P, az, el)
+end
+function Base.convert(::Type{PointingVersor{T}}, p::ElOverAz) where T <: AbstractFloat
+    (;az, el) = p
+    saz,caz = sincos(az)
+    sel,cel = sincos(el)
+    x = -saz * cel
+    y = sel
+    z = caz * cel
+    constructor_without_checks(PointingVersor{T}, x, y, z)
+end
 
 
-# ## Conversions ElOverAz <-> PointingVersor
-# function Base.convert(::Type{ElOverAz{T}}, p::PointingVersor) where T <: AbstractFloat
-#     (;u,v,w) = p
-#     el = atand(v, w) |> to_degrees
-#     az = asind(-u) |> to_degrees
-#     constructor_without_checks(ElOverAz{T}, el, az)
-# end
-# function Base.convert(::Type{PointingVersor{T}}, p::ElOverAz) where T <: AbstractFloat
-#     (;el, az) = p
-#     sel,cel = sincos(el)
-#     saz,caz = sincos(az)
-#     x = -saz
-#     y = caz * sel
-#     z = caz * cel
-#     constructor_without_checks(PointingVersor{T}, x, y, z)
-# end
+## Conversions AzOverEl <-> PointingVersor
+function Base.convert(P::Type{AzOverEl{T}}, p::PointingVersor) where T <: AbstractFloat
+    (;u,v,w) = p
+    el = atand(v, w) |> to_degrees
+    az = asind(-u) |> to_degrees
+    az, el = wrap_spherical_angles_normalized(az, el, P)
+    constructor_without_checks(P, az, el)
+end
+function Base.convert(::Type{PointingVersor{T}}, p::AzOverEl) where T <: AbstractFloat
+    (;el, az) = p
+    sel,cel = sincos(el)
+    saz,caz = sincos(az)
+    x = -saz
+    y = caz * sel
+    z = caz * cel
+    constructor_without_checks(PointingVersor{T}, x, y, z)
+end
 
 # # Generic AngularPointing constructors
 # for AP in (:ThetaPhi, :AzOverEl, :ElOverAz)
@@ -191,4 +193,33 @@ Base.convert(::Type{P}, p::PointingVersor) where {P <: AbstractPointing} = conve
 function Base.convert(::Type{D}, p::S) where {D <: AbstractPointing, S <: AbstractPointing}
     pv = convert(PointingVersor, p)
     return convert(D, pv)
+end
+
+# General isapprox method
+Base.isapprox(p1::PointingVersor, p2::Union{UV, AngularPointing}; kwargs...) = isapprox(p1, convert(PointingVersor, p2); kwargs...)
+Base.isapprox(p1::Union{UV, AngularPointing}, p2::PointingVersor; kwargs...) = isapprox(p2, p1; kwargs...)
+Base.isapprox(p1::Union{UV, AngularPointing}, p2::Union{UV, AngularPointing}; kwargs...) = isapprox(convert(PointingVersor, p1), p2; kwargs...)
+
+# Rand methods
+Random.rand(rng::AbstractRNG, ::Random.SamplerType{P}) where P <: PointingVersor =
+    P((rand(rng) - .5 for _ in 1:3)...)
+
+function Random.rand(rng::AbstractRNG, ::Random.SamplerType{U}) where U <: UV
+    T = has_eltype(U) ? U : U{Float64}
+    p = PointingVersor(rand(rng) - .5, rand(rng) - .5, rand(rng))
+    constructor_without_checks(T, p.x, p.y)
+end
+
+function Random.rand(rng::AbstractRNG, ::Random.SamplerType{TP}) where TP <: ThetaPhi
+    T = has_eltype(TP) ? TP : TP{Float64}
+    θ = rand(rng) * 180°
+    φ = rand(rng) * 360° - 180°
+    constructor_without_checks(T, θ, φ)
+end
+
+function Random.rand(rng::AbstractRNG, ::Random.SamplerType{AE}) where AE <: Union{AzOverEl, ElOverAz}
+    T = has_eltype(AE) ? AE : AE{Float64}
+    az = rand(rng) * 360° - 180°
+    el = rand(rng) * 180° - 90°
+    constructor_without_checks(T, az, el)
 end
