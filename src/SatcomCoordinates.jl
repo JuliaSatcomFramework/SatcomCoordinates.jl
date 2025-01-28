@@ -8,13 +8,12 @@ using Random: Random, SamplerType, AbstractRNG
 using Unitful: Unitful, Quantity
 
 include("abstract_types.jl")
-export AbstractSatcomCoordinate, CartesianPosition, LengthCartesian, AngularPointing
+export AbstractSatcomCoordinate, CartesianPosition, LengthCartesian, AngularPointing, AbstractPointing
 
 include("pointing/types.jl")
 export PointingVersor, UV, ThetaPhi, AzOverEl, ElOverAz
 
 include("union_types.jl")
-export AbstractPointing
 
 include("pointing/functions.jl") # Contains constructors, conversions and rand methods
 

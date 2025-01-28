@@ -31,8 +31,8 @@ representation](https://en.wikipedia.org/wiki/Spherical_coordinate_system) by th
 - `v = sin(θ) * sin(φ)`
 
 !!! note
-UV coordinates can only be used to represent pointing direction in the
-half-hemisphere containing the cartesian +Z axis.
+    UV coordinates can only be used to represent pointing direction in the
+    half-hemisphere containing the cartesian +Z axis.
 
 !!! note
     The inputs values must also satisfy `u^2 + v^2 <= 1 + SatcomCoordinates.UV_CONSTRUCTOR_TOLERANCE[]` or an error will be thrown. The `SatcomCoordinates.UV_CONSTRUCTOR_TOLERANCE` is a `Ref{Float64}` which defaults to 1e-5 (In case `u^2 + v^2 > 1` the inputs are normalized to ensure `u^2 + v^2 = 1`).
