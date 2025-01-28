@@ -1,9 +1,13 @@
-numbertype(::Type{Quantity{T}}) where T  = T
-numbertype(::Type{T}) where T <: Number = T
+numbertype(::Type{<:Quantity{T}}) where T  = T
+numbertype(::Type{T}) where T <: Real = T
 numbertype(::T) where T = numbertype(T)
 numbertype(T::DataType) = error("The numbertype function is not implemented for type $T")
+numbertype(::Type{<:AbstractSatcomCoordinate{T}}) where T = T
+numbertype(T::Type{<:AbstractSatcomCoordinate}) = error("The provided UnionAll type $T does not have the numbertype parameter specified")
 
-numbertype(::Type{<:AbstractPointing{T}}) where T = T
+numcoords(::Type{<:AbstractSatcomCoordinate{<:Any, N}}) where N = N
+numcoords(T::DataType) = error("The numcoords function is not implemented for type $T")
+numcoords(::T) where T = numcoords(T)
 
 """
     az, el = wrap_spherical_angles_normalized(az::T, el::T, ::Type{<:ThetaPhi}) where T <: Deg{<:Real}
@@ -44,6 +48,15 @@ wrap_spherical_angles(α::ValidAngle, β::ValidAngle, ::Type{T}) where T <: Unio
 wrap_spherical_angles(p::Point2D, ::Type{T}) where T <: Union{ThetaPhi, AzOverEl, ElOverAz} = wrap_spherical_angles(p[1], p[2], T)
 
 
-# This is inspired from StaticArrays
-Base.@pure has_eltype(::Type{<:AbstractPointing{T}}) where {T} = @isdefined T
-has_eltype(::Type{<:AbstractPointing}) = false
+# This is inspired from StaticArrays. These are not onlineners as coverage otherwise do not catch them.
+function has_numbertype(::Type{<:AbstractSatcomCoordinate{T}}) where {T}
+    return true
+end
+function has_numbertype(::Type{<:AbstractSatcomCoordinate}) 
+    return false
+end
+
+enforce_numbertype(::Type{C}, ::Type{T}) where {C <: AbstractSatcomCoordinate, T} =
+    has_numbertype(C) ? C : C{T}
+enforce_numbertype(::Type{C}, default = 1.0) where {C <: AbstractSatcomCoordinate} =
+    enforce_numbertype(C, numbertype(default))
