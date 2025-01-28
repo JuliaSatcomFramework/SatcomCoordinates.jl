@@ -24,7 +24,7 @@ makedocs(;
     format = MarkdownVitepress(;
         repo = replace(Documenter.Remotes.repourl(remote), r"^https?://" => ""),
         devbranch,
-        # install_npm = should_deploy, # Use the built-in npm when running on CI. (Does not work locally on windows!)
+        install_npm = should_deploy, # Use the built-in npm when running on CI. (Does not work locally on windows!)
         build_vitepress = should_deploy, # Automatically build when running on CI. (Only works with built-in npm!)
         md_output_path = should_deploy ? ".documenter" : ".", # When automatically building, the output should be in build./.documenter, otherwise just output to build/
         #deploy_decision,
