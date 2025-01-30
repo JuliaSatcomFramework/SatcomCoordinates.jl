@@ -178,8 +178,8 @@ end
     end
 end
 
-@testitem "AzOverEl/ElOverAz" setup=[setup_pointing] begin
-    for P in (AzOverEl, ElOverAz)
+@testitem "AzOverEl/ElOverAz/AzEl" setup=[setup_pointing] begin
+    for P in (AzOverEl, ElOverAz, AzEl)
         p = P(1,2)
         @test numbertype(p) == Float64
         @test p.az ==  p.azimuth == 1°
@@ -227,6 +227,11 @@ end
         @test @nallocs(AzOverEl(1f0,0f0)) == 0
         @test @nallocs(AzOverEl((1,0))) == 0
         @test @nallocs(AzOverEl(SVector(1,0))) == 0
+
+        @test @nallocs(AzEl(1,0)) == 0
+        @test @nallocs(AzEl(1f0,0f0)) == 0
+        @test @nallocs(AzEl((1,0))) == 0
+        @test @nallocs(AzEl(SVector(1,0))) == 0
     end
 
     @testset "AzOverEl expected_angles" begin
@@ -263,10 +268,10 @@ end
             return valid
         end
         npts = 100
-        for _ in 1:npts
+        @test all(1:npts) do _
             x = rand(AzOverEl)
             p = convert(PointingVersor, x)
-           @test expected_angles(x, p)
+            expected_angles(x, p)
         end
     end
 
@@ -296,17 +301,50 @@ end
             return valid
         end
         npts = 100
-        for _ in 1:npts
+        @test all(1:npts) do _
             x = rand(ElOverAz)
             p = convert(PointingVersor, x)
-           @test expected_angles(x, p)
+            expected_angles(x, p)
+        end
+    end
+
+    @testset "AzEl expected_angles" begin
+        # Test expected angle signs
+        function expected_angles(x::AzEl, p::PointingVersor)
+            valid_el = if p.z >= 0
+                0° <= x.el <= 90°
+            else
+                -90° <= x.el <= 0°
+            end
+            valid_az = if p.x >= 0
+                if p.y >= 0
+                    0° <= x.az <= 90°
+                else
+                    90° <= x.az <= 180°
+                end
+            else
+                if p.y >= 0
+                    -90° <= x.az <= 0°
+                else
+                    -180° <= x.az <= -90°
+                end
+            end
+            valid = valid_el && valid_az
+            valid || (@info "Invalid angles: " x p)
+            return valid
+        end
+        npts = 100
+        @test all(1:npts) do _
+            x = rand(AzEl)
+            p = convert(PointingVersor, x)
+            expected_angles(x, p)
         end
     end
 end
 
 
 @testitem "isapprox/convert" setup=[setup_pointing] begin
-    types = (PointingVersor, ThetaPhi, AzOverEl, ElOverAz, UV)
+    types = (PointingVersor, ThetaPhi, AzOverEl, ElOverAz, UV, AzEl)
     for P in types
         p = rand(P)
         @test convert(P{Float32}, p) |> numbertype == Float32
@@ -329,7 +367,7 @@ end
     p2 = ThetaPhi(90, rand() * 360°)
     @test get_angular_distance(p1, p2) ≈ 90°
 
-    valid_types = (ThetaPhi, AzOverEl, ElOverAz, UV, PointingVersor)
+    valid_types = (ThetaPhi, AzOverEl, ElOverAz, UV, PointingVersor, AzEl)
     @test all(1:100) do _
         p1 = rand(rand(valid_types))
         p2 = rand(rand(valid_types))

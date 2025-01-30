@@ -86,3 +86,16 @@ function _convert_different(::Type{S}, src::A) where {S <: Union{ENU, NED}, A <:
     enu = constructor_without_checks(ENU{T}, x, y, z)
     convert(S, enu)
 end
+
+##### Base.isapprox #####
+function Base.isapprox(c1::A1, c2::TopocentricPosition; kwargs...) where {A1 <: AER}
+    e1 = convert(ENU, c1)
+    e2 = convert(ENU, c2)
+    isapprox(e1, e2; kwargs...)
+end
+Base.isapprox(c1::TopocentricPosition, c2::AER; kwargs...) = isapprox(c2, c1; kwargs...)
+function Base.isapprox(a1::AER, a2::AER; kwargs...)
+    e1 = convert(ENU, a1)
+    e2 = convert(ENU, a2)
+    isapprox(e1, e2; kwargs...)
+end
