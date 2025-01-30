@@ -73,7 +73,7 @@ Generate the unitless SVector containing the _normalized_ fields of the provided
 See also [`raw_nt`](@ref)
 """
 function to_svector(coords::C) where C <: AbstractSatcomCoordinate
-    raw_nt(coords) |> SVector{3, numbertype(C)}
+    raw_nt(coords) |> Tuple |> SVector{3, numbertype(C)}
 end
 
 """
@@ -87,14 +87,17 @@ See also [`to_svector`](@ref)
 """
 function raw_nt(coords::C) where C <: AbstractSatcomCoordinate
     nt = @inline getfields(coords)
-    map(nt) do val
-        if val isa Deg
-            stripdeg(val)
-        elseif val isa Met
-            ustrip(val)
-        else
-            val
-        end
+    map(normalize_value, nt)
+end
+
+# Internal function used to strip unit from field values and convert degress to radians
+function normalize_value(val::PS)
+    if val isa Deg
+        stripdeg(val)
+    elseif val isa Met
+        ustrip(val)
+    else
+        val
     end
 end
 
@@ -112,3 +115,7 @@ asdeg(x::Real) = rad2deg(x) * °
 Strip the units from the provided `Deg` field and convert it to radians.
 """
 stripdeg(x::Deg) = x |> ustrip |> deg2rad
+
+# This function shall create the non-parametrzed subtype, used for simplifying adding methods to `StructArrays.similar_type`. The solution is taken from https://discourse.julialang.org/t/deparametrising-types/41939/4
+basetype(t::DataType) = t.name.wrapper
+basetype(t::UnionAll) = basetype(t.body)

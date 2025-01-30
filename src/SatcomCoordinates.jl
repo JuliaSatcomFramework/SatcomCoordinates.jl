@@ -5,7 +5,7 @@ using ConstructionBase: ConstructionBase, getfields
 using StaticArrays: StaticArrays, FieldVector, SVector, @SVector, SA
 using LinearAlgebra: LinearAlgebra, normalize, norm
 using Random: Random, SamplerType, AbstractRNG
-using Unitful: Unitful, Quantity, ustrip, rad
+using Unitful: Unitful, Quantity, ustrip, rad, @u_str
 
 # From deps
 export °
@@ -25,6 +25,7 @@ include("functions/pointing.jl") # Contains constructors, conversions and rand m
 export get_angular_distance
 
 include("functions/geocentered.jl")
+include("functions/fallbacks.jl")
 
 include("utils.jl")
 export numbertype

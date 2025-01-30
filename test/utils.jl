@@ -33,4 +33,3 @@ end
     @test wrap_spherical_angles(30, 10, AzOverEl) == (30°, 10°)
     @test wrap_spherical_angles((-10°, 150), ElOverAz) == (170°, -30°)
 end
-
