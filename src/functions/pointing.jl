@@ -270,3 +270,54 @@ function angle_offset_rotation(θ::Deg, φ::Deg)
 	return _R*__R
 end
 angle_offset_rotation(tp::ThetaPhi) = angle_offset_rotation(tp.θ, tp.φ)
+
+"""
+	offset = get_angular_offset(p₁::AbstractPointing, p₂::AbstractPointing)::ThetaPhiOffset
+Compute the angular offset required to reach the target pointing direction `p₂`
+from starting pointing direction `p₁`. 
+The two input pointings can be of any valid `AbstractPointing` type.
+
+The output is of type `ThetaPhiOffset`
+
+# Note
+This function performs the inverse operation of [`add_angular_offset`](@ref) so
+the following code should return true
+
+```julia
+using ReferenceViews
+uv1 = UV(.3,.4)
+uv2 = UV(-.2,.5)
+offset = get_angular_offset(uv1, uv2)
+p = add_angular_offset(uv1, offset)
+p ≈ uv2
+```
+
+Check out [`get_angular_distance`](@ref) for a slightly faster implementation in
+case you only require the angular distance rather than the 2D offset.
+
+See also: [`add_angular_offset`](@ref)
+"""
+function get_angular_offset(p₁::AbstractPointing, p₂::AbstractPointing)
+	R = angle_offset_rotation(convert(ThetaPhi, p₁)) # We take p₁ as reference
+	p₂_xyz = convert(PointingVersor, p₂) |> to_svector # We create the 3D vector corresponding to p₂
+	# Check the comments in `angle_offset_rotation` and the link therein to understand this line
+	x, y, z = R' * p₂_xyz
+    out = constructor_without_checks(enforce_numbertype(PointingVersor, x), x, y, z)
+	# We transform from local cartesian coordinates into ThetaPhi, and then we
+	# convert into ThetaPhiOffset to emphasize that this is not a pointing
+	# direction.
+	return convert(ThetaPhi, out)
+end
+
+# This function will return the cartesian coordinate of the new pointing direction (unitary norm) after the rotation by the offset angle
+function add_angular_offset(p₀::P, offset_angles::ThetaPhi) where P <: AbstractPointing
+	θφ_in = convert(ThetaPhi, p₀)
+	R = angle_offset_rotation(θφ_in)
+	perturbation = convert(PointingVersor, offset_angles) |> to_svector
+	# Check the comments in `angle_offset_rotation` and the link therein to understand this line
+	x,y,z = R * perturbation
+    out_direction = constructor_without_checks(enforce_numbertype(PointingVersor, x), x, y, z)
+    P <: UV && @assert out_direction.z >= 0 "The resulting point has a θ > 90°, so it is located behind the viewer.
+Convert the starting point to ThetaPhi before calling this function to allow target points behind the viewer."
+    convert(P, out_direction)
+end

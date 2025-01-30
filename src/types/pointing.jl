@@ -111,7 +111,7 @@ Object specifying a pointing direction in "Azimuth over Elevation" coordinates, 
 Following the convention used in most Antenna-related literature, the elevation and azimuth are 0° in the direction of the +Z axis of the reference frame.
 
 Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`, their relation with the `Az` and `El` angles is:
-- `u = sin(Az)`
+- `u = -sin(Az)`
 - `v = cos(Az) * sin(El)`
 - `w = cos(Az) * cos(El)`
 

@@ -34,9 +34,11 @@ function LLA(lat::ValidAngle, lon::ValidAngle, alt::ValidDistance)
     T = NT <: AbstractFloat ? NT : Float64
     LLA{T}(lat, lon, alt)
 end
+(::Type{L})(lat::ValidAngle, lon::ValidAngle) where L <: LLA = L(lat, lon, 0)
 
 # Isapprox
 function Base.isapprox(x1::LLA, x2::LLA; angle_atol = deg2rad(1e-5), alt_atol = 1e-3, atol = nothing, kwargs...)
+    alt_atol = to_meters(alt_atol)
 	@assert atol isa Nothing "You can't provide an absolute tolerance directly for comparing `LLA` objects, please use the independent kwargs `angle_atol` [radians] for the longitude and latitude atol and `alt_atol` [m] for the altitude one"
 	# Altitude, we default to an absolute tolerance of 1mm for isapprox
 	isapprox(x1.alt,x2.alt; atol = alt_atol, kwargs...) || return false

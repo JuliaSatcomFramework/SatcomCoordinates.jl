@@ -323,3 +323,29 @@ end
         @test_throws "half-hemisphere" convert(UV, p)
     end
 end
+
+@testitem "angular distance/offset" setup=[setup_pointing] begin
+    p1 = ThetaPhi(0, rand() * 360°)
+    p2 = ThetaPhi(90, rand() * 360°)
+    @test get_angular_distance(p1, p2) ≈ 90°
+
+    valid_types = (ThetaPhi, AzOverEl, ElOverAz, UV, PointingVersor)
+    @test all(1:100) do _
+        p1 = rand(rand(valid_types))
+        p2 = rand(rand(valid_types))
+        θ = get_angular_distance(p1, p2)
+        o = get_angular_offset(p1, p2)
+        θ ≈ o.θ
+    end
+
+    @test all(1:100) do _
+        p1 = rand(rand(valid_types))
+        p2 = rand(rand(valid_types))
+        o = get_angular_offset(p1, p2)
+        if p1 isa UV && convert(PointingVersor, p2).z < 0
+            return true
+        else
+            return p2 ≈ add_angular_offset(p1, o)
+        end
+    end
+end
