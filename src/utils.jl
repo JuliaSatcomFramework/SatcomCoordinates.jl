@@ -65,15 +65,50 @@ enforce_numbertype(::Type{C}, default = 1.0) where {C <: AbstractSatcomCoordinat
 """
     to_svector(coord::AbstractSatcomCoordinate)
 
-Generate the unitless SVector representing the provided coordinate
+Generate the unitless SVector containing the _normalized_ fields of the provided coordinate.
+
+!!! note
+    By _normalized_ we mean that fields containing Uniftul quantities are stripped of their units and in the case of `Deg` fields, they are converted to radians as trig functions are faster for radians inputs.
+
+See also [`raw_nt`](@ref)
 """
-function to_svector(coords::LengthCartesian{T}) where T
-    (; x, y, z) = coords
-    x = ustrip(x)
-    y = ustrip(y)
-    z = ustrip(z)
-    SVector{3, T}(x, y, z)
+function to_svector(coords::C) where C <: AbstractSatcomCoordinate
+    raw_nt(coords) |> SVector{3, numbertype(C)}
 end
 
+"""
+    raw_nt(coords::AbstractSatcomCoordinate)
+Generated a NamedTuple from the provided Object which has the same names as the object fields but contains _normalized_ values of its fields
+
+!!! note
+    By _normalized_ we mean that fields containing Uniftul quantities are stripped of their units and in the case of `Deg` fields, they are converted to radians as trig functions are faster for radians inputs.
+
+See also [`to_svector`](@ref)
+"""
+function raw_nt(coords::C) where C <: AbstractSatcomCoordinate
+    nt = @inline getfields(coords)
+    map(nt) do val
+        if val isa Deg
+            stripdeg(val)
+        elseif val isa Met
+            ustrip(val)
+        else
+            val
+        end
+    end
+end
+
+
+"""
+    asdeg(x::Real)
+
+Convert the provided value assumed to be in radians to Unitful degrees.
+"""
 asdeg(x::Real) = rad2deg(x) * °
+
+"""
+    stripdeg(x::Deg)
+
+Strip the units from the provided `Deg` field and convert it to radians.
+"""
 stripdeg(x::Deg) = x |> ustrip |> deg2rad
