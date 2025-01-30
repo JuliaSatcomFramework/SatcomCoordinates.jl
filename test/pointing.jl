@@ -354,7 +354,7 @@ end
     @test add_angular_offset(p, 10°, 20°) == add_angular_offset(p, ThetaPhi(10°, 20°))
 
     @test all(valid_types) do O
-        p = rand(rand(valid_types))
+        p = rand(O <: UV ? UV : rand(valid_types))
         o = add_angular_offset(O, p, 0.0°)
         o isa O && o ≈ p
     end
