@@ -97,11 +97,4 @@ struct LLA{T} <: AngleAngleDistance{T}
     BasicTypes.constructor_without_checks(::Type{LLA{T}}, lat, lon, alt) where T = new{T}(lat, lon, alt)
 end
 
-function Base.getproperty(lla::LLA, s::Symbol) 
-    s in (:lat, :latitude) && return getfield(lla, :lat)
-    s in (:lon, :longitude) && return getfield(lla, :lon)
-    s in (:alt, :altitude, :h, :height) && return getfield(lla, :alt)
-    throw(ArgumentError("Invalid field name: $s"))
-end
-
 const GeocentricPosition{T} = Union{ECEF{T}, ECI{T}, LLA{T}}

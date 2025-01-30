@@ -1,9 +1,9 @@
-# Constructors
+##### Constructors #####
 
-## ENU/NED
+# ENU/NED
 # Handled by generic LengthCartesian constructor in fallbacks.jl
 
-## AER
+# AER
 function AER{T}(az::ValidAngle, el::ValidAngle, r::ValidDistance) where T
     any(isnan, (az, el, r)) && return constructor_without_checks(AER{T}, NaN * u"°", NaN * u"°", NaN * u"m")
     az = to_degrees(az, RoundNearest)
@@ -18,7 +18,7 @@ function AER(az::ValidAngle, el::ValidAngle, r::ValidDistance)
     LLA{T}(lat, lon, alt)
 end
 
-# Base.getproperty
+##### Base.getproperty #####
 ## ENU
 function Base.getproperty(enu::ENU, s::Symbol) 
     s in (:x, :east) && return getfield(enu, :x)
@@ -43,7 +43,7 @@ function Base.getproperty(aer::AER, s::Symbol)
     throw(ArgumentError("Invalid field name: $s"))
 end
 
-# Rand
+##### Random.rand #####
 function Random.rand(rng::AbstractRNG, ::Random.SamplerType{A}) where A <: AER
     az = rand(rng) * 360° - 180°
     el = rand(rng) * 180° - 90°
@@ -59,7 +59,7 @@ function Random.rand(rng::AbstractRNG, ::Random.SamplerType{E}) where E <: Union
     constructor_without_checks(C, x, y, z)
 end
 
-# convert
+##### convert #####
 ## ENU <-> NED
 function _convert_different(::Type{T}, src::S) where {T <: Union{ENU, NED}, S <: Union{ENU, NED}}
     C = enforce_numbertype(T, src)

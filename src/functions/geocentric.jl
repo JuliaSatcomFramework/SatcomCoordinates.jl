@@ -1,4 +1,4 @@
-# Constructors
+##### Constructors #####
 
 ## ECI/ECEF
 # Handled by generic LengthCartesian constructor in fallbacks.jl
@@ -19,7 +19,16 @@ function LLA(lat::ValidAngle, lon::ValidAngle, alt::ValidDistance)
 end
 (::Type{L})(lat::ValidAngle, lon::ValidAngle) where L <: LLA = L(lat, lon, 0)
 
-# Isapprox
+##### Base.getproperty #####
+# LLA
+function Base.getproperty(lla::LLA, s::Symbol) 
+    s in (:lat, :latitude) && return getfield(lla, :lat)
+    s in (:lon, :longitude) && return getfield(lla, :lon)
+    s in (:alt, :altitude, :h, :height) && return getfield(lla, :alt)
+    throw(ArgumentError("Invalid field name: $s"))
+end
+
+##### Base.isapprox #####
 function Base.isapprox(x1::LLA, x2::LLA; angle_atol = deg2rad(1e-5), alt_atol = 1e-3, atol = nothing, kwargs...)
     alt_atol = to_meters(alt_atol)
 	@assert atol isa Nothing "You can't provide an absolute tolerance directly for comparing `LLA` objects, please use the independent kwargs `angle_atol` [radians] for the longitude and latitude atol and `alt_atol` [m] for the altitude one"
@@ -34,7 +43,7 @@ function Base.isapprox(x1::LLA, x2::LLA; angle_atol = deg2rad(1e-5), alt_atol = 
 	return false
 end
 
-# Rand
+##### Random.rand #####
 function Random.rand(rng::AbstractRNG, ::Random.SamplerType{L}) where L <: LLA
     lat = rand(rng) * 180° - 90°
     lon = rand(rng) * 360° - 180°

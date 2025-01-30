@@ -1,18 +1,9 @@
+##### Constructors #####
+
 # Pointing Versor
-function PointingVersor{T}(x, y,z) where T <: AbstractFloat
+function PointingVersor{T}(x, y, z) where T <: AbstractFloat
     v = normalize(SVector{3, T}(x, y, z))
     return constructor_without_checks(PointingVersor{T}, v...)
-end
-
-to_svector(p::PointingVersor) = SVector{3, numbertype(p)}(p.x, p.y, p.z)
-
-Base.isapprox(p1::PointingVersor, p2::PointingVersor; kwargs...) = isapprox(to_svector(p1), to_svector(p2); kwargs...)
-
-function Base.getproperty(p::PointingVersor, s::Symbol)
-    s ∈ (:x, :u) && return getfield(p, :x)
-    s ∈ (:y, :v) && return getfield(p, :y)
-    s ∈ (:z, :w) && return getfield(p, :z)
-    throw(ArgumentError("The property $s is not valid for a PointingVersor"))
 end
 
 (::Type{P})(pt::Point{3, Real}) where P <: PointingVersor = P(pt...)
@@ -42,15 +33,38 @@ end
 
 (::Type{P})(pt::Point{2, Real}) where P <: UV = P(pt...)
 
+# AngularPointing
+function (::Type{P})(α, β) where{T <: AbstractFloat, P <: Union{AzOverEl{T}, ElOverAz{T}, ThetaPhi{T}, AzEl{T}}}
+    (isnan(α) || isnan(β)) && return constructor_without_checks(P, f(NaN), f(NaN))
+    α = to_degrees(α, RoundNearest)
+    β = to_degrees(β, RoundNearest)
+    α, β = wrap_spherical_angles_normalized(α, β, P)
+    constructor_without_checks(P, α, β)
+end
+(::Type{P})(pt::Point2D) where P <: AngularPointing = P(pt...)
 
-## Conversions UV <-> PointingVersor
+# Constructors without numbertype, and with tuple or SVector as input
+for P in (:UV, :ThetaPhi, :AzEl, :AzOverEl, :ElOverAz, :PointingVersor)
+    NT = P in (:UV, :PointingVersor) ? :Real : :ValidAngle
+    N = P === :PointingVersor ? 3 : 2
+    eval(:(
+    function $P(vals::Vararg{$NT, $N})
+        T = promote_type(map(numbertype, vals)...)
+        T = T <: AbstractFloat ? T : Float64
+        $P{T}(vals...)
+    end
+    ))
+end
+
+##### Conversions #####
+# UV <-> PointingVersor
 _convert_different(::Type{P}, uv::UV) where {P <: PointingVersor} = constructor_without_checks(enforce_numbertype(P, uv), uv.u, uv.v, sqrt(1 - uv.u^2 - uv.v^2))
 function _convert_different(::Type{U}, pv::PointingVersor) where U <: UV 
     @assert pv.z >= 0 "The provided PointingVersor is located in the half-hemisphere containing the cartesian -Z axis and can not be converted to UV coordinates"
     constructor_without_checks(enforce_numbertype(U, pv), pv.x, pv.y)
 end
-## Conversion UV <-> ThetaPhi
-# Specific implementation for slightly faster conversion
+
+# ThetaPhi <-> UV (Specific implementation for slightly faster conversion)
 function _convert_different(::Type{U}, tp::ThetaPhi) where U <: UV
 	(;θ,φ) = tp
 	@assert θ <= 90° "The provided ThetaPhi pointing $tp has θ > 90° so it lies in the half-hemisphere containing the -Z axis and can not be represented in UV"
@@ -64,14 +78,7 @@ function _convert_different(::Type{TP}, uv::UV) where TP <: ThetaPhi
 	return constructor_without_checks(enforce_numbertype(TP, uv), θ, φ)
 end
 
-### ThetaPhi ###
-# getproperty
-function Base.getproperty(p::ThetaPhi, s::Symbol)
-    s ∈ (:t, :θ, :theta) && return getfield(p, :θ)
-    s ∈ (:p, :φ, :ϕ, :phi) && return getfield(p, :φ)
-end
-
-## Conversions ThetaPhi <-> PointingVersor
+# ThetaPhi <-> PointingVersor
 function _convert_different(::Type{P}, tp::ThetaPhi) where P <: PointingVersor
 	(; θ, φ) = raw_nt(tp)
 	sθ,cθ = sincos(θ)
@@ -88,25 +95,7 @@ function _convert_different(::Type{TP}, pv::PointingVersor) where TP <: ThetaPhi
     constructor_without_checks(enforce_numbertype(TP, pv), θ, φ)
 end
 
-
-### AzOverEl/ElOverAz ###
-
-
-function (::Type{P})(α, β) where{T <: AbstractFloat, P <: Union{AzOverEl{T}, ElOverAz{T}, ThetaPhi{T}, AzEl{T}}}
-    (isnan(α) || isnan(β)) && return constructor_without_checks(P, f(NaN), f(NaN))
-    α = to_degrees(α, RoundNearest)
-    β = to_degrees(β, RoundNearest)
-    α, β = wrap_spherical_angles_normalized(α, β, P)
-    constructor_without_checks(P, α, β)
-end
-
-# getproperty
-function Base.getproperty(p::Union{AzOverEl, ElOverAz, AzEl}, s::Symbol)
-    s ∈ (:az, :azimuth) && return getfield(p, :az)
-    s ∈ (:el, :elevation) && return getfield(p, :el)
-end
-
-## Conversions AzEl <-> PointingVersor
+# AzEl <-> PointingVersor
 function _convert_different(::Type{E}, p::PointingVersor) where E <: AzEl
     (;u,v,w) = p
     az = atan(u, v) |> asdeg # Already in the [-180°, 180°] range
@@ -123,7 +112,7 @@ function _convert_different(::Type{P}, p::AzEl) where P <: PointingVersor
     constructor_without_checks(enforce_numbertype(P, p), x, y, z)
 end
 
-## Conversions ElOverAz <-> PointingVersor
+# ElOverAz <-> PointingVersor
 function _convert_different(::Type{E}, p::PointingVersor) where E <: ElOverAz
     (;u,v,w) = p
     az = atan(-u,w) |> asdeg # Already in the [-180°, 180°] range
@@ -140,8 +129,7 @@ function _convert_different(::Type{P}, p::ElOverAz) where P <: PointingVersor
     constructor_without_checks(enforce_numbertype(P, p), x, y, z)
 end
 
-
-## Conversions AzOverEl <-> PointingVersor
+# AzOverEl <-> PointingVersor
 function _convert_different(::Type{A}, p::PointingVersor) where A <: AzOverEl
     (;u,v,w) = p
     el = atan(v/w) |> asdeg # Already returns a value in the range [-90°, 90°]
@@ -160,56 +148,68 @@ function _convert_different(::Type{P}, p::AzOverEl) where P <: PointingVersor
     constructor_without_checks(enforce_numbertype(P, p), x, y, z)
 end
 
-### Fallbacks
-# Constructors without numbertype, and with tuple or SVector as input
-for P in (:UV, :ThetaPhi, :AzEl, :AzOverEl, :ElOverAz, :PointingVersor)
-    NT = P in (:UV, :PointingVersor) ? :Real : :ValidAngle
-    N = P === :PointingVersor ? 3 : 2
-    eval(:(
-    function $P(vals::Vararg{$NT, $N})
-        T = promote_type(map(numbertype, vals)...)
-        T = T <: AbstractFloat ? T : Float64
-        $P{T}(vals...)
-    end
-    ))
-end
-
-# Angular pointing version with Tuple/SVector as input
-(::Type{P})(pt::Point2D) where P <: AngularPointing = P(pt...)
-
+# Conversion fallbacks
 # Conversion between non PointingVersor pointing types, passing through PointingVersor
 function _convert_different(::Type{D}, p::S) where {D <: AbstractPointing, S <: AbstractPointing}
     pv = convert(PointingVersor, p)
     return convert(D, pv)
 end
 
-# General isapprox method
+##### Base.getproperty #####
+# PointingVersor
+function Base.getproperty(p::PointingVersor, s::Symbol)
+    s ∈ (:x, :u) && return getfield(p, :x)
+    s ∈ (:y, :v) && return getfield(p, :y)
+    s ∈ (:z, :w) && return getfield(p, :z)
+    throw(ArgumentError("The property $s is not valid for a PointingVersor"))
+end
+
+# ThetaPhi
+function Base.getproperty(p::ThetaPhi, s::Symbol)
+    s ∈ (:t, :θ, :theta) && return getfield(p, :θ)
+    s ∈ (:p, :φ, :ϕ, :phi) && return getfield(p, :φ)
+end
+
+# AzEl/AzOverEl/ElOverAz
+function Base.getproperty(p::Union{AzOverEl, ElOverAz, AzEl}, s::Symbol)
+    s ∈ (:az, :azimuth) && return getfield(p, :az)
+    s ∈ (:el, :elevation) && return getfield(p, :el)
+end
+
+##### Base.isapprox #####
+# PointingVersor
+Base.isapprox(p1::PointingVersor, p2::PointingVersor; kwargs...) = isapprox(to_svector(p1), to_svector(p2); kwargs...)
+
+# General isapprox method, passing via PointingVersor
 Base.isapprox(p1::PointingVersor, p2::Union{UV, AngularPointing}; kwargs...) = isapprox(p1, convert(PointingVersor, p2); kwargs...)
 Base.isapprox(p1::Union{UV, AngularPointing}, p2::PointingVersor; kwargs...) = isapprox(p2, p1; kwargs...)
 Base.isapprox(p1::Union{UV, AngularPointing}, p2::Union{UV, AngularPointing}; kwargs...) = isapprox(convert(PointingVersor, p1), p2; kwargs...)
 
-# Rand methods
+##### Random.rand #####
+# PointingVersor
 Random.rand(rng::AbstractRNG, ::Random.SamplerType{P}) where P <: PointingVersor =
     P((rand(rng) - .5 for _ in 1:3)...)
-
+# UV
 function Random.rand(rng::AbstractRNG, ::Random.SamplerType{U}) where U <: UV
     p = PointingVersor(rand(rng) - .5, rand(rng) - .5, rand(rng))
     constructor_without_checks(enforce_numbertype(U), p.x, p.y)
 end
-
+# ThetaPhi
 function Random.rand(rng::AbstractRNG, ::Random.SamplerType{TP}) where TP <: ThetaPhi
     θ = rand(rng) * 180°
     φ = rand(rng) * 360° - 180°
     constructor_without_checks(enforce_numbertype(TP), θ, φ)
 end
-
+# AzEl/AzOverEl/ElOverAz
 function Random.rand(rng::AbstractRNG, ::Random.SamplerType{AE}) where AE <: Union{AzOverEl, ElOverAz, AzEl}
     az = rand(rng) * 360° - 180°
     el = rand(rng) * 180° - 90°
     constructor_without_checks(enforce_numbertype(AE), az, el)
 end
 
-# Utilities
+##### Utilities #####
+to_svector(p::PointingVersor) = SVector{3, numbertype(p)}(p.x, p.y, p.z)
+
 LinearAlgebra.dot(p1::PointingVersor, p2::PointingVersor) = p1.x * p2.x + p1.y * p2.y + p1.z * p2.z
 
 """
