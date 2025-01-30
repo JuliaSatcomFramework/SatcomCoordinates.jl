@@ -58,8 +58,8 @@ function Base.convert(::Type{U}, tp::ThetaPhi) where U <: UV
 end
 function Base.convert(::Type{TP}, uv::UV) where TP <: ThetaPhi
 	(;u,v) = uv
-	θ = asind(sqrt(u^2 + v^2)) |> to_degrees
-	φ = atand(v,u) |> to_degrees
+	θ = asin(sqrt(u^2 + v^2)) |> asdeg
+	φ = atan(v,u) |> asdeg
 	return constructor_without_checks(enforce_numbertype(TP, uv), θ, φ)
 end
 
@@ -73,8 +73,8 @@ end
 ## Conversions ThetaPhi <-> PointingVersor
 function Base.convert(::Type{PointingVersor{T}}, tp::ThetaPhi) where T <: AbstractFloat 
 	(; θ, φ) = tp
-	sθ,cθ = sincos(θ)
-	sφ,cφ = sincos(φ)
+	sθ,cθ = sincos(θ |> stripdeg)
+	sφ,cφ = sincos(φ |> stripdeg)
 	x = sθ * cφ
 	y = sθ * sφ 
 	z = cθ
@@ -82,8 +82,8 @@ function Base.convert(::Type{PointingVersor{T}}, tp::ThetaPhi) where T <: Abstra
 end
 function Base.convert(::Type{ThetaPhi{T}}, pv::PointingVersor) where T <: AbstractFloat 
 	(;x,y,z) = pv
-	θ = acosd(z) |> to_degrees
-	φ = atand(y,x) |> to_degrees
+	θ = acos(z) |> asdeg
+	φ = atan(y,x) |> asdeg
     constructor_without_checks(ThetaPhi{T}, θ, φ)
 end
 
@@ -108,8 +108,8 @@ end
 ## Conversions ElOverAz <-> PointingVersor
 function Base.convert(P::Type{ElOverAz{T}}, p::PointingVersor) where T <: AbstractFloat
     (;u,v,w) = p
-    az = atand(-u,w) |> to_degrees # Already in the [-180°, 180°] range
-    el = asind(v) |> to_degrees # Already in the [-90°, 90°] range
+    az = atan(-u,w) |> asdeg # Already in the [-180°, 180°] range
+    el = asin(v) |> asdeg # Already in the [-90°, 90°] range
     constructor_without_checks(P, az, el)
 end
 function Base.convert(::Type{PointingVersor{T}}, p::ElOverAz) where T <: AbstractFloat
@@ -126,8 +126,8 @@ end
 ## Conversions AzOverEl <-> PointingVersor
 function Base.convert(P::Type{AzOverEl{T}}, p::PointingVersor) where T <: AbstractFloat
     (;u,v,w) = p
-    el = atand(v/w) |> to_degrees # Already returns a value in the range [-90°, 90°]
-    az = asind(-u) |> to_degrees # This only returns the value in the [-90°, 90°] range
+    el = atan(v,w) |> asdeg # Already returns a value in the range [-90°, 90°]
+    az = asin(-u) |> asdeg # This only returns the value in the [-90°, 90°] range
     # Make the angle compatible with our ranges of azimuth and elevation
     az = ifelse(w >= 0, az, copysign(180°, az) - az)
     constructor_without_checks(P, az, el)
@@ -200,4 +200,14 @@ function Random.rand(rng::AbstractRNG, ::Random.SamplerType{AE}) where AE <: Uni
     az = rand(rng) * 360° - 180°
     el = rand(rng) * 180° - 90°
     constructor_without_checks(enforce_numbertype(AE), az, el)
+end
+
+# Utilities
+LinearAlgebra.dot(p1::PointingVersor, p2::PointingVersor) = p1.x * p2.x + p1.y * p2.y + p1.z * p2.z
+
+
+function get_angular_distance(p₁::AbstractPointing, p₂::AbstractPointing)
+	p₁_xyz = convert(PointingVersor, p₁) |> to_svector
+	p₂_xyz = convert(PointingVersor, p₂) |> to_svector
+	return acos(min(p₁_xyz'p₂_xyz, 1))
 end

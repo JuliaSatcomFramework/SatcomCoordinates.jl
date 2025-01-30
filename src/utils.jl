@@ -60,3 +60,20 @@ enforce_numbertype(::Type{C}, ::Type{T}) where {C <: AbstractSatcomCoordinate, T
     has_numbertype(C) ? C : C{T}
 enforce_numbertype(::Type{C}, default = 1.0) where {C <: AbstractSatcomCoordinate} =
     enforce_numbertype(C, numbertype(default))
+
+
+"""
+    to_svector(coord::AbstractSatcomCoordinate)
+
+Generate the unitless SVector representing the provided coordinate
+"""
+function to_svector(coords::LengthCartesian{T}) where T
+    (; x, y, z) = coords
+    x = ustrip(x)
+    y = ustrip(y)
+    z = ustrip(z)
+    SVector{3, T}(x, y, z)
+end
+
+asdeg(x::Real) = rad2deg(x) * °
+stripdeg(x::Deg) = x |> ustrip |> deg2rad
