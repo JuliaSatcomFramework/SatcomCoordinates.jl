@@ -312,6 +312,7 @@ end
 """
 	p = add_angular_offset(p₀::AbstractPointing, offset_angles::ThetaPhi)
 	p = add_angular_offset(p₀::PointingType, θ::ValidAngle, φ::ValidAngle = 0.0)
+    p = add_angular_offset(output_type, p₀, args...)
 
 Compute the resulting pointing direction `p` obtained by adding an angular offset
 expressed as θ and φ angles (following the ISO/Physics convention for spherical
@@ -324,24 +325,21 @@ The input `offset_angles` can be provided as an instance of one of the following
 - `Point2D`
 and is converted to `ThetaPhiOffset` internally, with non-unitful values being interpreted as angles in degrees.
 
-The output has the same type as the input `p₀`.
+The output is of type `output_type` if provided or of the same type as `p₀` otherwise.
 
 ## Note
-If `p₀ isa UV`, the function will throw an
+If `output_type` is `UV`, the function will throw an
 error if the final pointing direction is located behind the viewer as the output in
-UV would be ambiguous. This is not the case for outputs of type `ThetaPhi` so the
-starting position `p₀` should be provided as an instance of type `ThetaPhi` if
-outputs _behind_ the viewer are expected.
+UV would be ambiguous. This is not the case for other subtypes of `AbstractPointing` so an explicit output type (different from `UV`) should be provided if the target is expected to be behind the viewer.
 
 The offset angles can also be provided separately as 2nd and 3rd argument
 (optional, defaults to 0.0) to the function using the second method signature.
-In this case, the inputs are treated as angles in radians unless explicitly
-provided using quantitites with `°` unit from the Unitful package.
+In this case, the inputs are treated as angles in degrees unless explicitly provided using quantitites with `°` unit from the Unitful package.
 
 This function performs the inverse operation of [`get_angular_offset`](@ref) so
 the following code should return true
 ```julia
-using ReferenceViews
+using SatcomCoordinates
 uv1 = UV(.3,.4)
 uv2 = UV(-.2,.5)
 offset = get_angular_offset(uv1, uv2)
