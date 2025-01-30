@@ -43,20 +43,20 @@ end
 
 
 ## Conversions UV <-> PointingVersor
-Base.convert(::Type{PointingVersor{T}}, uv::UV) where T <: AbstractFloat = constructor_without_checks(PointingVersor{T}, uv.u, uv.v, sqrt(1 - uv.u^2 - uv.v^2))
-function Base.convert(::Type{UV{T}}, pv::PointingVersor) where T <: AbstractFloat 
+_convert_different(::Type{P}, uv::UV) where {P <: PointingVersor} = constructor_without_checks(enforce_numbertype(P, uv), uv.u, uv.v, sqrt(1 - uv.u^2 - uv.v^2))
+function _convert_different(::Type{U}, pv::PointingVersor) where U <: UV 
     @assert pv.z >= 0 "The provided PointingVersor is located in the half-hemisphere containing the cartesian -Z axis and can not be converted to UV coordinates"
-    constructor_without_checks(UV{T}, pv.x, pv.y)
+    constructor_without_checks(enforce_numbertype(U, pv), pv.x, pv.y)
 end
 ## Conversion UV <-> ThetaPhi
 # Specific implementation for slightly faster conversion
-function Base.convert(::Type{U}, tp::ThetaPhi) where U <: UV
+function _convert_different(::Type{U}, tp::ThetaPhi) where U <: UV
 	(;θ,φ) = tp
 	@assert θ <= 90° "The provided ThetaPhi pointing $tp has θ > 90° so it lies in the half-hemisphere containing the -Z axis and can not be represented in UV"
 	v, u = sin(θ) .* sincos(φ)
 	return constructor_without_checks(enforce_numbertype(U, tp), u, v)
 end
-function Base.convert(::Type{TP}, uv::UV) where TP <: ThetaPhi
+function _convert_different(::Type{TP}, uv::UV) where TP <: ThetaPhi
 	(;u,v) = uv
 	θ = asin(sqrt(u^2 + v^2)) |> asdeg
 	φ = atan(v,u) |> asdeg
@@ -71,20 +71,20 @@ function Base.getproperty(p::ThetaPhi, s::Symbol)
 end
 
 ## Conversions ThetaPhi <-> PointingVersor
-function Base.convert(::Type{PointingVersor{T}}, tp::ThetaPhi) where T <: AbstractFloat 
-	(; θ, φ) = tp
-	sθ,cθ = sincos(θ |> stripdeg)
-	sφ,cφ = sincos(φ |> stripdeg)
+function _convert_different(::Type{P}, tp::ThetaPhi) where P <: PointingVersor
+	(; θ, φ) = raw_nt(tp)
+	sθ,cθ = sincos(θ)
+	sφ,cφ = sincos(φ)
 	x = sθ * cφ
 	y = sθ * sφ 
 	z = cθ
-    constructor_without_checks(PointingVersor{T}, x, y, z)
+    constructor_without_checks(enforce_numbertype(P, tp), x, y, z)
 end
-function Base.convert(::Type{ThetaPhi{T}}, pv::PointingVersor) where T <: AbstractFloat 
+function _convert_different(::Type{TP}, pv::PointingVersor) where TP <: ThetaPhi
 	(;x,y,z) = pv
 	θ = acos(z) |> asdeg
 	φ = atan(y,x) |> asdeg
-    constructor_without_checks(ThetaPhi{T}, θ, φ)
+    constructor_without_checks(enforce_numbertype(TP, pv), θ, φ)
 end
 
 
@@ -106,40 +106,40 @@ function Base.getproperty(p::Union{AzOverEl, ElOverAz}, s::Symbol)
 end
 
 ## Conversions ElOverAz <-> PointingVersor
-function Base.convert(P::Type{ElOverAz{T}}, p::PointingVersor) where T <: AbstractFloat
+function _convert_different(::Type{E}, p::PointingVersor) where E <: ElOverAz
     (;u,v,w) = p
     az = atan(-u,w) |> asdeg # Already in the [-180°, 180°] range
     el = asin(v) |> asdeg # Already in the [-90°, 90°] range
-    constructor_without_checks(P, az, el)
+    constructor_without_checks(enforce_numbertype(E, p), az, el)
 end
-function Base.convert(::Type{PointingVersor{T}}, p::ElOverAz) where T <: AbstractFloat
-    (;az, el) = p
+function _convert_different(::Type{P}, p::ElOverAz) where P <: PointingVersor
+    (;az, el) = raw_nt(p)
     saz,caz = sincos(az)
     sel,cel = sincos(el)
     x = -saz * cel
     y = sel
     z = caz * cel
-    constructor_without_checks(PointingVersor{T}, x, y, z)
+    constructor_without_checks(enforce_numbertype(P, p), x, y, z)
 end
 
 
 ## Conversions AzOverEl <-> PointingVersor
-function Base.convert(P::Type{AzOverEl{T}}, p::PointingVersor) where T <: AbstractFloat
+function _convert_different(::Type{A}, p::PointingVersor) where A <: AzOverEl
     (;u,v,w) = p
-    el = atan(v,w) |> asdeg # Already returns a value in the range [-90°, 90°]
+    el = atan(v/w) |> asdeg # Already returns a value in the range [-90°, 90°]
     az = asin(-u) |> asdeg # This only returns the value in the [-90°, 90°] range
     # Make the angle compatible with our ranges of azimuth and elevation
     az = ifelse(w >= 0, az, copysign(180°, az) - az)
-    constructor_without_checks(P, az, el)
+    constructor_without_checks(enforce_numbertype(A, p), az, el)
 end
-function Base.convert(::Type{PointingVersor{T}}, p::AzOverEl) where T <: AbstractFloat
-    (;el, az) = p
+function _convert_different(::Type{P}, p::AzOverEl) where P <: PointingVersor
+    (;el, az) = raw_nt(p)
     sel,cel = sincos(el)
     saz,caz = sincos(az)
     x = -saz
     y = caz * sel
     z = caz * cel
-    constructor_without_checks(PointingVersor{T}, x, y, z)
+    constructor_without_checks(enforce_numbertype(P, p), x, y, z)
 end
 
 ### Fallbacks
@@ -159,19 +159,8 @@ end
 # Angular pointing version with Tuple/SVector as input
 (::Type{P})(pt::Point2D) where P <: AngularPointing = P(pt...)
 
-# Trivial conversions
-for P in (:UV, :ThetaPhi, :AzOverEl, :ElOverAz, :PointingVersor)
-    eval(:(Base.convert(::Type{$P}, p::$P) = p))
-    eval(:(Base.convert(::Type{$P{T}}, p::$P{T}) where T = p))
-    eval(:(Base.convert(::Type{$P{T}}, p::$P{S}) where {T, S} = $P{T}(getfields(p)...)))
-end
-
-# Conversion with PointingVersor with numbertype not specified
-Base.convert(::Type{PointingVersor}, p::P) where {T <: AbstractFloat, P <: AbstractPointing{T}} = convert(PointingVersor{T}, p)
-Base.convert(::Type{P}, p::PointingVersor) where {P <: AbstractPointing} = convert(P{numbertype(p)}, p)
-
 # Conversion between non PointingVersor pointing types, passing through PointingVersor
-function Base.convert(::Type{D}, p::S) where {D <: AbstractPointing, S <: AbstractPointing}
+function _convert_different(::Type{D}, p::S) where {D <: AbstractPointing, S <: AbstractPointing}
     pv = convert(PointingVersor, p)
     return convert(D, pv)
 end
