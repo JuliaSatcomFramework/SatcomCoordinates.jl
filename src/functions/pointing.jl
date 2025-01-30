@@ -205,9 +205,79 @@ end
 # Utilities
 LinearAlgebra.dot(p1::PointingVersor, p2::PointingVersor) = p1.x * p2.x + p1.y * p2.y + p1.z * p2.z
 
+"""
+	get_angular_distance(p₁::AbstractPointing, p₂::AbstractPointing)
 
+Compute the angular distance [°] between the target pointing direction `p₂` and the
+starting pointing direction `p₁`. 
+
+## Note
+
+This function's output should be approximately equivalent to the θ (theta) component of
+[`get_angular_offset`](@ref) but has a faster implementation. 
+Use this in case the φ (phi) component is not required and speed is important.  The following code should evaluate to true
+```julia
+using SatcomCoordinates
+uv1 = UV(.3,.4)
+uv2 = UV(-.2,.5)
+offset = get_angular_offset(uv1, uv2)
+Δθ = get_angular_distance(uv1, uv2)
+offset.theta ≈ Δθ
+```
+
+See also: [`add_angular_offset`](@ref), [`get_angular_offset`](@ref)
+"""
 function get_angular_distance(p₁::AbstractPointing, p₂::AbstractPointing)
 	p₁_xyz = convert(PointingVersor, p₁) |> to_svector
 	p₂_xyz = convert(PointingVersor, p₂) |> to_svector
-	return acos(min(p₁_xyz'p₂_xyz, 1))
+	return acos(min(p₁_xyz'p₂_xyz, 1)) |> asdeg
 end
+
+"""
+	angle_offset_rotation(θ, φ)
+
+Compute the rotation matrix to find offset points following the procedure in
+this stackexchnge answer:
+https://math.stackexchange.com/questions/4343044/rotate-vector-by-a-random-little-amount
+"""
+function angle_offset_rotation(θ::Deg, φ::Deg)
+	# Precompute the sines and cosines
+    θ, φ = promote(θ, φ)
+	sθ, cθ = sincos(θ |> stripdeg)
+	sφ, cφ = sincos(φ |> stripdeg)
+    T = typeof(sθ)
+	
+	# Compute the versors of the spherical to cartesian transformation as per
+	# [Wikipedia](https://en.wikipedia.org/wiki/Spherical_coordinate_system#Integration_and_differentiation_in_spherical_coordinates)
+	r̂ = SVector{3, T}(sθ*cφ, sθ*sφ, cθ)
+	θ̂ = SVector{3, T}(cθ*cφ, cθ*sφ, -sθ)
+	φ̂ = SVector{3, T}(-sφ, cφ, zero(T))
+
+	# The standard basis for spherical coordinates is r̂, θ̂, φ̂. We instead
+	# want a basis that has r̂ as third vector (e.g. ẑ in normal cartesian
+	# coordinates), and we want to rotate the other two vectors in a way that
+	# the second vector is pointing towards Positive ŷ (i.e. similar to how ENU
+	# has the second direction pointing towards North). 
+	# To achieve this, we have to reorder the versor and then perform a matrix
+	# rotation around the new third axis (which is r̂) by an angle that depends
+	# on φ.
+	# See
+	# ![image](https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Kugelkoord-lokale-Basis-s.svg/360px-Kugelkoord-lokale-Basis-s.svg.png)
+	# for a reference figure of the original spherical versors.
+	_R = hcat(-φ̂, θ̂, r̂) # φ̂ has to change sign to maintain the right-rule axis order
+	# We have to create a rotation matrix around Z that is equivalent to π/2 - φ
+
+	# We use the RotZ Matrix definition in
+	# https://en.wikipedia.org/wiki/Rotation_matrix#Basic_rotations, but
+	# remembering that: 
+	# cos(π/2 - φ) = sin(φ)
+	# sin(π/2 - φ) = cos(φ)
+	__R = SA{T}[
+		sφ -cφ 0
+		cφ sφ 0
+		0 0 1
+	]
+
+	return _R*__R
+end
+angle_offset_rotation(tp::ThetaPhi) = angle_offset_rotation(tp.θ, tp.φ)

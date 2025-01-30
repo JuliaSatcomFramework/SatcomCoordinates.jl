@@ -2,10 +2,13 @@ module SatcomCoordinates
 
 using BasicTypes: BasicTypes, constructor_without_checks, to_degrees, to_meters, Met, Deg, Rad, UnitfulAngleQuantity, °, ValidAngle, Point2D, Point3D, Point, PS, ValidDistance, to_radians
 using ConstructionBase: ConstructionBase, getfields
-using StaticArrays: StaticArrays, FieldVector, SVector, @SVector
+using StaticArrays: StaticArrays, FieldVector, SVector, @SVector, SA
 using LinearAlgebra: LinearAlgebra, normalize, norm
 using Random: Random, SamplerType, AbstractRNG
 using Unitful: Unitful, Quantity, ustrip, rad
+
+# From deps
+export °
 
 include("types/abstract_types.jl")
 export AbstractSatcomCoordinate, CartesianPosition, LengthCartesian, AngularPointing, AbstractPointing
