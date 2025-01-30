@@ -115,8 +115,3 @@ asdeg(x::Real) = rad2deg(x) * °
 Strip the units from the provided `Deg` field and convert it to radians.
 """
 stripdeg(x::Deg) = x |> ustrip |> deg2rad
-
-# This function shall create the non-parametrzed subtype, used for simplifying adding methods to `StructArrays.similar_type`. The solution is taken from https://discourse.julialang.org/t/deparametrising-types/41939/4
-basetype(t::DataType) = t.name.wrapper
-basetype(t::UnionAll) = basetype(t.body)
-basetype(::T) where T = basetype(T)
