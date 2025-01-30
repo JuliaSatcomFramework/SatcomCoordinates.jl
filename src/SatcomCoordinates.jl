@@ -7,21 +7,21 @@ using LinearAlgebra: LinearAlgebra, normalize, norm
 using Random: Random, SamplerType, AbstractRNG
 using Unitful: Unitful, Quantity, ustrip, rad
 
-include("abstract_types.jl")
+include("types/abstract_types.jl")
 export AbstractSatcomCoordinate, CartesianPosition, LengthCartesian, AngularPointing, AbstractPointing
 
-include("pointing/types.jl")
+include("types/pointing.jl")
 export PointingVersor, UV, ThetaPhi, AzOverEl, ElOverAz
 
-include("geocentered/types.jl")
+include("types/geocentered.jl")
 export ECEF, ECI, LLA
 
 include("union_types.jl")
 
-include("pointing/functions.jl") # Contains constructors, conversions and rand methods
+include("functions/pointing.jl") # Contains constructors, conversions and rand methods
 export get_angular_distance
 
-include("geocentered/functions.jl")
+include("functions/geocentered.jl")
 
 include("utils.jl")
 export numbertype

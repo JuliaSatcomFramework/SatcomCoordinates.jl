@@ -8,6 +8,8 @@ General abstract type identifying a _coordinate_ with `N` dimensions and an unde
 """
 abstract type AbstractSatcomCoordinate{T, N} end
 
+abstract type AngleAngleDistance{T} <: AbstractSatcomCoordinate{T, 3} end
+
 """
     CartesianPosition{T, N} <: AbstractSatcomCoordinate{T, N}
 
