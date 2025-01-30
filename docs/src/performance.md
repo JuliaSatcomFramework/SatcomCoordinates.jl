@@ -14,23 +14,35 @@ pv = convert(PointingVersor, uv)
 ## Construction
 ### UV
 ```@example asd
-@bs UV(.1,.1)
+@bs Tuple(rand(2)./10) UV(_...)
 ```
 ### ThetaPhi
 ```@example asd
-@bs ThetaPhi(10,20)
+@bs Tuple(rand(2)) ThetaPhi(_...)
 ```
 ### ElOverAz
 ```@example asd
-@bs ElOverAz(10,20)
+@bs Tuple(rand(2)) ElOverAz(_...)
 ```
 ### AzOverEl
 ```@example asd
-@bs AzOverEl(10,20)
+@bs Tuple(rand(2)) AzOverEl(_...)
 ```
 ### PointingVersor
 ```@example asd
-@bs PointingVersor(1,2,3)
+@bs Tuple(rand(3)) PointingVersor(_...)
+```
+### ECEF
+```@example asd
+@bs Tuple(rand(3)) ECEF(_...)
+```
+### ECI
+```@example asd
+@bs Tuple(rand(3)) ECI(_...)
+```
+### LLA
+```@example asd
+@bs Tuple(rand(3)) LLA(_...)
 ```
 
 ## Conversions
@@ -102,4 +114,55 @@ pv = convert(PointingVersor, uv)
 ```
 ```@example asd
 @bs convert(PointingVersor, $az_el)
+```
+
+## Utilities
+### get_angular_distance
+```@example asd
+@bs Tuple(rand(ThetaPhi, 2)) get_angular_distance(_...)
+```
+```@example asd
+@bs Tuple(rand(UV, 2)) get_angular_distance(_...)
+```
+```@example asd
+@bs Tuple(rand(ElOverAz, 2)) get_angular_distance(_...)
+```
+```@example asd
+@bs Tuple(rand(AzOverEl, 2)) get_angular_distance(_...)
+```
+```@example asd
+@bs Tuple(rand(PointingVersor, 2)) get_angular_distance(_...)
+```
+### get_angular_offset
+```@example asd
+@bs Tuple(rand(ThetaPhi, 2)) get_angular_offset(_...)
+```
+```@example asd
+@bs Tuple(rand(UV, 2)) get_angular_offset(_...)
+```
+```@example asd
+@bs Tuple(rand(ElOverAz, 2)) get_angular_offset(_...)
+```
+```@example asd
+@bs Tuple(rand(AzOverEl, 2)) get_angular_offset(_...)
+```
+```@example asd
+@bs Tuple(rand(PointingVersor, 2)) get_angular_offset(_...)
+```
+### add_angular_offset
+```@example asd
+# We need to make sure we don't have a resulting target in -z axis hemisphere
+@bs (UV(-rand(), 0), ThetaPhi(rand() * 90°, 0)) add_angular_offset(_...)
+```
+```@example asd
+@bs (rand(ThetaPhi), rand(ThetaPhi)) add_angular_offset(_...)
+```
+```@example asd
+@bs (rand(ElOverAz), rand(ThetaPhi)) add_angular_offset(_...)
+```
+```@example asd
+@bs (rand(AzOverEl), rand(ThetaPhi)) add_angular_offset(_...)
+```
+```@example asd
+@bs (rand(PointingVersor), rand(ThetaPhi)) add_angular_offset(_...)
 ```
