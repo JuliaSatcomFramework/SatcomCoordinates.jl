@@ -309,15 +309,58 @@ function get_angular_offset(p₁::AbstractPointing, p₂::AbstractPointing)
 	return convert(ThetaPhi, out)
 end
 
-# This function will return the cartesian coordinate of the new pointing direction (unitary norm) after the rotation by the offset angle
-function add_angular_offset(p₀::P, offset_angles::ThetaPhi) where P <: AbstractPointing
+"""
+	p = add_angular_offset(p₀::AbstractPointing, offset_angles::ThetaPhi)
+	p = add_angular_offset(p₀::PointingType, θ::ValidAngle, φ::ValidAngle = 0.0)
+
+Compute the resulting pointing direction `p` obtained by adding an angular offset
+expressed as θ and φ angles (following the ISO/Physics convention for spherical
+coordinates) [deg] to the starting position identified by `p₀`.
+
+The input starting position `p₀` must be any subtype of `AbstractPointing`
+The input `offset_angles` can be provided as an instance of one of the following types:
+- `ThetaPhi`
+- `ThetaPhiOffset`
+- `Point2D`
+and is converted to `ThetaPhiOffset` internally, with non-unitful values being interpreted as angles in degrees.
+
+The output has the same type as the input `p₀`.
+
+## Note
+If `p₀ isa UV`, the function will throw an
+error if the final pointing direction is located behind the viewer as the output in
+UV would be ambiguous. This is not the case for outputs of type `ThetaPhi` so the
+starting position `p₀` should be provided as an instance of type `ThetaPhi` if
+outputs _behind_ the viewer are expected.
+
+The offset angles can also be provided separately as 2nd and 3rd argument
+(optional, defaults to 0.0) to the function using the second method signature.
+In this case, the inputs are treated as angles in radians unless explicitly
+provided using quantitites with `°` unit from the Unitful package.
+
+This function performs the inverse operation of [`get_angular_offset`](@ref) so
+the following code should return true
+```julia
+using ReferenceViews
+uv1 = UV(.3,.4)
+uv2 = UV(-.2,.5)
+offset = get_angular_offset(uv1, uv2)
+p = add_angular_offset(uv1, offset)
+p ≈ uv2
+```
+
+See also: [`get_angular_offset`](@ref), [`get_angular_distance`](@ref), [`ThetaPhi`](@ref), [`UV`](@ref)
+"""
+function add_angular_offset(::Type{O}, p₀::P, offset_angles::ThetaPhi) where {O <: AbstractPointing, P <: AbstractPointing}
 	θφ_in = convert(ThetaPhi, p₀)
 	R = angle_offset_rotation(θφ_in)
 	perturbation = convert(PointingVersor, offset_angles) |> to_svector
 	# Check the comments in `angle_offset_rotation` and the link therein to understand this line
 	x,y,z = R * perturbation
     out_direction = constructor_without_checks(enforce_numbertype(PointingVersor, x), x, y, z)
-    P <: UV && @assert out_direction.z >= 0 "The resulting point has a θ > 90°, so it is located behind the viewer.
-Convert the starting point to ThetaPhi before calling this function to allow target points behind the viewer."
-    convert(P, out_direction)
+    O <: UV && @assert out_direction.z >= 0 "The resulting point has a θ > 90°, so it is located behind the viewer.
+Call the function with an explicit non-UV output type to allow target points behind the viewer."
+    convert(O, out_direction)
 end
+add_angular_offset(O::Type{<:AbstractPointing}, p₀::AbstractPointing, θ::ValidAngle, φ::ValidAngle = 0.0) = add_angular_offset(O, p₀, ThetaPhi(θ, φ))
+add_angular_offset(p₀::AbstractPointing, args...) = add_angular_offset(typeof(p₀), p₀, args...)
