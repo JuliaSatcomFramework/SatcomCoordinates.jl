@@ -163,3 +163,31 @@ struct ElOverAz{T} <: AngularPointing{T}
 
     BasicTypes.constructor_without_checks(::Type{ElOverAz{T}}, az::Deg, el::Deg) where T = new{T}(az, el)
 end
+
+"""
+    AzEl{T} <: AngularPointing{T}
+
+Object specifying a pointing direction in "Elevation/Azimuth" coordinates, defined following the convention used for Azimuth-Elevation-Range ([`AER`](@ref)) coordinates used by MATLAB and by this package.
+
+This represents the azimuth/elevation definition often used for describing pointing from a user terminal on ground towards a satellite. They are very similar to the `ElOverAz` definition but with a rotation of the underlying CRS such that elevation is 90° in the direction of the +Z axis and azimuth is computed on the XY plane from the +Y axis towards the +X axis.
+
+Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`, their relation with the `El` and `Az` angles is:
+- `u = cos(El) * sin(Az)`
+- `v = cos(El) * cos(Az)`
+- `w = sin(El)`
+
+# Fields
+- `az::Deg{T}: The azimuth angle in degrees, constrained to be in the [-180°, 180°] range.`
+- `el::Deg{T}: The elevation angle in degrees, constrained to be in the [-90°, 90°] range.`
+
+!!! note
+    The fields of `AzEl` objects can also be accessed via `getproperty` using the `azimuth` and `elevation` aliases.
+
+See also: [`ThetaPhi`](@ref), [`PointingVersor`](@ref), [`UV`](@ref), [`ElOverAz`](@ref), [`AzOverEl`](@ref)
+"""
+struct AzEl{T} <: AngularPointing{T}
+    az::Deg{T}
+    el::Deg{T}
+
+    BasicTypes.constructor_without_checks(::Type{AzEl{T}}, az::Deg, el::Deg) where T = new{T}(az, el)
+end

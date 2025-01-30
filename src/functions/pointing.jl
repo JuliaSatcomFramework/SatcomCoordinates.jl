@@ -12,6 +12,7 @@ function Base.getproperty(p::PointingVersor, s::Symbol)
     s ∈ (:x, :u) && return getfield(p, :x)
     s ∈ (:y, :v) && return getfield(p, :y)
     s ∈ (:z, :w) && return getfield(p, :z)
+    throw(ArgumentError("The property $s is not valid for a PointingVersor"))
 end
 
 (::Type{P})(pt::Point{3, Real}) where P <: PointingVersor = P(pt...)
@@ -91,7 +92,7 @@ end
 ### AzOverEl/ElOverAz ###
 
 
-function (::Type{P})(α, β) where{T <: AbstractFloat, P <: Union{AzOverEl{T}, ElOverAz{T}, ThetaPhi{T}}}
+function (::Type{P})(α, β) where{T <: AbstractFloat, P <: Union{AzOverEl{T}, ElOverAz{T}, ThetaPhi{T}, AzEl{T}}}
     (isnan(α) || isnan(β)) && return constructor_without_checks(P, f(NaN), f(NaN))
     α = to_degrees(α, RoundNearest)
     β = to_degrees(β, RoundNearest)
@@ -100,9 +101,26 @@ function (::Type{P})(α, β) where{T <: AbstractFloat, P <: Union{AzOverEl{T}, E
 end
 
 # getproperty
-function Base.getproperty(p::Union{AzOverEl, ElOverAz}, s::Symbol)
+function Base.getproperty(p::Union{AzOverEl, ElOverAz, AzEl}, s::Symbol)
     s ∈ (:az, :azimuth) && return getfield(p, :az)
     s ∈ (:el, :elevation) && return getfield(p, :el)
+end
+
+## Conversions AzEl <-> PointingVersor
+function _convert_different(::Type{E}, p::PointingVersor) where E <: AzEl
+    (;u,v,w) = p
+    az = atan(u, v) |> asdeg # Already in the [-180°, 180°] range
+    el = asin(w) |> asdeg # Already in the [-90°, 90°] range
+    constructor_without_checks(enforce_numbertype(E, p), az, el)
+end
+function _convert_different(::Type{P}, p::AzEl) where P <: PointingVersor
+    (;az, el) = raw_nt(p)
+    saz,caz = sincos(az)
+    sel,cel = sincos(el)
+    x = saz * cel
+    y = caz * cel
+    z = sel
+    constructor_without_checks(enforce_numbertype(P, p), x, y, z)
 end
 
 ## Conversions ElOverAz <-> PointingVersor
@@ -144,7 +162,7 @@ end
 
 ### Fallbacks
 # Constructors without numbertype, and with tuple or SVector as input
-for P in (:UV, :ThetaPhi, :AzOverEl, :ElOverAz, :PointingVersor)
+for P in (:UV, :ThetaPhi, :AzEl, :AzOverEl, :ElOverAz, :PointingVersor)
     NT = P in (:UV, :PointingVersor) ? :Real : :ValidAngle
     N = P === :PointingVersor ? 3 : 2
     eval(:(
@@ -185,7 +203,7 @@ function Random.rand(rng::AbstractRNG, ::Random.SamplerType{TP}) where TP <: The
     constructor_without_checks(enforce_numbertype(TP), θ, φ)
 end
 
-function Random.rand(rng::AbstractRNG, ::Random.SamplerType{AE}) where AE <: Union{AzOverEl, ElOverAz}
+function Random.rand(rng::AbstractRNG, ::Random.SamplerType{AE}) where AE <: Union{AzOverEl, ElOverAz, AzEl}
     az = rand(rng) * 360° - 180°
     el = rand(rng) * 180° - 90°
     constructor_without_checks(enforce_numbertype(AE), az, el)

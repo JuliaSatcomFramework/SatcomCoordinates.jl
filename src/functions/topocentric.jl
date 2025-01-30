@@ -66,3 +66,23 @@ function _convert_different(::Type{T}, src::S) where {T <: Union{ENU, NED}, S <:
     (;x, y, z) = src
     constructor_without_checks(C, y, x, -z)
 end
+
+## ENU/NED <-> AER
+function _convert_different(::Type{A}, src::S) where {A <: AER, S <: Union{ENU, NED}}
+    C = enforce_numbertype(A, src)
+    enu = convert(ENU, src)
+    sv = to_svector(enu)
+    r = norm(sv) * u"m"
+    (;az, el) = convert(AzEl, PointingVersor(sv...))
+    constructor_without_checks(C, az, el, r)
+end
+function _convert_different(::Type{S}, src::A) where {S <: Union{ENU, NED}, A <: AER}
+    C = enforce_numbertype(S, src)
+    T = numbertype(C)
+    (; az, el, r) = src
+    ae = constructor_without_checks(AzEl{T}, az, el)
+    p = convert(PointingVersor, ae)
+    (;x, y, z) = to_svector(p) .* r
+    enu = constructor_without_checks(ENU{T}, x, y, z)
+    convert(S, enu)
+end

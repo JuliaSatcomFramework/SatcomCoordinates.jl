@@ -20,7 +20,7 @@ Function that takes as input two angles representing two orthogonal angular comp
 !!! note
     This function already assumes that the provided input angles are already normalized such that both are in the [-180°, 180°] range. If you want to normalize the inputs automatically use the `wrap_first_angle` function.
 """
-wrap_spherical_angles_normalized(az::T, el::T, ::Type{<:Union{AzOverEl, ElOverAz, AER}}) where {T <: Deg{<:Real}} =
+wrap_spherical_angles_normalized(az::T, el::T, ::Type{<:Union{AzOverEl, ElOverAz, AER, AzEl}}) where {T <: Deg{<:Real}} =
     ifelse(
         abs(el) <= 90°,  # Condition
         (az, el), # First angle is already between -90° and 90°

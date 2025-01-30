@@ -14,7 +14,7 @@ include("types/abstract_types.jl")
 export AbstractSatcomCoordinate, CartesianPosition, LengthCartesian, AngularPointing, AbstractPointing
 
 include("types/pointing.jl")
-export PointingVersor, UV, ThetaPhi, AzOverEl, ElOverAz
+export PointingVersor, UV, ThetaPhi, AzEl, AzOverEl, ElOverAz
 
 include("types/geocentric.jl")
 export ECEF, ECI, LLA
