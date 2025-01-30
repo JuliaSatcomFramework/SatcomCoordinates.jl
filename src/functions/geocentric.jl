@@ -25,7 +25,7 @@ function Base.getproperty(lla::LLA, s::Symbol)
     s in (:lat, :latitude) && return getfield(lla, :lat)
     s in (:lon, :longitude) && return getfield(lla, :lon)
     s in (:alt, :altitude, :h, :height) && return getfield(lla, :alt)
-    throw(ArgumentError("Invalid field name: $s"))
+    throw(ArgumentError("Objects of type `LLA` do not have a property called $s"))
 end
 
 ##### Base.isapprox #####

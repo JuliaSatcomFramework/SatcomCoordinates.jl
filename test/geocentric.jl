@@ -55,6 +55,8 @@ end
     @test lla.lon == lla.longitude
     @test lla.alt == lla.altitude == lla.h == lla.height
 
+    @test_throws "do not have a property" rand(LLA).q
+
     @testset "Allocations" begin
         @test @nallocs(LLA(0,0,700km)) == 0
         @test @nallocs(LLA(0°,0,700km)) == 0

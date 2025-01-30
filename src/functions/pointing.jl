@@ -161,19 +161,21 @@ function Base.getproperty(p::PointingVersor, s::Symbol)
     s ∈ (:x, :u) && return getfield(p, :x)
     s ∈ (:y, :v) && return getfield(p, :y)
     s ∈ (:z, :w) && return getfield(p, :z)
-    throw(ArgumentError("The property $s is not valid for a PointingVersor"))
+    throw(ArgumentError("Objects of type `PointingVersor` do not have a property called $s"))
 end
 
 # ThetaPhi
 function Base.getproperty(p::ThetaPhi, s::Symbol)
     s ∈ (:t, :θ, :theta) && return getfield(p, :θ)
     s ∈ (:p, :φ, :ϕ, :phi) && return getfield(p, :φ)
+    throw(ArgumentError("Objects of type `ThetaPhi` do not have a property called $s"))
 end
 
 # AzEl/AzOverEl/ElOverAz
 function Base.getproperty(p::Union{AzOverEl, ElOverAz, AzEl}, s::Symbol)
     s ∈ (:az, :azimuth) && return getfield(p, :az)
     s ∈ (:el, :elevation) && return getfield(p, :el)
+    throw(ArgumentError("Objects of type `$(p |> typeof |> basetype)` do not have a property called $s"))
 end
 
 ##### Base.isapprox #####
@@ -209,8 +211,6 @@ end
 
 ##### Utilities #####
 to_svector(p::PointingVersor) = SVector{3, numbertype(p)}(p.x, p.y, p.z)
-
-LinearAlgebra.dot(p1::PointingVersor, p2::PointingVersor) = p1.x * p2.x + p1.y * p2.y + p1.z * p2.z
 
 """
 	get_angular_distance(p₁::AbstractPointing, p₂::AbstractPointing)

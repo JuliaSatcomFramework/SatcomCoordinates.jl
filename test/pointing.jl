@@ -10,6 +10,8 @@ end
     p = PointingVersor(rand(3)...)
     @test norm(to_svector(p)) ≈ 1
 
+    @test_throws "do not have a property" rand(PointingVersor).q
+
     # Specifying numbertype
     p = PointingVersor{Float32}(rand(3)...)
     @test numbertype(p) == Float32
@@ -99,6 +101,8 @@ end
     @test tp.φ == tp.phi == tp.p == 0
     @test tp.θ isa Deg{Float64}
 
+    @test_throws "do not have a property" rand(ThetaPhi).q
+
     tp = ThetaPhi{Float32}(1,0)
     @test numbertype(tp) == Float32
     @test tp.θ isa Deg{Float32}
@@ -185,6 +189,8 @@ end
         @test p.az ==  p.azimuth == 1°
         @test p.el == p.elevation == 2°
         @test p.az isa Deg{Float64}
+
+        @test_throws "`$P` do not have a property" rand(P).q
 
         # Test constructors with tuple or SVector
         @test P(1,2) == P((1,2)) == P(SVector(1,2))
@@ -381,7 +387,7 @@ end
         p2 = rand(rand(valid_types))
         o = get_angular_offset(p1, p2)
         if p1 isa UV && convert(PointingVersor, p2).z < 0
-            return true
+            return true # We skip or we would get an error for negative z half hemisphere
         else
             return p2 ≈ add_angular_offset(p1, o)
         end

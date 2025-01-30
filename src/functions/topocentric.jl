@@ -13,9 +13,9 @@ function AER{T}(az::ValidAngle, el::ValidAngle, r::ValidDistance) where T
     constructor_without_checks(AER{T}, az, el, r)
 end
 function AER(az::ValidAngle, el::ValidAngle, r::ValidDistance)
-    NT = promote_type(map(numbertype, (lat, lon, alt))...)
+    NT = promote_type(map(numbertype, (az, el, r))...)
     T = NT <: AbstractFloat ? NT : Float64
-    LLA{T}(lat, lon, alt)
+    AER{T}(az, el, r)
 end
 
 ##### Base.getproperty #####
@@ -24,7 +24,7 @@ function Base.getproperty(enu::ENU, s::Symbol)
     s in (:x, :east) && return getfield(enu, :x)
     s in (:y, :north) && return getfield(enu, :y)
     s in (:z, :up) && return getfield(enu, :z)
-    throw(ArgumentError("Invalid field name: $s"))
+    throw(ArgumentError("Objects of type `ENU` do not have a property called $s"))
 end
 
 ## NED
@@ -32,7 +32,7 @@ function Base.getproperty(ned::NED, s::Symbol)
     s in (:x, :north) && return getfield(ned, :x)
     s in (:y, :east) && return getfield(ned, :y)
     s in (:z, :down) && return getfield(ned, :z)
-    throw(ArgumentError("Invalid field name: $s"))
+    throw(ArgumentError("Objects of type `NED` do not have a property called $s"))
 end
 
 ## AER
@@ -40,7 +40,7 @@ function Base.getproperty(aer::AER, s::Symbol)
     s in (:az, :azimuth) && return getfield(aer, :az)
     s in (:el, :elevation) && return getfield(aer, :el)
     s in (:r, :range) && return getfield(aer, :r)
-    throw(ArgumentError("Invalid field name: $s"))
+    throw(ArgumentError("Objects of type `AER` do not have a property called $s"))
 end
 
 ##### Random.rand #####
@@ -88,14 +88,9 @@ function _convert_different(::Type{S}, src::A) where {S <: Union{ENU, NED}, A <:
 end
 
 ##### Base.isapprox #####
-function Base.isapprox(c1::A1, c2::TopocentricPosition; kwargs...) where {A1 <: AER}
+function Base.isapprox(c1::TopocentricPosition, c2::TopocentricPosition; kwargs...)
     e1 = convert(ENU, c1)
     e2 = convert(ENU, c2)
     isapprox(e1, e2; kwargs...)
 end
-Base.isapprox(c1::TopocentricPosition, c2::AER; kwargs...) = isapprox(c2, c1; kwargs...)
-function Base.isapprox(a1::AER, a2::AER; kwargs...)
-    e1 = convert(ENU, a1)
-    e2 = convert(ENU, a2)
-    isapprox(e1, e2; kwargs...)
-end
+Base.isapprox(c1::ENU, c2::ENU; kwargs...) = isapprox(to_svector(c1), to_svector(c2); kwargs...)

@@ -94,7 +94,7 @@ end
 function normalize_value(val::PS)
     if val isa Deg
         stripdeg(val)
-    elseif val isa Met
+    elseif val isa Union{Met, Rad}
         ustrip(val)
     else
         val
@@ -119,3 +119,4 @@ stripdeg(x::Deg) = x |> ustrip |> deg2rad
 # This function shall create the non-parametrzed subtype, used for simplifying adding methods to `StructArrays.similar_type`. The solution is taken from https://discourse.julialang.org/t/deparametrising-types/41939/4
 basetype(t::DataType) = t.name.wrapper
 basetype(t::UnionAll) = basetype(t.body)
+basetype(::T) where T = basetype(T)

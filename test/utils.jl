@@ -31,5 +31,21 @@ end
 
     # For AzOverEl and ElOverAz, the el angle is forced to be in the [-90°, 90°] range. The az is the first argument
     @test wrap_spherical_angles(30, 10, AzOverEl) == (30°, 10°)
-    @test wrap_spherical_angles((-10°, 150), ElOverAz) == (170°, -30°)
+    @test wrap_spherical_angles((-10, 150), ElOverAz) == (170°, -30°)
+end
+
+@testitem "Misc" begin
+    using SatcomCoordinates: normalize_value, basetype, _convert_different
+    using Unitful
+    @test normalize_value(1u"°") == deg2rad(1)
+    @test normalize_value(1.0u"rad") == 1.0
+    @test normalize_value(1u"m") == 1
+    @test normalize_value(1f0) == 1f0
+
+    @test basetype(PointingVersor) == PointingVersor
+    @test basetype(PointingVersor{Float32}) == PointingVersor
+    @test basetype(3.0) == Float64
+    @test basetype(rand(LLA)) == LLA
+
+    @test_throws "Cannot convert" _convert_different(PointingVersor, rand(LLA))
 end
