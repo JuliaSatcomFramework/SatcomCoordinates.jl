@@ -1,4 +1,4 @@
-@testsnippet setup_geocentered begin
+@testsnippet setup_geocentric begin
     using SatcomCoordinates: numbertype, to_svector, raw_nt, @u_str
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
@@ -6,7 +6,7 @@
     using TestAllocations
 end
 
-@testitem "ECEF/ECI" setup=[setup_geocentered] begin
+@testitem "ECEF/ECI" setup=[setup_geocentric] begin
     for P in (ECEF, ECI)
         @test numbertype(P(1,2,3)) == Float64
         @test numbertype(P{Float32}(1,2,3)) == Float32
@@ -28,7 +28,7 @@ end
     @test_throws "Cannot compare coordinates of different types" rand(ECEF) ≈ rand(ECI)
 end
 
-@testitem "LLA" setup=[setup_geocentered] begin
+@testitem "LLA" setup=[setup_geocentric] begin
     @test LLA(10°, 10°, 1000) ≈ LLA((10 + 100 * eps()) * °, 10°, 1000)
     @test LLA(90°, 10°, 1000) ≈ LLA(90°, 130°, 1000)
     @test LLA(40°, -180°, 1000) ≈ LLA(40°, 180°, 1000)
@@ -49,6 +49,11 @@ end
     @test_nowarn LLA(1°, .1, 10u"km")
 
     @test rand(LLA) ≉ rand(LLA)
+
+    lla = rand(LLA)
+    @test lla.lat == lla.latitude
+    @test lla.lon == lla.longitude
+    @test lla.alt == lla.altitude == lla.h == lla.height
 
     @testset "Allocations" begin
         @test @nallocs(LLA(0,0,700km)) == 0

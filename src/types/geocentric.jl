@@ -3,12 +3,12 @@
 Represents a position in the Earth-Centered, Earth-Fixed (ECEF) coordinate system (or generically for other planets, Ellipsoid-Centered, Ellipsoid-Fixed).
 
 # Fields
-x::Met{T}: X-coordinate in meters
-y::Met{T}: Y-coordinate in meters
-z::Met{T}: Z-coordinate in meters
+- `x::Met{T}`: X-coordinate in meters
+- `y::Met{T}`: Y-coordinate in meters
+- `z::Met{T}`: Z-coordinate in meters
 
 # Basic Constructors
-ECEF(x::ValidDistance, y::ValidDistance, z::ValidDistance)
+    ECEF(x::ValidDistance, y::ValidDistance, z::ValidDistance)
 
 `ValidDistance` is either a Real Number, or a subtype of
 `Unitful.Length`.
@@ -33,12 +33,12 @@ end
 Represents a position in the Earth-Centered, Inertial (ECI) coordinate system (or generically for other planets, Ellipsoid-Centered, Inertial).
 
 # Fields
-x::Met{T}: X-coordinate in meters
-y::Met{T}: Y-coordinate in meters
-z::Met{T}: Z-coordinate in meters
+- `x::Met{T}`: X-coordinate in meters
+- `y::Met{T}`: Y-coordinate in meters
+- `z::Met{T}`: Z-coordinate in meters
 
 # Basic Constructors
-ECI(x::ValidDistance, y::ValidDistance, z::ValidDistance)
+    ECI(x::ValidDistance, y::ValidDistance, z::ValidDistance)
 
 `ValidDistance` is either a Real Number, or a subtype of
 `Unitful.Length`.
@@ -63,9 +63,14 @@ end
 Identify a point on or above earth using geodetic coordinates
 
 # Fields
-lat::Deg{T}: Latitude of the point in degrees [-90°, 90°]
-lon::Deg{T}: Longitude of the point in degrees [-180°, 180°]
-alt::Met{T}: Altitude of the point above the reference ellipsoid
+- `lat::Deg{T}`: Latitude of the point in degrees [-90°, 90°]
+- `lon::Deg{T}`: Longitude of the point in degrees [-180°, 180°]
+- `alt::Met{T}`: Altitude of the point above the reference ellipsoid
+
+The fields of `LLA` objects can also be accessed via `getproperty` using the follwing alternative aliases:
+- `latitude` for `lat`
+- `longitude` for `lon`
+- `altitude`, `h` or `height` for `alt`
 
 # Basic Constructors
     LLA(lat::ValidAngle,lon::ValidAngle,alt::ValidDistance)
@@ -92,4 +97,11 @@ struct LLA{T} <: AngleAngleDistance{T}
     BasicTypes.constructor_without_checks(::Type{LLA{T}}, lat, lon, alt) where T = new{T}(lat, lon, alt)
 end
 
-const GeocenteredPosition{T} = Union{ECEF{T}, ECI{T}, LLA{T}}
+function Base.getproperty(lla::LLA, s::Symbol) 
+    s in (:lat, :latitude) && return getfield(lla, :lat)
+    s in (:lon, :longitude) && return getfield(lla, :lon)
+    s in (:alt, :altitude, :h, :height) && return getfield(lla, :alt)
+    throw(ArgumentError("Invalid field name: $s"))
+end
+
+const GeocentricPosition{T} = Union{ECEF{T}, ECI{T}, LLA{T}}

@@ -16,13 +16,17 @@ export AbstractSatcomCoordinate, CartesianPosition, LengthCartesian, AngularPoin
 include("types/pointing.jl")
 export PointingVersor, UV, ThetaPhi, AzOverEl, ElOverAz
 
-include("types/geocentered.jl")
+include("types/geocentric.jl")
 export ECEF, ECI, LLA
+
+include("types/topocentric.jl")
+export ENU, NED, AER
 
 include("functions/pointing.jl") # Contains constructors, conversions and rand methods
 export get_angular_distance, get_angular_offset, add_angular_offset
 
-include("functions/geocentered.jl")
+include("functions/geocentric.jl")
+include("functions/topocentric.jl")
 include("functions/fallbacks.jl")
 
 include("utils.jl")

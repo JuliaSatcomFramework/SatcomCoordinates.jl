@@ -116,14 +116,14 @@ Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`,
 - `w = cos(Az) * cos(El)`
 
 !!! note
-The equations above are used to represent the "Azimuth over Elevation" coordinates in GRASP. Some textbooks, however, use the opposite convention, meaning that the same equations (with a possible flip in the az/u sign) are used to describe an "Elevation over Azimuth" coordinate system. This is for example the case in the book _"Theory and Practice of Modern Antenna Range Measurements"_ by Clive Parini et al.
+    The equations above are used to represent the "Azimuth over Elevation" coordinates in GRASP. Some textbooks, however, use the opposite convention, meaning that the same equations (with a possible flip in the az/u sign) are used to describe an "Elevation over Azimuth" coordinate system. This is for example the case in the book _"Theory and Practice of Modern Antenna Range Measurements"_ by Clive Parini et al.
 
 # Fields
 - `az::Deg{T}: The azimuth angle in degrees, constrained to be in the [-180°, 180°] range.`
 - `el::Deg{T}: The elevation angle in degrees, constrained to be in the [-90°, 90°] range.`
 
 !!! note
-The fields of `AzOverEl` objects can also be accessed via `getproperty` using the `azimuth` and `elevation` aliases.
+    The fields of `AzOverEl` objects can also be accessed via `getproperty` using the `azimuth` and `elevation` aliases.
 """
 struct AzOverEl{T} <: AngularPointing{T}
     az::Deg{T}
@@ -146,14 +146,14 @@ Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`,
 - `w = cos(Az) * cos(El)`
 
 !!! note
-The equations above are used to represent the "Elevation over Azimuth" coordinates in GRASP. Some textbooks, however, use the opposite convention, meaning that the same equations (with sometimes an additional flip in the az/u sign) are used to describe an "Azimuth over Elevation" coordinate system. This is for example the case in the book _"Theory and Practice of Modern Antenna Range Measurements"_ by Clive Parini et al.
+    The equations above are used to represent the "Elevation over Azimuth" coordinates in GRASP. Some textbooks, however, use the opposite convention, meaning that the same equations (with sometimes an additional flip in the az/u sign) are used to describe an "Azimuth over Elevation" coordinate system. This is for example the case in the book _"Theory and Practice of Modern Antenna Range Measurements"_ by Clive Parini et al.
 
 # Fields
 - `az::Deg{T}: The azimuth angle in degrees, constrained to be in the [-180°, 180°] range.`
 - `el::Deg{T}: The elevation angle in degrees, constrained to be in the [-90°, 90°] range.`
 
 !!! note
-The fields of `ElOverAz` objects can also be accessed via `getproperty` using the `azimuth` and `elevation` aliases.
+    The fields of `ElOverAz` objects can also be accessed via `getproperty` using the `azimuth` and `elevation` aliases.
 
 See also: [`AzOverEl`](@ref), [`ThetaPhi`](@ref), [`PointingVersor`](@ref), [`UV`](@ref)
 """

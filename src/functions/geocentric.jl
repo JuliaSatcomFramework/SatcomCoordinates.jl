@@ -1,24 +1,7 @@
 # Constructors
 
 ## ECI/ECEF
-for P in (:ECI, :ECEF)
-    # Constructor with specified numbertype
-    eval(:(
-    function $P{T}(xyz::Vararg{ValidDistance, 3}) where T <: AbstractFloat
-        any(isnan, xyz) && return constructor_without_checks($P{T}, NaN * u"m", NaN * u"m", NaN * u"m")
-        x, y, z = map(to_meters, xyz)
-        constructor_without_checks($P{T}, x, y, z)
-    end
-    ))
-    # Function without specified numbertype
-    eval(:(
-    function $P(xyz::Vararg{ValidDistance, 3})
-        NT = promote_type(map(numbertype, xyz)...)
-        T = NT <: AbstractFloat ? NT : Float64
-        $P{T}(xyz...)
-    end
-    ))
-end
+# Handled by generic LengthCartesian constructor in fallbacks.jl
 
 ## LLA
 function LLA{T}(lat::ValidAngle, lon::ValidAngle, alt::ValidDistance) where T
