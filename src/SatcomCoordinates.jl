@@ -1,6 +1,6 @@
 module SatcomCoordinates
 
-using BasicTypes: BasicTypes, constructor_without_checks, to_degrees, to_meters, Met, Deg, Rad, UnitfulAngleQuantity, ValidAngle, Point2D, Point3D, Point, PS, ValidDistance, to_radians, basetype
+using BasicTypes: BasicTypes, constructor_without_checks, to_degrees, to_meters, Met, Deg, Rad, UnitfulAngleQuantity, ValidAngle, Point2D, Point3D, Point, PS, ValidDistance, to_radians, basetype, asdeg, stripdeg
 using ConstructionBase: ConstructionBase, getfields
 using StaticArrays: StaticArrays, FieldVector, SVector, @SVector, SA
 using LinearAlgebra: LinearAlgebra, normalize, norm

@@ -100,18 +100,3 @@ function normalize_value(val::PS)
         val
     end
 end
-
-
-"""
-    asdeg(x::Real)
-
-Convert the provided value assumed to be in radians to Unitful degrees.
-"""
-asdeg(x::Real) = rad2deg(x) * °
-
-"""
-    stripdeg(x::Deg)
-
-Strip the units from the provided `Deg` field and convert it to radians.
-"""
-stripdeg(x::Deg) = x |> ustrip |> deg2rad
