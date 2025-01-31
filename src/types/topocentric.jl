@@ -78,6 +78,24 @@ The Elevation and Azimuth angles are always defined w.r.t. the ENU CRS with the 
 - `az::Deg{T}`: Azimuth angle, defined angle in the XY (North-East) plane from the +Y (North) direction to the object, positive towards +X (East) direction. It is constrained to be in the range `[-180°, 180°]`
 - `el::Deg{T}`: Elevation angle, defined as the angle between the XY plane and the point being described by the AER coordinates, positive towards +Z (Up) direction. It is constrained to be in the range `[-90°, 90°]`
 - `r::Met{T}`: Range in meters between the origin of the ENU CRS and the point being described by the AER coordinates.
+
+The fields of `AER` objects can also be accessed via `getproperty` using the follwing alternative aliases:
+- `azimuth` for `az`
+- `elevation` for `el`
+- `range` or `distance` for `r`
+
+# Basic Constructors
+    AER(az::ValidAngle, el::ValidAngle, r::ValidDistance)
+
+`ValidAngle` is either a Real Number, or a subtype of `Unitful.Angle`.
+`ValidDistance` is either a Real Number, or a subtype of `Unitful.Length`.
+
+If of the provided argument is `NaN`, the returned `AER` object will contain `NaN` for all fields.
+
+# Fallback constructors
+All subtypes of `P <: AbstractSatcomCoordinate` can also be constructed using a Tuple or SVector as input, which will be `splatted` into the standard constructor for `P`
+
+See also: [`ENU`](@ref), [`NED`](@ref).
 """
 struct AER{T} <: AngleAngleDistance{T}
     az::Deg{T}

@@ -39,7 +39,7 @@ end
 function Base.getproperty(aer::AER, s::Symbol) 
     s in (:az, :azimuth) && return getfield(aer, :az)
     s in (:el, :elevation) && return getfield(aer, :el)
-    s in (:r, :range) && return getfield(aer, :r)
+    s in (:r, :range, :distance) && return getfield(aer, :r)
     throw(ArgumentError("Objects of type `AER` do not have a property called $s"))
 end
 
