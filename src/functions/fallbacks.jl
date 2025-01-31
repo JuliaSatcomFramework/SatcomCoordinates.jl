@@ -24,6 +24,9 @@ function Base.:(+)(c1::C1, c2::C2) where {C1 <: CartesianPosition, C2 <: Cartesi
 end
 Base.:(-)(c1::C1, c2::C2) where {C1 <: CartesianPosition, C2 <: CartesianPosition} = c1 + (-c2)
 
+# zero
+Base.zero(::Type{C}) where C <: CartesianPosition = constructor_without_checks(enforce_numbertype(C), map(to_meters, zero(SVector{3, Float64}))...)
+
 # isnan
 Base.isnan(coords::C) where C <: AbstractSatcomCoordinate = any(isnan, raw_nt(coords))
 

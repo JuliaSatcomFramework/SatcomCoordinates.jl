@@ -4,6 +4,8 @@ numbertype(::T) where T = numbertype(T)
 numbertype(T::DataType) = error("The numbertype function is not implemented for type $T")
 numbertype(::Type{<:AbstractSatcomCoordinate{T}}) where T = T
 numbertype(T::Type{<:AbstractSatcomCoordinate}) = error("The provided UnionAll type $T does not have the numbertype parameter specified")
+numbertype(::Type{<:AbstractArray{T}}) where T = T
+numbertype(::Type{<:AbstractCRSTransform{T}}) where T = T
 
 numcoords(::Type{<:AbstractSatcomCoordinate{<:Any, N}}) where N = N
 numcoords(T::DataType) = error("The numcoords function is not implemented for type $T")
@@ -49,16 +51,12 @@ wrap_spherical_angles(p::Point2D, ::Type{T}) where T <: Union{ThetaPhi, AzOverEl
 
 
 # This is inspired from StaticArrays. These are not onlineners as coverage otherwise do not catch them.
-function has_numbertype(::Type{<:AbstractSatcomCoordinate{T}}) where {T}
-    return true
-end
-function has_numbertype(::Type{<:AbstractSatcomCoordinate}) 
-    return false
-end
+has_numbertype(::Type{<:Union{AbstractSatcomCoordinate{T}, AbstractCRSTransform{T}}}) where {T} = return true
+has_numbertype(::Type{<:Union{AbstractSatcomCoordinate, AbstractCRSTransform}}) = return false
 
-enforce_numbertype(::Type{C}, ::Type{T}) where {C <: AbstractSatcomCoordinate, T} =
+enforce_numbertype(::Type{C}, ::Type{T}) where {C <: Union{AbstractSatcomCoordinate, AbstractCRSTransform}, T} =
     has_numbertype(C) ? C : C{T}
-enforce_numbertype(::Type{C}, default = 1.0) where {C <: AbstractSatcomCoordinate} =
+enforce_numbertype(::Type{C}, default = 1.0) where {C <: Union{AbstractSatcomCoordinate, AbstractCRSTransform}} =
     enforce_numbertype(C, numbertype(default))
 
 

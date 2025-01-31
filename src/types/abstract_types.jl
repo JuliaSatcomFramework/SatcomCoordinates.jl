@@ -47,3 +47,7 @@ Abstract type representing a pointing direction identified by two angles in
 degrees, represented with fields of types `Deg{T}`.
 """
 abstract type AngularPointing{T} <: AbstractPointing{T} end
+
+
+abstract type AbstractCRSTransform{T} <: Transform end
+abstract type AbstractAffineCRSTransform{T} <: AbstractCRSTransform{T} end

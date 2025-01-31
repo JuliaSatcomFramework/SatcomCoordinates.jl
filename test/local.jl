@@ -4,6 +4,7 @@
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
+    using SatcomCoordinates.Rotations
     using TestAllocations
 end
 

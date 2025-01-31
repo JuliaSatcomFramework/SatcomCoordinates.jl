@@ -36,3 +36,11 @@ const AzElDistance{T} = GeneralizedSpherical{T, AzEl{T}}
 Union of all types that can represent a position in a generic local coordinate system.
 """
 const GenericLocalPosition{T} = Union{LocalCartesian{T}, GeneralizedSpherical{T}}
+
+
+"""
+    const ForwardOrInverse{F <: AbstractCRSTransform} = Union{F, InverseTransform{<:Any, <:F}}
+
+Union representing either a forward or reverse transform of F
+"""
+const ForwardOrInverse{F <: AbstractCRSTransform} = Union{F, InverseTransform{<:Any, <:F}}

@@ -1,9 +1,13 @@
 @testitem "numbertype" begin
     using SatcomCoordinates: numbertype, has_numbertype
     using SatcomCoordinates.Unitful
+    using SatcomCoordinates.StaticArrays
 
     @test has_numbertype(UV) === false
     @test has_numbertype(UV{Float32}) === true
+
+    @test numbertype(rand(3)) == Float64
+    @test numbertype(@SVector(rand(3))) == Float64
 
     @test numbertype(1u"°") == Int
     @test numbertype(1.0u"°") == Float64
