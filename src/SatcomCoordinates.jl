@@ -25,7 +25,7 @@ export ENU, NED, AER
 include("types/local.jl")
 export LocalCartesian, GeneralizedSpherical
 
-include("types/union_types.jl")
+include("types/type_aliases.jl")
 export GeocentricPosition, TopocentricPosition, GenericLocalPosition, Spherical, AzElDistance
 
 include("functions/pointing.jl") # Contains constructors, conversions and rand methods
