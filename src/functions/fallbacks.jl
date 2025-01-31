@@ -14,6 +14,16 @@ function (::Type{P})(xyz::Vararg{ValidDistance, 3}) where P <: LengthCartesian
     constructor_without_checks(PP, x, y, z)
 end
 
+# Addition, subtraction and sign inversion
+Base.:(-)(c::C) where C <: CartesianPosition = constructor_without_checks(C, -c.x, -c.y, -c.z)
+function Base.:(+)(c1::C1, c2::C2) where {C1 <: CartesianPosition, C2 <: CartesianPosition} 
+    C = basetype(C1)
+    C == basetype(C2) || throw(ArgumentError("Cannot add coordinates of different types: $C1 and $C2"))
+    T = promote_type(numbertype(C1), numbertype(C2))
+    constructor_without_checks(C{T}, c1.x + c2.x, c1.y + c2.y, c1.z + c2.z)
+end
+Base.:(-)(c1::C1, c2::C2) where {C1 <: CartesianPosition, C2 <: CartesianPosition} = c1 + (-c2)
+
 # isnan
 Base.isnan(coords::C) where C <: AbstractSatcomCoordinate = any(isnan, raw_nt(coords))
 

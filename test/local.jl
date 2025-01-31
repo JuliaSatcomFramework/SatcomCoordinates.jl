@@ -31,6 +31,14 @@ end
         @test @nallocs(LocalCartesian{Float32}(1,2,3)) == 0
         @test @nallocs(LocalCartesian(SVector(1f0,2f0,3f0))) == 0
     end
+
+    c1, c2 = rand(LocalCartesian, 2)
+    @test to_svector(c1 + c2) == to_svector(c1) + to_svector(c2)
+    @test to_svector(c1 - c2) == to_svector(c1) - to_svector(c2)
+
+    c3 = rand(LocalCartesian{Float32})
+    @test c1 + c3 isa LocalCartesian{Float64}
+    @test c1 - c3 isa LocalCartesian{Float64}
 end
 
 @testitem "GeneralizedSpherical" setup=[setup_local] begin

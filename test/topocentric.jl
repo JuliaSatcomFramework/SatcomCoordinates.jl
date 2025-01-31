@@ -26,7 +26,16 @@ end
         @test p1 ≉ p2
         @test p1 ≈ p1
         @test p1 ≈ convert(P{Float32}, p1)
+
+        c1, c2 = rand(P, 2)
+        @test to_svector(c1 + c2) == to_svector(c1) + to_svector(c2)
+        @test to_svector(c1 - c2) == to_svector(c1) - to_svector(c2)
+
+        c3 = rand(P{Float32})
+        @test c1 + c3 isa P{Float64}
+        @test c1 - c3 isa P{Float64}
     end
+    @test_throws "Cannot add coordinates" ENU(1,2,3) + NED(1,2,3)
 
     enu = rand(ENU)
     @test enu.x === enu.east
