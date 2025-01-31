@@ -17,7 +17,7 @@ end
     using SatcomCoordinates.Unitful
 
     @test_throws "The numcoords function is not implemented" numcoords(3)
-    @test numcoords(rand(UV)) === 2
+    @test numcoords(rand(UV)) === 3
     @test numcoords(PointingVersor) === 3
 end
 

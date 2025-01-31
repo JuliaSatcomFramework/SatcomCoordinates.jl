@@ -1,5 +1,5 @@
 """
-    PointingVersor{T} <: AbstractPointing{T, 3}
+    PointingVersor{T} <: AbstractPointing{T}
 
 A unit vector (versor) representing a pointing direction in 3D space. Its components
 are the `x`, `y`, and `z` components of the unit vector and can also be seen as
@@ -13,7 +13,7 @@ the `u`, `v`, and `w` direction cosines of the direction identified by the
 
 See also: [`UV`](@ref), [`ThetaPhi`](@ref), [`AzOverEl`](@ref), [`ElOverAz`](@ref)
 """
-struct PointingVersor{T} <: AbstractPointing{T, 3}
+struct PointingVersor{T} <: AbstractPointing{T}
     x::T
     y::T
     z::T
@@ -23,7 +23,7 @@ end
 
 # UV
 """
-    UV{T} <: AbstractPointing{T, 2}
+    UV{T} <: AbstractPointing{T}
 
 Specify a pointing direction in UV coordinates, which are equivalent to the direction cosines with respect to the `X` and `Y` axis of the reference frame. They can also be related to the spherical coordinates (ISO/Physics) [spherical coordinates
 representation](https://en.wikipedia.org/wiki/Spherical_coordinate_system) by the following equations:
@@ -54,7 +54,7 @@ which will internally call the 2-arguments constructor.
 
 See also: [`PointingVersor`](@ref), [`ThetaPhi`](@ref)
 """
-struct UV{T} <: AbstractPointing{T, 2}
+struct UV{T} <: AbstractPointing{T}
     u::T
     v::T
     BasicTypes.constructor_without_checks(::Type{UV{T}}, u, v) where {T} = new{T}(u, v)
