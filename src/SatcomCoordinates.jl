@@ -22,11 +22,18 @@ export ECEF, ECI, LLA
 include("types/topocentric.jl")
 export ENU, NED, AER
 
+include("types/local.jl")
+export LocalCartesian, GeneralizedSpherical
+
+include("types/union_types.jl")
+export GeocentricPosition, TopocentricPosition, GenericLocalPosition, Spherical, AzElDistance
+
 include("functions/pointing.jl") # Contains constructors, conversions and rand methods
 export get_angular_distance, get_angular_offset, add_angular_offset
 
 include("functions/geocentric.jl")
 include("functions/topocentric.jl")
+include("functions/local.jl")
 include("functions/fallbacks.jl")
 
 include("utils.jl")

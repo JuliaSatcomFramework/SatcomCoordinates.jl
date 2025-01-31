@@ -103,5 +103,3 @@ struct AER{T} <: AngleAngleDistance{T}
     r::Met{T}
     BasicTypes.constructor_without_checks(::Type{AER{T}}, az, el, r) where T = new{T}(az, el, r)
 end
-
-const TopocentricPosition{T} = Union{ENU{T}, NED{T}, AER{T}}

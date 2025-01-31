@@ -96,5 +96,3 @@ struct LLA{T} <: AngleAngleDistance{T}
 
     BasicTypes.constructor_without_checks(::Type{LLA{T}}, lat, lon, alt) where T = new{T}(lat, lon, alt)
 end
-
-const GeocentricPosition{T} = Union{ECEF{T}, ECI{T}, LLA{T}}

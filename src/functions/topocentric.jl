@@ -50,14 +50,8 @@ function Random.rand(rng::AbstractRNG, ::Random.SamplerType{A}) where A <: AER
     r = 1e3 * ((1 + rand(rng)) * u"m")
     constructor_without_checks(enforce_numbertype(A), az, el, r)
 end
-
-function Random.rand(rng::AbstractRNG, ::Random.SamplerType{E}) where E <: Union{ENU, NED}
-    C = enforce_numbertype(E)
-    T = numbertype(C)
-    p = rand(rng, PointingVersor{T}) |> to_svector
-    x, y, z = p * (1e3 * ((1 + rand(rng)) * u"m"))
-    constructor_without_checks(C, x, y, z)
-end
+# ENU/NED
+# Handled by generic LengthCartesian function in fallbacks.jl
 
 ##### convert #####
 ## ENU <-> NED

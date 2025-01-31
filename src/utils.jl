@@ -72,7 +72,7 @@ Generate the unitless SVector containing the _normalized_ fields of the provided
 
 See also [`raw_nt`](@ref)
 """
-function to_svector(coords::C) where C <: AbstractSatcomCoordinate
+function to_svector(coords::C) where C <: CartesianPosition
     raw_nt(coords) |> Tuple |> SVector{3, numbertype(C)}
 end
 
