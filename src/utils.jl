@@ -73,6 +73,11 @@ enforce_numbertype(::Type{C}, ::Type{T}) where {C <: Union{AbstractSatcomCoordin
 enforce_numbertype(::Type{C}, default = 1.0) where {C <: Union{AbstractSatcomCoordinate, AbstractCRSTransform}} =
     enforce_numbertype(C, numbertype(default))
 
+change_numbertype(::Type{T}, c::C) where {T <: AbstractFloat, C <: Union{AbstractSatcomCoordinate, AbstractCRSTransform}} = return convert(basetype(C){T}, c)
+change_numbertype(::Type{T}, x::Real) where T <: AbstractFloat = convert(T, x)
+change_numbertype(::Type{T}, r::RotMatrix3) where {T <: AbstractFloat} = convert(RotMatrix3{T}, r)
+change_numbertype(::Type{T}) where T <: AbstractFloat = x -> change_numbertype(T, x)
+
 
 """
     to_svector(coord::AbstractSatcomCoordinate)

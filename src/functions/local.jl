@@ -87,6 +87,12 @@ function raw_nt(g::GeneralizedSpherical)
     map(normalize_value, nt)
 end
 
+# Custom implementation of change_numbertype for GeneralizedSpherical
+function change_numbertype(::Type{T}, g::G) where {T <: AbstractFloat, G <: GeneralizedSpherical} 
+    PT = basetype(pointing_type(g)){T}
+    convert(GeneralizedSpherical{T, PT}, g)
+end
+
 
 # Check if a potentially abstract subtype of GeneralizedSherical has an associated pointing type
 has_pointingtype(::Type{GeneralizedSpherical}) = return false

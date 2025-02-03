@@ -65,3 +65,5 @@ end
 function _convert_different(::Type{C1}, c::C2) where {C1 <: AbstractSatcomCoordinate, C2 <: AbstractSatcomCoordinate}
     throw(ArgumentError("Cannot convert coordinates of different types: $C1 and $C2"))
 end
+
+change_numbertype(::Type, i::Identity) = i

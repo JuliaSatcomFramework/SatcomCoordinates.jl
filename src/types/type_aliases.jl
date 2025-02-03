@@ -44,3 +44,10 @@ const GenericLocalPosition{T} = Union{LocalCartesian{T}, GeneralizedSpherical{T}
 Union representing either a forward or reverse transform of F
 """
 const ForwardOrInverse{F <: AbstractCRSTransform} = Union{F, InverseTransform{<:Any, <:F}}
+
+"""
+    const WithNumbertype{T} = Union{AbstractSatcomCoordinate{T}, AbstractCRSTransform{T}}
+
+Union representing the types defined and exported by this package, which always have a numbertype as first parameter.
+"""
+const WithNumbertype{T} = Union{AbstractSatcomCoordinate{T}, AbstractCRSTransform{T}}

@@ -26,6 +26,13 @@ rotation(t::AbstractAffineCRSTransform) = t.rotation
 rotation(t::InverseTransform) = rotation(t.transform) |> inverse
 rotation(t::Identity) = return t
 
+##### Base.getproperty #####
+function Base.getproperty(i::InverseTransform, s::Symbol)
+    t = getfield(i, :transform)
+    s == :transform && return t
+    return getproperty(t, s)
+end
+
 ##### TransformsBase interface #####
 # Generic
 TransformsBase.isrevertible(t::AbstractCRSTransform) = 
@@ -79,3 +86,18 @@ function Random.rand(rng::AbstractRNG, ::SamplerType{A}) where A <: BasicCRSTran
     origin = rand(rng, LocalCartesian{T})
     return BasicCRSTransform(R, origin)
 end
+
+
+##### Base.convert #####
+Base.convert(::Type{CRSRotation}, t::TR) where TR <: CRSRotation = return t
+Base.convert(::Type{CRSRotation{T}}, t::CRSRotation{T}) where {T <: AbstractFloat} = return t
+Base.convert(::Type{CRSRotation{T}}, t::CRSRotation) where {T <: AbstractFloat} = return CRSRotation(change_numbertype(T, t.rotation))
+
+Base.convert(::Type{BasicCRSTransform}, t::TR) where TR <: BasicCRSTransform = return t
+Base.convert(::Type{BasicCRSTransform{T}}, t::BasicCRSTransform{T}) where {T <: AbstractFloat} = return t
+Base.convert(::Type{BasicCRSTransform{T}}, t::BasicCRSTransform) where {T <: AbstractFloat} = BasicCRSTransform(change_numbertype(T, t.rotation), change_numbertype(T, t.origin))
+
+Base.convert(::Type{InverseTransform}, t::TR) where TR <: InverseTransform = return t
+Base.convert(::Type{InverseTransform{T}}, t::InverseTransform{T}) where {T <: AbstractFloat} = return t
+Base.convert(::Type{InverseTransform{T}}, t::InverseTransform) where {T <: AbstractFloat} = InverseTransform(change_numbertype(T, t.transform))
+

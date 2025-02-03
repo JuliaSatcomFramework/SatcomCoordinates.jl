@@ -44,6 +44,12 @@ end
     rvs = ff(inverse(t), fwd)
     @test rvs ≈ p
 
+    # Getproperty
+    i = inverse(t)
+    @test i.transform === t
+    @test i.rotation === t.rotation
+    @test i.origin === t.origin
+
     @testset "Allocations" begin
         @test @nallocs(ff(t, p)) == 0
         @test @nallocs(ff(inverse(t), p)) == 0
@@ -60,4 +66,18 @@ end
     p1 = p |> f(r1) |> f(r2)
     p2 = p |> f(r3)
     @test p1 ≈ p2
+
+    # Convert
+    @test convert(CRSRotation, r1) === r1
+    @test convert(CRSRotation{Float64}, r1) === r1
+    @test convert(CRSRotation{Float32}, r1) !== r1
+
+    @test convert(BasicCRSTransform, t) === t
+    @test convert(BasicCRSTransform{Float64}, t) === t
+    @test convert(BasicCRSTransform{Float32}, t) !== t
+
+    @test convert(InverseTransform, inverse(t)) === inverse(t)
+    @test convert(InverseTransform{Float64}, inverse(t)) === inverse(t)
+    @test convert(InverseTransform{Float32}, inverse(t)) !== inverse(t)
 end
+

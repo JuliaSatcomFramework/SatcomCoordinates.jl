@@ -58,3 +58,19 @@ end
 
     @test_throws "Cannot convert" _convert_different(PointingVersor, rand(LLA))
 end
+
+@testitem "change_numbertype" begin
+    using SatcomCoordinates: change_numbertype, numbertype, InverseTransform
+    using SatcomCoordinates.Unitful
+    using SatcomCoordinates.TransformsBase: inverse
+
+    for T in (LLA, ECEF, UV, ThetaPhi, AzOverEl, ElOverAz, PointingVersor, NED, ENU, AER, LocalCartesian, Spherical, AzElDistance, BasicCRSTransform, CRSRotation)
+        x = rand(T)
+        @test change_numbertype(Float32, x) isa T{Float32}
+        @test change_numbertype(Float64, x) isa T{Float64}
+        if x isa BasicCRSTransform
+            @test change_numbertype(Float32, inverse(x)) isa InverseTransform{Float32, <:T}
+        end
+    end
+    
+end
