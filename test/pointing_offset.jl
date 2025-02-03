@@ -4,6 +4,7 @@
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
+    using SatcomCoordinates.BasicTypes: constructor_without_checks
     using SatcomCoordinates.Rotations
     using TestAllocations
 end
@@ -34,7 +35,7 @@ end
     @test rand(UVOffset{Float32}) isa UVOffset{Float32}
     @test rand(ThetaPhiOffset{Float32}) isa ThetaPhiOffset{Float32}
 
-    @test tp_offset == ThetaPhiOffset(tp_offset.t, tp_offset.p)
+    @test tp_offset == ThetaPhiOffset(tp_offset.t, tp_offset.p) == constructor_without_checks(ThetaPhiOffset{Float64}, tp_offset.t, tp_offset.p)
 end
 
 @testitem "angular distance/offset" setup=[setup_pointing_offsets] begin
