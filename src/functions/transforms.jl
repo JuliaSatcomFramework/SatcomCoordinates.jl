@@ -63,6 +63,9 @@ function TransformsBase.apply(t::InverseTransform{<:Any, <:AbstractAffineCRSTran
     return rotated, nothing
 end
 
+#### Transformations ####
+TransformsBase.:(→)(r1::CRSRotation, r2::CRSRotation) = CRSRotation(r2.rotation * r1.rotation)
+
 ##### Random.rand #####
 function Random.rand(rng::AbstractRNG, ::SamplerType{C}) where C <: CRSRotation
     T = numbertype(enforce_numbertype(C))

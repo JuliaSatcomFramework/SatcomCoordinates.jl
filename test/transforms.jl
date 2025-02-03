@@ -5,7 +5,7 @@
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
     using SatcomCoordinates.Rotations
-    using SatcomCoordinates.TransformsBase: apply, inverse, parameters, Identity, isinvertible, isrevertible
+    using SatcomCoordinates.TransformsBase: apply, inverse, parameters, Identity, isinvertible, isrevertible, →
     using TestAllocations
 end
 
@@ -52,4 +52,12 @@ end
     t = BasicCRSTransform(Identity(), zero(LocalCartesian))
     @test rotation(t) === Identity() === rotation(Identity())
     @test p ≈ ff(t, p)
+
+    r1, r2 = rand(CRSRotation, 2)
+    r3 = r1 → r2
+    f(t, x) = apply(t, x) |> first
+    f(t) = x -> f(t, x)
+    p1 = p |> f(r1) |> f(r2)
+    p2 = p |> f(r3)
+    @test p1 ≈ p2
 end
