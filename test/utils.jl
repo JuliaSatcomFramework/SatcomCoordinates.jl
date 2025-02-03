@@ -1,5 +1,5 @@
 @testitem "numbertype" begin
-    using SatcomCoordinates: numbertype, has_numbertype
+    using SatcomCoordinates: numbertype, has_numbertype, enforce_numbertype
     using SatcomCoordinates.Unitful
     using SatcomCoordinates.StaticArrays
 
@@ -14,6 +14,11 @@
     @test numbertype(1f0) == Float32
     @test_throws "The numbertype function is not implemented" numbertype(1im)
     @test_throws "numbertype parameter specified" numbertype(UV)
+
+    @test enforce_numbertype(UV) == UV{Float64} # Provide a default as not present in input type
+    @test enforce_numbertype(UV{Float32}) == UV{Float32} # Returns the same input type as it already has a numbertype
+    @test enforce_numbertype(UV, Float32) == UV{Float32} # Provide a custom default as not present in input type
+    @test enforce_numbertype(UV, 1) == UV{Int64} # Provide a custom default as not present in input type
 end
 
 @testitem "numcoords" begin

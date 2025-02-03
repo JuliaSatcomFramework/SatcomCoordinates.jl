@@ -54,6 +54,20 @@ wrap_spherical_angles(p::Point2D, ::Type{T}) where T <: Union{ThetaPhi, AzOverEl
 has_numbertype(::Type{<:Union{AbstractSatcomCoordinate{T}, AbstractCRSTransform{T}}}) where {T} = return true
 has_numbertype(::Type{<:Union{AbstractSatcomCoordinate, AbstractCRSTransform}}) = return false
 
+"""
+    enforce_numbertype(input_type, [default_numbertype]) where {C <: Union{AbstractSatcomCoordinate, AbstractCRSTransform}}
+
+Function that takes as input a type and returns a potentialy more specialized subtype of the input type with the numbertype parameter set if not specified in `input_type`. Optionally, this function accepts a secon type (or value) as argument and infers the numbertype to set as default (if not alredy present).
+The default numbertype when the function is called with 1-argument is `Float64`.
+
+# Examples
+```julia
+enforce_numbertype(UV) == UV{Float64} # Provide a default as not present in input type
+enforce_numbertype(UV{Float32}) == UV{Float32} # Returns the same input type as it already has a numbertype
+enforce_numbertype(UV, Float32) == UV{Float32} # Provide a custom default as not present in input type
+enforce_numbertype(UV, 1) == UV{Int64} # Provide a custom default as not present in input type
+```
+"""
 enforce_numbertype(::Type{C}, ::Type{T}) where {C <: Union{AbstractSatcomCoordinate, AbstractCRSTransform}, T} =
     has_numbertype(C) ? C : C{T}
 enforce_numbertype(::Type{C}, default = 1.0) where {C <: Union{AbstractSatcomCoordinate, AbstractCRSTransform}} =
