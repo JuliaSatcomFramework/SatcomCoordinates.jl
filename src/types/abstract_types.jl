@@ -48,6 +48,14 @@ degrees, represented with fields of types `Deg{T}`.
 """
 abstract type AngularPointing{T} <: AbstractPointing{T} end
 
+"""
+    AbstractPointingOffset{T} <: AbstractSatcomCoordinate{T, 2}
+
+Abstract type representing a pointing offset between two pointing directions.
+
+Currently only has two concrete subtypes: [`UVOffset`](@ref) and [`ThetaPhiOffset`](@ref).
+"""
+abstract type AbstractPointingOffset{T} <: AbstractSatcomCoordinate{T, 2} end
 
 abstract type AbstractCRSTransform{T} <: Transform end
 abstract type AbstractAffineCRSTransform{T} <: AbstractCRSTransform{T} end

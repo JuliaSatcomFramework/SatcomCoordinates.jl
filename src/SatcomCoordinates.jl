@@ -10,13 +10,19 @@ using TransformsBase: TransformsBase, Transform, Identity, isinvertible, isrever
 using Unitful: Unitful, Quantity, ustrip, rad, @u_str, °
 
 # From deps
-export °
+export °, @u_str # From Unitful
+export to_degrees, to_meters # From BasicTypes
+export Identity # From TransformsBase
 
 include("types/abstract_types.jl")
 export AbstractSatcomCoordinate, CartesianPosition, LengthCartesian, AngularPointing, AbstractPointing, AbstractCRSTransform
+public AbstractPointingOffset
 
 include("types/pointing.jl")
 export PointingVersor, UV, ThetaPhi, AzEl, AzOverEl, ElOverAz
+
+include("types/pointing_offsets.jl")
+public UVOffset, ThetaPhiOffset
 
 include("types/geocentric.jl")
 export ECEF, ECI, LLA
@@ -33,13 +39,16 @@ export CRSRotation, BasicCRSTransform, InverseTransform
 include("types/type_aliases.jl")
 export GeocentricPosition, TopocentricPosition, GenericLocalPosition, Spherical, AzElDistance
 
-include("functions/pointing.jl") # Contains constructors, conversions and rand methods
+include("functions/pointing.jl")
+include("functions/pointing_offsets.jl")
 export get_angular_distance, get_angular_offset, add_angular_offset
 
 include("functions/geocentric.jl")
 include("functions/topocentric.jl")
 include("functions/local.jl")
 include("functions/transforms.jl")
+public origin, rotation
+
 include("functions/fallbacks.jl")
 
 include("utils.jl")

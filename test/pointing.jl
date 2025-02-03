@@ -1,5 +1,5 @@
 @testsnippet setup_pointing begin
-    using SatcomCoordinates: wrap_spherical_angles_normalized, wrap_spherical_angles, numbertype, to_svector
+    using SatcomCoordinates: numbertype, to_svector
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
@@ -366,43 +366,4 @@ end
         p = convert(P, PointingVersor(0,0,-1))
         @test_throws "half-hemisphere" convert(UV, p)
     end
-end
-
-@testitem "angular distance/offset" setup=[setup_pointing] begin
-    p1 = ThetaPhi(0, rand() * 360°)
-    p2 = ThetaPhi(90, rand() * 360°)
-    @test get_angular_distance(p1, p2) ≈ 90°
-
-    valid_types = (ThetaPhi, AzOverEl, ElOverAz, UV, PointingVersor, AzEl)
-    @test all(1:100) do _
-        p1 = rand(rand(valid_types))
-        p2 = rand(rand(valid_types))
-        θ = get_angular_distance(p1, p2)
-        o = get_angular_offset(p1, p2)
-        θ ≈ o.θ
-    end
-
-    @test all(1:100) do _
-        p1 = rand(rand(valid_types))
-        p2 = rand(rand(valid_types))
-        o = get_angular_offset(p1, p2)
-        if p1 isa UV && convert(PointingVersor, p2).z < 0
-            return true # We skip or we would get an error for negative z half hemisphere
-        else
-            return p2 ≈ add_angular_offset(p1, o)
-        end
-    end
-
-    p = rand(ThetaPhi)
-    @test add_angular_offset(p, 10°) == add_angular_offset(p, ThetaPhi(10°, 0))
-    @test add_angular_offset(p, 10°, 20°) == add_angular_offset(p, ThetaPhi(10°, 20°))
-
-    @test all(valid_types) do O
-        p = rand(O <: UV ? UV : rand(valid_types))
-        o = add_angular_offset(O, p, 0.0°)
-        o isa O && o ≈ p
-    end
-
-    # Error
-    @test_throws "behind" add_angular_offset(UV(1,0), ThetaPhi(10,0))
 end
