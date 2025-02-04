@@ -366,4 +366,17 @@ end
         p = convert(P, PointingVersor(0,0,-1))
         @test_throws "half-hemisphere" convert(UV, p)
     end
+
+    @testset "AzEl <-> ThetaPhi" begin
+        @test all(1:100) do _
+            tp = rand(ThetaPhi)
+            p = convert(PointingVersor, tp)
+            ae = convert(AzEl, tp)
+            fwd_valid =  ae ≈ p
+            tp′ = convert(ThetaPhi, ae)
+            rtn_valid = tp′ ≈ tp
+            wrap_valid = -180° <= ae.az <= 180° && -180° <= tp.phi <= 180°
+            return fwd_valid && rtn_valid && wrap_valid
+        end
+    end
 end

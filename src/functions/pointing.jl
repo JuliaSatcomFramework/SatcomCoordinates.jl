@@ -95,7 +95,27 @@ function _convert_different(::Type{TP}, pv::PointingVersor) where TP <: ThetaPhi
     constructor_without_checks(enforce_numbertype(TP, pv), θ, φ)
 end
 
+# ThetaPhi <-> AzEl
+# We can have a much simpler direct conversion between the two without passing by the PointingVersor
+function _convert_different(::Type{E}, tp::ThetaPhi) where E <: AzEl
+    (;θ,φ) = tp
+    az = rem(90° - φ, 360°, RoundNearest)
+    el = 90° - θ # Already in the [-90°, 90°] range
+    constructor_without_checks(enforce_numbertype(E, tp), az, el)
+end
+function _convert_different(::Type{P}, p::AzEl) where P <: ThetaPhi
+    (;az, el) = p
+    θ = 90° - el
+    φ = rem(90° - az, 360°, RoundNearest)
+    constructor_without_checks(enforce_numbertype(P, p), θ, φ)
+end
+
 # AzEl <-> PointingVersor
+#= Conversion from https://gssc.esa.int/navipedia/index.php/Transformations_between_ECEF_and_ENU_coordinates knowing that:
+- p̂ ⋅ ê = u
+- p̂ ⋅ n̂ = v
+- p̂ ⋅ û = w
+=#
 function _convert_different(::Type{E}, p::PointingVersor) where E <: AzEl
     (;u,v,w) = p
     az = atan(u, v) |> asdeg # Already in the [-180°, 180°] range
