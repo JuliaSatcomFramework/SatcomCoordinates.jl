@@ -1,6 +1,6 @@
 @testsnippet setup_transforms begin
     using SatcomCoordinates
-    using SatcomCoordinates: numbertype, to_svector, raw_nt, @u_str, has_pointingtype, pointing_type, rotation, origin
+    using SatcomCoordinates: numbertype, to_svector, raw_nt, @u_str, has_pointingtype, pointing_type, rotation, origin, AbstractCRSRotation
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
@@ -79,5 +79,22 @@ end
     @test convert(InverseTransform, inverse(t)) === inverse(t)
     @test convert(InverseTransform{Float64}, inverse(t)) === inverse(t)
     @test convert(InverseTransform{Float32}, inverse(t)) !== inverse(t)
+
+    @testset "AbstractCRSTransform" begin
+        if !eval(:(@isdefined MyRotation))
+            eval(:(struct MyRotation <: AbstractCRSRotation{Float64}
+                rotation::CRSRotation{Float64, RotMatrix3{Float64}}
+            end))
+        end
+        MyRotation = eval(:MyRotation)
+
+        r = invokelatest(MyRotation, rand(RotMatrix3{Float64}) |> CRSRotation)
+
+        p = rand(LocalCartesian)
+        a1 = apply(r, p)
+        a2 = apply(r.rotation, p)
+        @test a1 ≈ a2
+    end
 end
+
 

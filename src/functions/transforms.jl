@@ -22,7 +22,8 @@ origin(t::InverseTransform) = origin(t.transform)
 This function should return a `CRSRotation` object representing the rotation to align the starting CRS to the target CRS.
 """
 rotation(t::CRSRotation) = return t
-rotation(t::AbstractAffineCRSTransform) = t.rotation
+rotation(t::AbstractCRSRotation) = return t.rotation
+rotation(t::AbstractAffineCRSTransform) = return t.rotation
 rotation(t::InverseTransform) = rotation(t.transform) |> inverse
 rotation(t::Identity) = return t
 
@@ -53,9 +54,12 @@ end
 # We are assuming that the input matrix is already orthonormalized
 TransformsBase.inverse(t::CRSRotation) = CRSRotation(inv(t.rotation))
 
-function TransformsBase.apply(t::CRSRotation, coords::StaticVector)
+
+TransformsBase.apply(t::CRSRotation, coords::StaticVector) =
     return t.rotation * coords, nothing
-end
+
+TransformsBase.apply(t::AbstractCRSRotation, coords::StaticVector) =
+    return apply(rotation(t), coords)
 
 # Affine transform
 function TransformsBase.apply(t::AbstractAffineCRSTransform, coords::StaticVector)

@@ -7,12 +7,14 @@ struct InverseTransform{T, F <: AbstractCRSTransform{T}} <: AbstractCRSTransform
     transform::F
 end
 
-"""
-    CRSRotation{T, R <: StaticMatrix{T, 3, 3}} <: AbstractCRSTransform{T}
+abstract type AbstractCRSRotation{T} <: AbstractCRSTransform{T} end
 
-A type representing a rotation of a coordinate system.
 """
-struct CRSRotation{T, R <: Rotation{3, T}} <: AbstractCRSTransform{T}
+    CRSRotation{T, R <: StaticMatrix{T, 3, 3}} <: AbstractCRSRotation{T}
+
+A type representing a basic rotation of a coordinate system.
+"""
+struct CRSRotation{T, R <: Rotation{3, T}} <: AbstractCRSRotation{T}
     rotation::R
 end
 
