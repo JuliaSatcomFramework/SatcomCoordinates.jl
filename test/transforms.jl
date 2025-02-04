@@ -91,8 +91,8 @@ end
         r = invokelatest(MyRotation, rand(RotMatrix3{Float64}) |> CRSRotation)
 
         p = rand(LocalCartesian)
-        a1 = apply(r, p)
-        a2 = apply(r.rotation, p)
+        a1 = apply(r, p) |> first
+        a2 = apply(r.rotation, p) |> first
         @test a1 ≈ a2
     end
 end
