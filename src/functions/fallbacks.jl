@@ -87,7 +87,7 @@ has_numbertype(::Type{<:WithNumbertype}) = return false
 enforce_numbertype(::Type{C}, ::Type{T}) where {C <: WithNumbertype, T} =
     has_numbertype(C) ? C : C{T}
 enforce_numbertype(::Type{C}, default::T = 1.0) where {C <: WithNumbertype, T} =
-    enforce_numbertype(C, T)
+    enforce_numbertype(C, numbertype(T))
 
 # change_numbertype
 # Fallbacks for types not defined in this package
@@ -96,7 +96,7 @@ change_numbertype(::Type{T}, r::RotMatrix3) where {T <: AbstractFloat} = convert
 change_numbertype(::Type, i::Identity) = i
 
 # Functor which fix the numbertype to change to
-change_numbertype(::Type{T}) where T <: AbstractFloat = Base.Fix1(change_numbertype, T)
+change_numbertype(::Type{T}) where T <: AbstractFloat = return Base.Fix1(change_numbertype, T)
 
 # Generic fallback for own types calling convert
 change_numbertype(::Type{T}, c::C) where {T <: AbstractFloat, C <: WithNumbertype} = return convert(basetype(C){T}, c)

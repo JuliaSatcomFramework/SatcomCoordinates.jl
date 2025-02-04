@@ -63,5 +63,7 @@ end
             @test change_numbertype(Float32, inverse(x)) isa InverseTransform{Float32, <:T}
         end
     end
-    
+
+    @test change_numbertype(Float32, 1) === 1f0
+    @test change_numbertype(Float32)(1.0) === 1f0
 end
