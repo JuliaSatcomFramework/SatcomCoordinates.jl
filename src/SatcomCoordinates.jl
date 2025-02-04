@@ -52,6 +52,6 @@ public origin, rotation
 include("functions/fallbacks.jl")
 
 include("utils.jl")
-export numbertype
+export numbertype, enforce_numbertype, has_numbertype, change_numbertype
 
 end # module SatComCoordinates
