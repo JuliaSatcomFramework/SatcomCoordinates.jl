@@ -1,15 +1,18 @@
-numbertype(::Type{<:Quantity{T}}) where T  = T
-numbertype(::Type{T}) where T <: Real = T
-numbertype(::T) where T = numbertype(T)
-numbertype(T::DataType) = error("The numbertype function is not implemented for type $T")
-numbertype(::Type{<:AbstractSatcomCoordinate{T}}) where T = T
-numbertype(T::Type{<:AbstractSatcomCoordinate}) = error("The provided UnionAll type $T does not have the numbertype parameter specified")
-numbertype(::Type{<:AbstractArray{T}}) where T = T
-numbertype(::Type{<:AbstractCRSTransform{T}}) where T = T
+#### Numbertype interface ####
+"""
+    numbertype(T::Type)
+    numbertype(::T)
 
-numcoords(::Type{<:AbstractSatcomCoordinate{<:Any, N}}) where N = N
-numcoords(T::DataType) = error("The numcoords function is not implemented for type $T")
-numcoords(::T) where T = numcoords(T)
+This function shall return the underlying numbertype of the provided Type or object.
+
+The concept of numbertype is defined here as the subtype of `Real` which is used to represent the numerical values in the object's field.
+It is not directly the type of the fields, mainly as we consider fields of type `Unitul.Quantity{T}` to have numbertype `T`.
+
+All the types defined in this package have an assciated parametric numbertype as first parameter.
+
+See also [`enforce_numbertype`](@ref), [`change_numbertype`](@ref), [`has_numbertype`](@ref)
+"""
+function numbertype end
 
 """
     az, el = wrap_spherical_angles_normalized(az::T, el::T, ::Type{<:ThetaPhi}) where T <: Deg{<:Real}

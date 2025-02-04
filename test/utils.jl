@@ -21,15 +21,6 @@
     @test enforce_numbertype(UV, 1) == UV{Int64} # Provide a custom default as not present in input type
 end
 
-@testitem "numcoords" begin
-    using SatcomCoordinates: numcoords
-    using SatcomCoordinates.Unitful
-
-    @test_throws "The numcoords function is not implemented" numcoords(3)
-    @test numcoords(rand(UV)) === 3
-    @test numcoords(PointingVersor) === 3
-end
-
 @testitem "wrap_spherical_angles" begin
     using SatcomCoordinates: wrap_spherical_angles_normalized, wrap_spherical_angles
     using SatcomCoordinates.Unitful: °

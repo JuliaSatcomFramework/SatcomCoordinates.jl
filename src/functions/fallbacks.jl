@@ -66,4 +66,15 @@ function _convert_different(::Type{C1}, c::C2) where {C1 <: AbstractSatcomCoordi
     throw(ArgumentError("Cannot convert coordinates of different types: $C1 and $C2"))
 end
 
+##### Numbertype interface #####
+# Generic versions not on types of this package
+numbertype(::Type{<:Quantity{T}}) where T  = T
+numbertype(::Type{T}) where T <: Real = T
+numbertype(::T) where T = numbertype(T)
+numbertype(T::DataType) = error("The numbertype function is not implemented for type $T")
+numbertype(::Type{<:AbstractArray{T}}) where T = T
+# Implementation for our own types
+numbertype(::Type{<:WithNumbertype{T}}) where T = T
+numbertype(T::Type{<:WithNumbertype}) = error("The provided UnionAll type $T does not have the numbertype parameter specified")
+
 change_numbertype(::Type, i::Identity) = i
