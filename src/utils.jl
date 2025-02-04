@@ -15,6 +15,47 @@ See also [`enforce_numbertype`](@ref), [`change_numbertype`](@ref), [`has_number
 function numbertype end
 
 """
+    has_numbertype(T::Type)
+    has_numbertype(::T)
+
+This function shall return `true` if the provided type `T` or object of type `T` has an associated numbertype.
+
+This function will return `false` for types defined within this package that do not have the numbertype parameter specified (type `T` is thus a `UnionAll` on the numbertype parameter).
+"""
+function has_numbertype end
+
+"""
+    enforce_numbertype(input_type, [default_numbertype]) where {C <: Union{AbstractSatcomCoordinate, AbstractCRSTransform}}
+
+Function that takes as input a type and returns a potentialy more specialized subtype of the input type with the numbertype parameter set if not specified in `input_type`. Optionally, this function accepts a secon type (or value) as argument and infers the numbertype to set as default (if not alredy present).
+The default numbertype when the function is called with 1-argument is `Float64`.
+
+# Examples
+```julia
+enforce_numbertype(UV) == UV{Float64} # Provide a default as not present in input type
+enforce_numbertype(UV{Float32}) == UV{Float32} # Returns the same input type as it already has a numbertype
+enforce_numbertype(UV, Float32) == UV{Float32} # Provide a custom default as not present in input type
+enforce_numbertype(UV, 1) == UV{Int64} # Provide a custom default as not present in input type
+```
+
+See also [`change_numbertype`](@ref), [`has_numbertype`](@ref), [`numbertype`](@ref)
+"""
+function enforce_numbertype end
+
+"""
+    change_numbertype(T::Type, x) 
+
+Functions that change the underlying numbertype of the provided object `x` to the first argument `T`.
+
+It has a fallback default implementation for types defined within this package which calls `convert` on the provided object `x` to the type `basetype(x){T}`.
+
+See also [`enforce_numbertype`](@ref), [`has_numbertype`](@ref), [`numbertype`](@ref)
+"""
+function change_numbertype end
+
+##### Misc Utilities ####
+
+"""
     az, el = wrap_spherical_angles_normalized(az::T, el::T, ::Type{<:ThetaPhi}) where T <: Deg{<:Real}
     θ, φ = wrap_spherical_angles_normalized(θ::T, φ::T, ::Type{<:Union{AzOverEl, ElOverAz}}) where T <: Deg{<:Real}
 
@@ -51,36 +92,6 @@ Function that takes as input two angles representing two orthogonal angular comp
 """
 wrap_spherical_angles(α::ValidAngle, β::ValidAngle, ::Type{T}) where T <: Union{ThetaPhi, AzOverEl, ElOverAz} = wrap_spherical_angles_normalized(to_degrees(α, RoundNearest), to_degrees(β, RoundNearest), T)
 wrap_spherical_angles(p::Point2D, ::Type{T}) where T <: Union{ThetaPhi, AzOverEl, ElOverAz} = wrap_spherical_angles(p[1], p[2], T)
-
-
-# This is inspired from StaticArrays. These are not onlineners as coverage otherwise do not catch them.
-has_numbertype(::Type{<:Union{AbstractSatcomCoordinate{T}, AbstractCRSTransform{T}}}) where {T} = return true
-has_numbertype(::Type{<:Union{AbstractSatcomCoordinate, AbstractCRSTransform}}) = return false
-
-"""
-    enforce_numbertype(input_type, [default_numbertype]) where {C <: Union{AbstractSatcomCoordinate, AbstractCRSTransform}}
-
-Function that takes as input a type and returns a potentialy more specialized subtype of the input type with the numbertype parameter set if not specified in `input_type`. Optionally, this function accepts a secon type (or value) as argument and infers the numbertype to set as default (if not alredy present).
-The default numbertype when the function is called with 1-argument is `Float64`.
-
-# Examples
-```julia
-enforce_numbertype(UV) == UV{Float64} # Provide a default as not present in input type
-enforce_numbertype(UV{Float32}) == UV{Float32} # Returns the same input type as it already has a numbertype
-enforce_numbertype(UV, Float32) == UV{Float32} # Provide a custom default as not present in input type
-enforce_numbertype(UV, 1) == UV{Int64} # Provide a custom default as not present in input type
-```
-"""
-enforce_numbertype(::Type{C}, ::Type{T}) where {C <: Union{AbstractSatcomCoordinate, AbstractCRSTransform}, T} =
-    has_numbertype(C) ? C : C{T}
-enforce_numbertype(::Type{C}, default = 1.0) where {C <: Union{AbstractSatcomCoordinate, AbstractCRSTransform}} =
-    enforce_numbertype(C, numbertype(default))
-
-change_numbertype(::Type{T}, c::C) where {T <: AbstractFloat, C <: Union{AbstractSatcomCoordinate, AbstractCRSTransform}} = return convert(basetype(C){T}, c)
-change_numbertype(::Type{T}, x::Real) where T <: AbstractFloat = convert(T, x)
-change_numbertype(::Type{T}, r::RotMatrix3) where {T <: AbstractFloat} = convert(RotMatrix3{T}, r)
-change_numbertype(::Type{T}) where T <: AbstractFloat = x -> change_numbertype(T, x)
-
 
 """
     to_svector(coord::AbstractSatcomCoordinate)

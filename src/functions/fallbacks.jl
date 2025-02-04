@@ -67,6 +67,7 @@ function _convert_different(::Type{C1}, c::C2) where {C1 <: AbstractSatcomCoordi
 end
 
 ##### Numbertype interface #####
+# numbertype
 # Generic versions not on types of this package
 numbertype(::Type{<:Quantity{T}}) where T  = T
 numbertype(::Type{T}) where T <: Real = T
@@ -77,4 +78,25 @@ numbertype(::Type{<:AbstractArray{T}}) where T = T
 numbertype(::Type{<:WithNumbertype{T}}) where T = T
 numbertype(T::Type{<:WithNumbertype}) = error("The provided UnionAll type $T does not have the numbertype parameter specified")
 
+# has_numbertype
+# This is inspired from StaticArrays. These are not onlineners as coverage otherwise do not catch them.
+has_numbertype(::Type{<:WithNumbertype{T}}) where {T} = return true
+has_numbertype(::Type{<:WithNumbertype}) = return false
+
+# enforce_numbertype
+enforce_numbertype(::Type{C}, ::Type{T}) where {C <: WithNumbertype, T} =
+    has_numbertype(C) ? C : C{T}
+enforce_numbertype(::Type{C}, default::T = 1.0) where {C <: WithNumbertype, T} =
+    enforce_numbertype(C, T)
+
+# change_numbertype
+# Fallbacks for types not defined in this package
+change_numbertype(::Type{T}, x::Real) where T <: AbstractFloat = convert(T, x)
+change_numbertype(::Type{T}, r::RotMatrix3) where {T <: AbstractFloat} = convert(RotMatrix3{T}, r)
 change_numbertype(::Type, i::Identity) = i
+
+# Functor which fix the numbertype to change to
+change_numbertype(::Type{T}) where T <: AbstractFloat = Base.Fix1(change_numbertype, T)
+
+# Generic fallback for own types calling convert
+change_numbertype(::Type{T}, c::C) where {T <: AbstractFloat, C <: WithNumbertype} = return convert(basetype(C){T}, c)
