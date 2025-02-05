@@ -5,7 +5,7 @@
     using TestAllocations
 end
 
-@testitem "SatelliteToolboxBaseExt" setup=[setup_extensions] begin
+@testitem "SatelliteToolboxBase Extension" setup=[setup_extensions] begin
     using SatelliteToolboxBase: SatelliteToolboxBase, Ellipsoid, WGS84_ELLIPSOID
     
     e = Ellipsoid(6371e3, 0)
@@ -19,7 +19,7 @@ end
     end
 end
 
-@testitem "SatelliteToolboxTransformationsExt" setup=[setup_extensions] begin
+@testitem "SatelliteToolboxTransformations Extension" setup=[setup_extensions] begin
     using SatelliteToolboxBase: Ellipsoid, WGS84_ELLIPSOID
     using SatelliteToolboxTransformations: geodetic_to_ecef, ecef_to_geodetic
 
@@ -67,4 +67,27 @@ end
         @test @nallocs(ecef_to_geodetic(rand(ECEF{Float64}); ellipsoid=e)) == 0
         @test @nallocs(ecef_to_geodetic(rand(ECEF{Float32}); ellipsoid=e)) == 0
     end
+end
+
+@testitem "CountriesBorders Extension" setup=[setup_extensions] begin
+    using SatcomCoordinates: SatcomCoordinates, Deg
+    using CountriesBorders: CountriesBorders, LATLON, LatLon, extract_countries
+
+    lla_rome = LLA(41.9°, 12.5°, 0km)
+    lla_madrid = LLA(40.416°, -3.703°)
+
+    ll_rome = LatLon(lla_rome)
+    @test ll_rome.lat ≈ change_numbertype(Float32, lla_rome).lat
+    @test ll_rome.lon ≈ change_numbertype(Float32, lla_rome).lon
+
+    ll_rome_F64 = convert(LATLON{Float64}, lla_rome)
+    @test ll_rome_F64.lat ≈ lla_rome.lat
+    @test ll_rome_F64.lon ≈ lla_rome.lon
+
+    @test LLA(ll_rome_F64) ≈ lla_rome
+
+    dmn = extract_countries("italy")
+
+    @test lla_rome in dmn
+    @test lla_madrid ∉ dmn
 end

@@ -7,10 +7,10 @@ using LinearAlgebra: LinearAlgebra, normalize, norm
 using Random: Random, SamplerType, AbstractRNG
 using Rotations: Rotations, Rotation, nearest_rotation, RotMatrix3
 using TransformsBase: TransformsBase, Transform, Identity, isinvertible, isrevertible, inverse, apply
-using Unitful: Unitful, Quantity, ustrip, rad, @u_str, °
+using Unitful: Unitful, Quantity, ustrip, rad, @u_str, °, km
 
 # From deps
-export °, @u_str # From Unitful
+export °, km, @u_str # From Unitful
 export to_degrees, to_meters # From BasicTypes
 export Identity # From TransformsBase
 
