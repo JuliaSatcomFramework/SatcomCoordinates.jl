@@ -17,18 +17,18 @@ end
 
     @test uv_offset == UVOffset(uv_offset.u, uv_offset.v)
 
-    @test uv_offset.uv isa UV
-    @test uv_offset.uv.u === uv_offset.u
-    @test uv_offset.uv.v === uv_offset.v
+    @test uv_offset.inner isa UV
+    @test uv_offset.inner.u === uv_offset.u
+    @test uv_offset.inner.v === uv_offset.v
 
     tp1, tp2 = rand(ThetaPhi, 2)
     tp_offset = get_angular_offset(tp1, tp2)
     @test tp_offset isa ThetaPhiOffset
     @test tp2 ≈ add_angular_offset(tp1, tp_offset)
 
-    @test tp_offset.tp isa ThetaPhi
-    @test tp_offset.tp.θ === tp_offset.t === tp_offset.θ
-    @test tp_offset.tp.φ === tp_offset.p === tp_offset.φ
+    @test tp_offset.inner isa ThetaPhi
+    @test tp_offset.inner.θ === tp_offset.t === tp_offset.θ
+    @test tp_offset.inner.φ === tp_offset.p === tp_offset.φ
 
     @test rand(UVOffset) isa UVOffset
     @test rand(ThetaPhiOffset) isa ThetaPhiOffset

@@ -16,13 +16,13 @@ end
 
 ##### Base.getproperty #####
 function Base.getproperty(uv::UVOffset, s::Symbol)
-    inner = getfield(uv, :uv)
-    s === :uv && return inner
+    inner = getfield(uv, :inner)
+    s === :inner && return inner
     getproperty(inner, s)
 end
 function Base.getproperty(tp::ThetaPhiOffset, s::Symbol)
-    inner = getfield(tp, :tp)
-    s === :tp && return inner
+    inner = getfield(tp, :inner)
+    s === :inner && return inner
     getproperty(inner, s)
 end
 
@@ -210,5 +210,5 @@ Call the function with an explicit non-UV output type to allow target points beh
     convert(O, out_direction)
 end
 add_angular_offset(O::Type{<:AbstractPointing}, p₀::AbstractPointing, θ::ValidAngle, φ::ValidAngle = 0.0) = add_angular_offset(O, p₀, ThetaPhi(θ, φ))
-add_angular_offset(O::Type{<:AbstractPointing}, p₀::AbstractPointing, tpo::ThetaPhiOffset) = add_angular_offset(O, p₀, tpo.tp)
+add_angular_offset(O::Type{<:AbstractPointing}, p₀::AbstractPointing, tpo::ThetaPhiOffset) = add_angular_offset(O, p₀, tpo.inner)
 add_angular_offset(p₀::AbstractPointing, args...) = add_angular_offset(typeof(p₀), p₀, args...)

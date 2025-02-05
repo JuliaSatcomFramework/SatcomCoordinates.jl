@@ -9,7 +9,7 @@ The UVOffset coordinates must satisfy:
 This type is mostly generated indirectly when subtracting two pointing directions expressed in UV.
 """
 struct UVOffset{T} <: AbstractPointingOffset{T}
-    uv::UV{T}
+    inner::UV{T}
 
     BasicTypes.constructor_without_checks(::Type{UVOffset{T}}, uv::UV) where T = new{T}(uv)
 
@@ -18,6 +18,8 @@ struct UVOffset{T} <: AbstractPointingOffset{T}
         return constructor_without_checks(UVOffset{T}, uv)
     end
 end
+
+##### ThetaPhiOffset #####
 
 """
     struct ThetaPhiOffset{T} <: AbstractPointingOffset{T}
@@ -31,7 +33,7 @@ The ThetaPhiOffset coordinates must satisfy:
 This type is mostly used with the [`add_angular_offset`](@ref) and [`get_angular_offset`](@ref) functions.
 """
 struct ThetaPhiOffset{T} <: AbstractPointingOffset{T}
-    tp::ThetaPhi{T}
+    inner::ThetaPhi{T}
 
     BasicTypes.constructor_without_checks(::Type{ThetaPhiOffset{T}}, tp::ThetaPhi) where T = new{T}(tp)
 
