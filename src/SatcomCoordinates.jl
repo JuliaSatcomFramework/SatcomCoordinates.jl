@@ -4,6 +4,7 @@ using BasicTypes: BasicTypes, constructor_without_checks, to_degrees, to_meters,
 using ConstructionBase: ConstructionBase, getfields
 using StaticArrays: StaticArrays, FieldVector, SVector, @SVector, SA, StaticMatrix, StaticVector
 using LinearAlgebra: LinearAlgebra, normalize, norm
+using PlutoShowHelpers: PlutoShowHelpers, DefaultShowOverload, HideWhenCompact, DualDisplayAngle, DisplayLength, InsidePluto, OutsidePluto, HideWhenFull, Ellipsis, repl_summary, shortname, longname, show_namedtuple
 using Random: Random, SamplerType, AbstractRNG
 using Rotations: Rotations, Rotation, nearest_rotation, RotMatrix3
 using TransformsBase: TransformsBase, Transform, Identity, isinvertible, isrevertible, inverse, apply

@@ -100,3 +100,23 @@ change_numbertype(::Type{T}) where T <: AbstractFloat = return Base.Fix1(change_
 
 # Generic fallback for own types calling convert
 change_numbertype(::Type{T}, c::C) where {T <: AbstractFloat, C <: WithNumbertype} = return convert(basetype(C){T}, c)
+
+# Overload show method
+# Basic overloads
+Base.show(io::IO, mime::MIME"text/plain", x::WithNumbertype) = show(io, mime, DefaultShowOverload(x))
+Base.show(io::IO, mime::MIME"text/html", x::WithNumbertype) = show(io, mime, DefaultShowOverload(x))
+Base.show(io::IO, x::WithNumbertype) = show(io, DefaultShowOverload(x))
+
+PlutoShowHelpers.shortname(x::AbstractSatcomCoordinate) = x |> typeof |> basetype |> nameof |> string
+
+PlutoShowHelpers.repl_summary(p::AbstractSatcomCoordinate) = shortname(p) * " Coordinate"
+
+PlutoShowHelpers.show_namedtuple(c::LengthCartesian) = map(DisplayLength, raw_nt(c))
+
+function PlutoShowHelpers.show_namedtuple(c::AngleAngleDistance)
+    nt = getfields(c)
+    map(nt) do val
+        val isa Deg && return DualDisplayAngle(normalize_value(val))
+        val isa Met && return DisplayLength(normalize_value(val))
+    end
+end

@@ -231,3 +231,13 @@ end
 
 ##### Utilities #####
 to_svector(p::PointingVersor) = SVector{3, numbertype(p)}(p.x, p.y, p.z)
+
+###### Custom show overloads ######
+function _nondefault_suffix(x::WithNumbertype, curly = true)
+    T = numbertype(x)
+    T == Float64 ? "" : curly ? "{$(T)}" : "($(T))"
+end
+
+PlutoShowHelpers.repl_summary(p::AbstractPointing) = shortname(p) * " Pointing"
+
+PlutoShowHelpers.show_namedtuple(p::AngularPointing) = map(DualDisplayAngle, raw_nt(p))

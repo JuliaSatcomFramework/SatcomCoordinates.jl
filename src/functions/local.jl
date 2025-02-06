@@ -108,3 +108,14 @@ for P in (:ThetaPhi, :AzOverEl, :ElOverAz, :AzEl)
     eval(:(has_pointingtype(::Type{GeneralizedSpherical{T, $P{T}} where T}) = return true))
     eval(:(pointing_type(::Type{GeneralizedSpherical{T, $P{T}} where T}) = return $P))
 end
+
+#### Custom show methods ####
+
+PlutoShowHelpers.shortname(g::GeneralizedSpherical) = repr(typeof(g))
+PlutoShowHelpers.shortname(::Spherical) = "Spherical"
+PlutoShowHelpers.shortname(::AzElDistance) = "AzElDistance"
+
+function PlutoShowHelpers.show_namedtuple(g::GeneralizedSpherical) 
+    nt1 = show_namedtuple(g.pointing)
+    (; nt1..., r = DisplayLength(g.r |> normalize_value))
+end

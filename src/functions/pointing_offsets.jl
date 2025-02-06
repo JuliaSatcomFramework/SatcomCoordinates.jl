@@ -212,3 +212,10 @@ end
 add_angular_offset(O::Type{<:AbstractPointing}, p₀::AbstractPointing, θ::ValidAngle, φ::ValidAngle = 0.0) = add_angular_offset(O, p₀, ThetaPhi(θ, φ))
 add_angular_offset(O::Type{<:AbstractPointing}, p₀::AbstractPointing, tpo::ThetaPhiOffset) = add_angular_offset(O, p₀, tpo.inner)
 add_angular_offset(p₀::AbstractPointing, args...) = add_angular_offset(typeof(p₀), p₀, args...)
+
+##### custom show overloads #####
+PlutoShowHelpers.repl_summary(p::AbstractPointingOffset) = shortname(p.inner) * " Pointing Offset"
+
+PlutoShowHelpers.show_namedtuple(p::UVOffset) = show_namedtuple(p.inner)
+
+PlutoShowHelpers.show_namedtuple(p::ThetaPhiOffset) = map(DualDisplayAngle, raw_nt(p.inner))
