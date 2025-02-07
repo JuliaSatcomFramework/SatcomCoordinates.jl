@@ -84,9 +84,9 @@ has_numbertype(::Type{<:WithNumbertype{T}}) where {T} = return true
 has_numbertype(::Type{<:WithNumbertype}) = return false
 
 # enforce_numbertype
-enforce_numbertype(::Type{C}, ::Type{T}) where {C <: WithNumbertype, T} =
+enforce_numbertype(::Type{C}, ::Type{T}) where {C, T <: Real} =
     has_numbertype(C) ? C : C{T}
-enforce_numbertype(::Type{C}, default::T = 1.0) where {C <: WithNumbertype, T} =
+enforce_numbertype(::Type{C}, default::T = 1.0) where {C, T} =
     enforce_numbertype(C, numbertype(T))
 
 # change_numbertype
