@@ -66,4 +66,7 @@ end
 
     @test change_numbertype(Float32, 1) === 1f0
     @test change_numbertype(Float32)(1.0) === 1f0
+
+    @test change_numbertype(Float32, 1u"°") === 1f0u"°"
+    @test change_numbertype(Float32)(1u"m") === 1f0u"m"
 end
