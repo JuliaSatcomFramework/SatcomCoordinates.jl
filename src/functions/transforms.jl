@@ -73,6 +73,7 @@ function TransformsBase.apply(t::InverseTransform{<:Any, <:AbstractAffineCRSTran
     rotated, _ = apply(rotation(t), shifted)
     return rotated, nothing
 end
+TransformsBase.apply(t::InverseTransform{<:Any, <:AbstractCRSRotation}, coords::StaticVector) = return apply(rotation(t), coords)
 
 #### Transformations ####
 TransformsBase.:(→)(r1::CRSRotation, r2::CRSRotation) = CRSRotation(r2.rotation * r1.rotation)

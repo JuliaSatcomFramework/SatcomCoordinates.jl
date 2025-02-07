@@ -5,8 +5,11 @@
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
     using SatcomCoordinates.Rotations
-    using SatcomCoordinates.TransformsBase: apply, inverse, parameters, Identity, isinvertible, isrevertible, →
+    using SatcomCoordinates.TransformsBase: TransformsBase, inverse, parameters, Identity, isinvertible, isrevertible, →
     using TestAllocations
+
+    apply(t, args...) = TransformsBase.apply(t, args...) |> first
+    apply(t) = Base.Fix1(apply, t)
 end
 
 @testitem "CRS Transforms" setup=[setup_transforms] begin
@@ -39,9 +42,8 @@ end
     @test t === inverse(inverse(t))
     @test inverse(rotation(t)) === rotation(inverse(t))
 
-    ff(t, x) = apply(t, x) |> first
-    fwd = ff(t, p)
-    rvs = ff(inverse(t), fwd)
+    fwd = apply(t, p)
+    rvs = apply(inverse(t), fwd)
     @test rvs ≈ p
 
     # Getproperty
@@ -51,20 +53,18 @@ end
     @test i.origin === t.origin
 
     @testset "Allocations" begin
-        @test @nallocs(ff(t, p)) == 0
-        @test @nallocs(ff(inverse(t), p)) == 0
+        @test @nallocs(apply(t, p)) == 0
+        @test @nallocs(apply(inverse(t), p)) == 0
     end
 
     t = BasicCRSTransform(Identity(), zero(LocalCartesian))
     @test rotation(t) === Identity() === rotation(Identity())
-    @test p ≈ ff(t, p)
+    @test p ≈ apply(t, p)
 
     r1, r2 = rand(CRSRotation, 2)
     r3 = r1 → r2
-    f(t, x) = apply(t, x) |> first
-    f(t) = x -> f(t, x)
-    p1 = p |> f(r1) |> f(r2)
-    p2 = p |> f(r3)
+    p1 = p |> apply(r1) |> apply(r2)
+    p2 = p |> apply(r3)
     @test p1 ≈ p2
 
     # Convert
@@ -88,12 +88,14 @@ end
         end
         MyRotation = eval(:MyRotation)
 
-        r = invokelatest(MyRotation, rand(RotMatrix3{Float64}) |> CRSRotation)
+        # r = invokelatest(MyRotation, rand(RotMatrix3{Float64}) |> CRSRotation)
+        r = MyRotation(rand(RotMatrix3{Float64}) |> CRSRotation)
 
         p = rand(LocalCartesian)
-        a1 = apply(r, p) |> first
-        a2 = apply(r.rotation, p) |> first
+        a1 = apply(r, p)
+        a2 = apply(r.rotation, p)
         @test a1 ≈ a2
+        @test apply(inverse(r), a1) ≈ p
     end
 end
 
