@@ -94,6 +94,8 @@ enforce_numbertype(::Type{C}, default::T = 1.0) where {C <: WithNumbertype, T} =
 change_numbertype(::Type{T}, x::Real) where T <: AbstractFloat = convert(T, x)
 change_numbertype(::Type{T}, r::RotMatrix3) where {T <: AbstractFloat} = convert(RotMatrix3{T}, r)
 change_numbertype(::Type, i::Identity) = i
+change_numbertype(::Type{T}, x::Deg) where T <: AbstractFloat = convert(Deg{T}, x)
+change_numbertype(::Type{T}, x::Met) where T <: AbstractFloat = convert(Met{T}, x)
 
 # Functor which fix the numbertype to change to
 change_numbertype(::Type{T}) where T <: AbstractFloat = return Base.Fix1(change_numbertype, T)
