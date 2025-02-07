@@ -13,13 +13,13 @@ end
 
 # Constructor from pointing and range, with inferred numbertype
 function GeneralizedSpherical(p::P, r::ValidDistance) where {P <: AngularPointing} 
-    T = promote_type(map(numbertype, (p, r))...)
-    GeneralizedSpherical{T <: AbstractFloat ? T : Float64}(p, r)
+    T = default_numbertype(p, r)
+    GeneralizedSpherical{T}(p, r)
 end
 
 function (::Type{P})(α::ValidAngle, β::ValidAngle, r::ValidDistance) where {P <: GeneralizedSpherical}
-    NT = promote_type(map(numbertype, (α, β, r))...)
-    G = enforce_numbertype(P, NT <: AbstractFloat ? NT : Float64)
+    NT = default_numbertype(α, β, r)
+    G = enforce_numbertype(P, NT)
     T = numbertype(G)
     PT = enforce_numbertype(pointing_type(P), T)
     p = PT(α, β)

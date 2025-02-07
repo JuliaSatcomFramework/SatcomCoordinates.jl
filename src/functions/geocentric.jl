@@ -13,8 +13,7 @@ function LLA{T}(lat::ValidAngle, lon::ValidAngle, alt::ValidDistance) where T
     constructor_without_checks(LLA{T}, lat, lon, alt)
 end
 function LLA(lat::ValidAngle, lon::ValidAngle, alt::ValidDistance)
-    NT = promote_type(map(numbertype, (lat, lon, alt))...)
-    T = NT <: AbstractFloat ? NT : Float64
+    T = default_numbertype(lat, lon, alt)
     LLA{T}(lat, lon, alt)
 end
 (::Type{L})(lat::ValidAngle, lon::ValidAngle) where L <: LLA = L(lat, lon, 0)
