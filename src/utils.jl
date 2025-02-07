@@ -10,7 +10,7 @@ It is not directly the type of the fields, mainly as we consider fields of type 
 
 All the types defined in this package have an assciated parametric numbertype as first parameter.
 
-See also [`enforce_numbertype`](@ref), [`change_numbertype`](@ref), [`has_numbertype`](@ref)
+See also [`enforce_numbertype`](@ref), [`change_numbertype`](@ref), [`has_numbertype`](@ref), [`default_numbertype`](@ref)
 """
 function numbertype end
 
@@ -38,7 +38,7 @@ enforce_numbertype(UV, Float32) == UV{Float32} # Provide a custom default as not
 enforce_numbertype(UV, 1) == UV{Int64} # Provide a custom default as not present in input type
 ```
 
-See also [`change_numbertype`](@ref), [`has_numbertype`](@ref), [`numbertype`](@ref)
+See also [`numbertype`](@ref), [`enforce_numbertype`](@ref), [`has_numbertype`](@ref), [`default_numbertype`](@ref)
 """
 function enforce_numbertype end
 
@@ -49,9 +49,23 @@ Functions that change the underlying numbertype of the provided object `x` to th
 
 It has a fallback default implementation for types defined within this package which calls `convert` on the provided object `x` to the type `basetype(x){T}`.
 
-See also [`enforce_numbertype`](@ref), [`has_numbertype`](@ref), [`numbertype`](@ref)
+See also [`numbertype`](@ref), [`enforce_numbertype`](@ref), [`has_numbertype`](@ref), [`default_numbertype`](@ref)
 """
 function change_numbertype end
+
+"""
+    default_numbertype(args...)
+
+Function that returns the common valid numbertype among the arguments provided as input. It finds the common numbertype via `promote_type` and either return that (if it's a subtype of `AbstractFloat`) or `Float64` if it's not.
+
+This function is useful to automatically extract from inputs the `numbertype` to use in constructors.
+
+See also [`numbertype`](@ref), [`enforce_numbertype`](@ref), [`has_numbertype`](@ref), [`change_numbertype`](@ref)
+"""
+function default_numbertype(args::Vararg{Any, N}) where N
+    T = promote_type(map(numbertype, args)...)
+    T <: AbstractFloat ? T : Float64
+end
 
 ##### Misc Utilities ####
 

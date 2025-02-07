@@ -6,8 +6,8 @@ function (::Type{P})(xyz::Vararg{ValidDistance, 3}) where P <: LengthCartesian
     PP = if has_numbertype(P) 
         P
     else
-        NT = promote_type(map(numbertype, xyz)...)
-        P{NT <: AbstractFloat ? NT : Float64}
+        T = default_numbertype(xyz...)
+        P{T}
     end
     any(isnan, xyz) && return constructor_without_checks(PP, NaN * u"m", NaN * u"m", NaN * u"m")
     x, y, z = map(to_meters, xyz)

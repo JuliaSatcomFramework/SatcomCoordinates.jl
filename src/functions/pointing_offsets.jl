@@ -4,8 +4,8 @@ function UVOffset{T}(u, v) where {T <: AbstractFloat}
     constructor_without_checks(UVOffset{T}, u, v)
 end
 function UVOffset(uv::Vararg{Real, 2})
-    T = promote_type(map(numbertype, uv)...)
-    return UVOffset{T <: AbstractFloat ? T : Float64}(uv...)
+    T = default_numbertype(uv...)
+    return UVOffset{T}(uv...)
 end
 # ThetaPhiOffset
 function (::Type{TPO})(args...) where TPO <: ThetaPhiOffset

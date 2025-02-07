@@ -13,8 +13,7 @@ function AER{T}(az::ValidAngle, el::ValidAngle, r::ValidDistance) where T
     constructor_without_checks(AER{T}, az, el, r)
 end
 function AER(az::ValidAngle, el::ValidAngle, r::ValidDistance)
-    NT = promote_type(map(numbertype, (az, el, r))...)
-    T = NT <: AbstractFloat ? NT : Float64
+    T = default_numbertype(az, el, r)
     AER{T}(az, el, r)
 end
 

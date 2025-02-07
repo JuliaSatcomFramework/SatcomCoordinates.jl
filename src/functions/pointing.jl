@@ -49,8 +49,7 @@ for P in (:UV, :ThetaPhi, :AzEl, :AzOverEl, :ElOverAz, :PointingVersor)
     N = P === :PointingVersor ? 3 : 2
     eval(:(
     function $P(vals::Vararg{$NT, $N})
-        T = promote_type(map(numbertype, vals)...)
-        T = T <: AbstractFloat ? T : Float64
+        T = default_numbertype(vals...)
         $P{T}(vals...)
     end
     ))
