@@ -54,6 +54,7 @@ end
     using SatcomCoordinates: change_numbertype, numbertype, InverseTransform
     using SatcomCoordinates.Unitful
     using SatcomCoordinates.TransformsBase: inverse
+    using SatcomCoordinates.StaticArrays
 
     for T in (LLA, ECEF, UV, ThetaPhi, AzOverEl, ElOverAz, PointingVersor, NED, ENU, AER, LocalCartesian, Spherical, AzElDistance, BasicCRSTransform, CRSRotation)
         x = rand(T)
@@ -69,4 +70,6 @@ end
 
     @test change_numbertype(Float32, 1u"°") === 1f0u"°"
     @test change_numbertype(Float32)(1u"m") === 1f0u"m"
+
+    @test change_numbertype(Float32, SVector(1, 2, 3)) === SVector{3, Float32}(1f0, 2f0, 3f0)
 end
