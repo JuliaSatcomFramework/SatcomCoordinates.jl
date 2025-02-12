@@ -5,7 +5,7 @@
 
 ## LLA
 function LLA{T}(lat::ValidAngle, lon::ValidAngle, alt::ValidDistance) where T
-    any(isnan, (lat, lon, alt)) && return constructor_without_checks(LLA{T}, NaN * u"°", NaN * u"°", NaN * u"m")
+    any(isnan, (lat, lon, alt)) && return LLA{T}(Val{NaN}())
     lat = to_degrees(lat)
     lon = to_degrees(lon, RoundNearest)
     @assert -90° ≤ lat ≤ 90° "The input latitude must satisfy `lat ∈ [-90°, 90°]`"

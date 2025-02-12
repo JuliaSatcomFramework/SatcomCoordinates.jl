@@ -1,6 +1,7 @@
 ##### Constructors #####
+(::Type{UO})(::Val{NaN}) where UO <: UVOffset = constructor_without_checks(enforce_numbertype(UO), NaN, NaN)
 function UVOffset{T}(u, v) where {T <: AbstractFloat}
-    (isnan(u) || isnan(v)) && return constructor_without_checks(UVOffset{T}, NaN, NaN)
+    any(isnan, (u, v)) && return UVOffset{T}(Val{NaN}())
     constructor_without_checks(UVOffset{T}, u, v)
 end
 function UVOffset(uv::Vararg{Real, 2})
@@ -8,6 +9,7 @@ function UVOffset(uv::Vararg{Real, 2})
     return UVOffset{T}(uv...)
 end
 # ThetaPhiOffset
+(::Type{TPO})(::Val{NaN}) where TPO <: ThetaPhiOffset = constructor_without_checks(enforce_numbertype(TPO), NaN * u"°", NaN * u"°")
 function (::Type{TPO})(args...) where TPO <: ThetaPhiOffset
     tp = ThetaPhi(args...)
     TP = enforce_numbertype(TPO, tp)

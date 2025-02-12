@@ -12,7 +12,7 @@ end
 const UV_CONSTRUCTOR_TOLERANCE = Ref{Float64}(1e-5)
 
 function UV{T}(u, v) where {T <: AbstractFloat}
-    (isnan(u) || isnan(v)) && return constructor_without_checks(UV{T}, NaN, NaN)
+    any(isnan, (u, v)) && return UV{T}(Val{NaN}())
     n = u^2 + v^2
     tol = UV_CONSTRUCTOR_TOLERANCE[]
     lim = 1 + tol
@@ -32,16 +32,18 @@ tolerance = $(tol)")
 end
 
 (::Type{P})(pt::Point{2, Real}) where P <: UV = P(pt...)
+(::Type{P})(::Val{NaN}) where P <: UV = constructor_without_checks(enforce_numbertype(P), NaN, NaN)
 
 # AngularPointing
 function (::Type{P})(α, β) where{T <: AbstractFloat, P <: Union{AzOverEl{T}, ElOverAz{T}, ThetaPhi{T}, AzEl{T}}}
-    (isnan(α) || isnan(β)) && return constructor_without_checks(P, f(NaN), f(NaN))
+    any(isnan, (α, β)) && return P(Val{NaN}())
     α = to_degrees(α, RoundNearest)
     β = to_degrees(β, RoundNearest)
     α, β = wrap_spherical_angles_normalized(α, β, P)
     constructor_without_checks(P, α, β)
 end
 (::Type{P})(pt::Point2D) where P <: AngularPointing = P(pt...)
+(::Type{P})(::Val{NaN}) where P <: AngularPointing = constructor_without_checks(enforce_numbertype(P), NaN * u"°", NaN * u"°")
 
 # Constructors without numbertype, and with tuple or SVector as input
 for P in (:UV, :ThetaPhi, :AzEl, :AzOverEl, :ElOverAz, :PointingVersor)

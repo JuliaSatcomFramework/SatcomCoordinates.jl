@@ -1,15 +1,15 @@
+# Generic NaN constructor for all SatcomCoordinate types
+(::Type{C})(::Val{NaN}) where C <: AbstractSatcomCoordinate = constructor_without_checks(enforce_numbertype(C), NaN, NaN, NaN)
+(::Type{C})(::Val{NaN}) where C <: LengthCartesian = constructor_without_checks(enforce_numbertype(C), NaN * u"m", NaN * u"m", NaN * u"m")
+(::Type{C})(::Val{NaN}) where C <: AngleAngleDistance = constructor_without_checks(enforce_numbertype(C), NaN * u"°", NaN * u"°", NaN * u"m")
+
 # Generic Tuple/SVector constructor for all LengthCartesian types
 (::Type{P})(pt::Point{3, ValidDistance}) where P <: LengthCartesian = P(pt...)
 
 # Generic 3-arg constructor for LengthCartesian types
 function (::Type{P})(xyz::Vararg{ValidDistance, 3}) where P <: LengthCartesian
-    PP = if has_numbertype(P) 
-        P
-    else
-        T = default_numbertype(xyz...)
-        P{T}
-    end
-    any(isnan, xyz) && return constructor_without_checks(PP, NaN * u"m", NaN * u"m", NaN * u"m")
+    PP = enforce_numbertype(P, default_numbertype(xyz...))
+    any(isnan, xyz) && return PP(Val{NaN}())
     x, y, z = map(to_meters, xyz)
     constructor_without_checks(PP, x, y, z)
 end
@@ -46,6 +46,7 @@ function Random.rand(rng::AbstractRNG, ::Random.SamplerType{L}) where L <: Lengt
 end
 
 function Base.convert(::Type{C1}, c::C2) where {C1 <: AbstractSatcomCoordinate, C2 <: AbstractSatcomCoordinate}
+    isnan(c) && return enforce_numbertype(C1, c)(Val{NaN}())
     if basetype(C1) == basetype(C2)
         _convert_same(C1, c)
     else

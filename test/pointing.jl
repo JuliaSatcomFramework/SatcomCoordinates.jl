@@ -353,12 +353,18 @@ end
     types = (PointingVersor, ThetaPhi, AzOverEl, ElOverAz, UV, AzEl)
     for P in types
         p = rand(P)
+        pNaN = P(Val{NaN}())
+        @test isnan(pNaN)
         @test convert(P{Float32}, p) |> numbertype == Float32
         @test convert(P{Float64}, p) === p
         for V in setdiff(types, (P, UV)) # We skip UV due to half-hemisphere errors
             v = convert(V, p)
             @test v ≈ p # Test forward conversion
             @test convert(P, v) ≈ p # Test reverse conversion
+        end
+        for V in setdiff(types, (P,)) # We skip UV due to half-hemisphere errors
+            # We test that NaNs are progagated
+            @test isnan(convert(V, pNaN))
         end
     end
 

@@ -5,7 +5,7 @@
 
 # AER
 function AER{T}(az::ValidAngle, el::ValidAngle, r::ValidDistance) where T
-    any(isnan, (az, el, r)) && return constructor_without_checks(AER{T}, NaN * u"°", NaN * u"°", NaN * u"m")
+    any(isnan, (az, el, r)) && return AER{T}(Val{NaN}())
     az = to_degrees(az, RoundNearest)
     el = to_degrees(el, RoundNearest)
     az, el = wrap_spherical_angles_normalized(az, el, AER)
