@@ -106,6 +106,11 @@ Base.convert(::Type{InverseTransform}, t::TR) where TR <: InverseTransform = ret
 Base.convert(::Type{InverseTransform{T}}, t::InverseTransform{T}) where {T <: AbstractFloat} = return t
 Base.convert(::Type{InverseTransform{T}}, t::InverseTransform) where {T <: AbstractFloat} = InverseTransform(change_numbertype(T, t.transform))
 
+##### isnan #####
+Base.isnan(t::CRSRotation) = return any(isnan, t.rotation)
+Base.isnan(t::AbstractCRSRotation) = return isnan(t |> rotation)
+Base.isnan(t::AbstractAffineCRSTransform) = return isnan(t |> rotation) || isnan(t |> origin)
+Base.isnan(it::InverseTransform) = return isnan(it.transform)
 
 #### Custom show overloads ####
 PlutoShowHelpers.repl_summary(t::AbstractCRSTransform) = shortname(t) * " Transform"

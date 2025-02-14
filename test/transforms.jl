@@ -24,6 +24,15 @@ end
     R = rand(SMatrix{3, 3})
     t = BasicCRSTransform(R, rand(LocalCartesian))
     r = CRSRotation(R)
+    RotationNaN = (a = rand(3,3); a[1] = NaN; a) |> RotMatrix3 |> CRSRotation
+
+    @test !isnan(t)
+    @test !isnan(r)
+    @test isnan(RotationNaN)
+
+    AffineNaN = BasicCRSTransform(R, LocalCartesian(NaN, NaN, NaN))
+    @test isnan(AffineNaN)
+
 
     @test norm(R) ≉ norm(r.rotation) ≈ sqrt(3)
 
@@ -51,6 +60,9 @@ end
     @test i.transform === t
     @test i.rotation === t.rotation
     @test i.origin === t.origin
+
+    @test !isnan(i)
+    @test isnan(AffineNaN |> inverse)
 
     @testset "Allocations" begin
         @test @nallocs(apply(t, p)) == 0
@@ -88,8 +100,10 @@ end
         end
         MyRotation = eval(:MyRotation)
 
-        # r = invokelatest(MyRotation, rand(RotMatrix3{Float64}) |> CRSRotation)
         r = MyRotation(rand(RotMatrix3{Float64}) |> CRSRotation)
+
+        @test !isnan(r)
+        @test isnan(MyRotation(RotationNaN))
 
         p = rand(LocalCartesian)
         a1 = apply(r, p)
