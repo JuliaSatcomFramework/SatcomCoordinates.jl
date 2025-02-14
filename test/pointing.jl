@@ -23,6 +23,8 @@ end
     p = PointingVersor((0.0, 0, 1f0))
     @test p.z == 1.0 && p.z isa Float64
 
+    @test to_svector(-p) == -to_svector(p)
+
     # Test some randomness properties
     @testset "rand" begin
         NPTS = 1000
