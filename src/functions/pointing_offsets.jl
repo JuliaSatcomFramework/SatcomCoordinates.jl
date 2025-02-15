@@ -28,6 +28,10 @@ function Base.getproperty(tp::ThetaPhiOffset, s::Symbol)
     getproperty(inner, s)
 end
 
+##### Base.isnan #####
+Base.isnan(uv::UVOffset) = return isnan(uv.inner)
+Base.isnan(tp::ThetaPhiOffset) = return isnan(tp.inner)
+
 ##### Basic Operations #####
 function Base.:(-)(uv1::UV, uv2::UV) 
     T = promote_type(numbertype(uv1), numbertype(uv2))

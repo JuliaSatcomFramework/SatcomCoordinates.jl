@@ -15,6 +15,8 @@ end
     @test uv_offset isa UVOffset
     @test uv2 + uv_offset ≈ uv1
 
+    @test isnan(UVOffset(Val{NaN}()))
+
     @test uv_offset == UVOffset(uv_offset.u, uv_offset.v)
 
     @test uv_offset.inner isa UV
@@ -25,6 +27,8 @@ end
     tp_offset = get_angular_offset(tp1, tp2)
     @test tp_offset isa ThetaPhiOffset
     @test tp2 ≈ add_angular_offset(tp1, tp_offset)
+
+    @test isnan(ThetaPhiOffset(Val{NaN}()))
 
     @test tp_offset.inner isa ThetaPhi
     @test tp_offset.inner.θ === tp_offset.t === tp_offset.θ
