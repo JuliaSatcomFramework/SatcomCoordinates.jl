@@ -15,7 +15,7 @@ function (::Type{P})(xyz::Vararg{ValidDistance, 3}) where P <: LengthCartesian
 end
 
 # Addition, subtraction and sign inversion
-Base.:(-)(c::C) where C <: Union{CartesianPosition, PointingVersor} = constructor_without_checks(C, -c.x, -c.y, -c.z)
+Base.:(-)(c::C) where C <: CartesianPosition = constructor_without_checks(C, -c.x, -c.y, -c.z)
 function Base.:(+)(c1::C1, c2::C2) where {C1 <: CartesianPosition, C2 <: CartesianPosition} 
     C = basetype(C1)
     C == basetype(C2) || throw(ArgumentError("Cannot add coordinates of different types: $C1 and $C2"))

@@ -57,6 +57,24 @@ for P in (:UV, :ThetaPhi, :AzEl, :AzOverEl, :ElOverAz, :PointingVersor)
     ))
 end
 
+##### Pointing Inversion #####
+# We define the -p operation for pointing directions as the pointing direction which is in the opposite direction of p on the unitary sphere.
+
+Base.:(-)(p::P) where P <: PointingVersor = constructor_without_checks(P, -p.x, -p.y, -p.z)
+function Base.:(-)(p::Union{ElOverAz, AzEl, AzOverEl})
+    AP = typeof(p)
+    (;az, el) = p
+    if p isa Union{AzEl, ElOverAz}
+        el = -el
+    end
+    constructor_without_checks(AP, az - copysign(180°, az), el)
+end
+function Base.:(-)(p::ThetaPhi)
+    TP = typeof(p)
+    (;θ, φ) = p
+    constructor_without_checks(TP, 180° - θ, φ - copysign(180°, φ))
+end
+
 ##### Conversions #####
 # UV <-> PointingVersor
 _convert_different(::Type{P}, uv::UV) where {P <: PointingVersor} = constructor_without_checks(enforce_numbertype(P, uv), uv.u, uv.v, sqrt(1 - uv.u^2 - uv.v^2))

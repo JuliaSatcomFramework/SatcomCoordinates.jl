@@ -83,7 +83,7 @@ Function that takes as input two angles representing two orthogonal angular comp
 wrap_spherical_angles_normalized(az::T, el::T, ::Type{<:Union{AzOverEl, ElOverAz, AER, AzEl}}) where {T <: Deg{<:Real}} =
     ifelse(
         abs(el) <= 90°,  # Condition
-        (az, el), # First angle is already between -90° and 90°
+        (az, el), # Azimuth angle is already between -180° and 180° as it's already been normalized
         (az - copysign(180°,az), el - copysign(180°,el)) # Need to wrap
     )
 

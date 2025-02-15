@@ -350,6 +350,16 @@ end
     end
 end
 
+@testitem "Pointing Negation" begin
+    p = rand(PointingVersor)
+    @test -p ≈ PointingVersor(-p.x, -p.y, -p.z)
+    for P in (AzEl, AzOverEl, ElOverAz, ThetaPhi)
+        @test all(1:100) do _
+            ap = rand(P)
+            convert(PointingVersor, -ap) ≈ -convert(PointingVersor, ap)
+        end
+    end
+end
 
 @testitem "isapprox/convert" setup=[setup_pointing] begin
     types = (PointingVersor, ThetaPhi, AzOverEl, ElOverAz, UV, AzEl)
