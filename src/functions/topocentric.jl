@@ -17,6 +17,9 @@ function AER(az::ValidAngle, el::ValidAngle, r::ValidDistance)
     AER{T}(az, el, r)
 end
 
+##### Pointing Inversion #####
+Base.:(-)(aer::AER) = constructor_without_checks(typeof(aer), aer.az - copysign(180°, aer.az), -aer.el, aer.r)
+
 ##### Base.getproperty #####
 ## ENU
 function Base.getproperty(enu::ENU, s::Symbol) 

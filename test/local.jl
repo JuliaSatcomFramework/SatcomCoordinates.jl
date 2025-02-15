@@ -93,6 +93,11 @@ end
 
     p = rand(Spherical)
     @test raw_nt(p) isa NamedTuple{(:θ, :φ, :r), Tuple{Float64, Float64, Float64}}
+
+    for PT in (ThetaPhi, AzEl, ElOverAz, AzOverEl)
+        gs = rand(GeneralizedSpherical{Float64, PT{Float64}})
+        @test convert(LocalCartesian, -gs) ≈ -convert(LocalCartesian, gs)
+    end
 end
 
 

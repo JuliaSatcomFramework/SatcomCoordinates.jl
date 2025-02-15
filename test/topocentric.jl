@@ -74,6 +74,9 @@ end
     @test aer.elevation == aer.el
     @test aer.range == aer.r
 
+    ae = rand(AER)
+    @test convert(ENU, -ae) ≈ -convert(ENU, ae)
+
     @testset "Allocations" begin
         @test @nallocs(AER(1,2,3)) == 0
         @test @nallocs(AER{Float32}(1,2,3)) == 0

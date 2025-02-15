@@ -51,6 +51,9 @@ function _convert_different(::Type{G}, src::L) where {G <: GeneralizedSpherical,
     constructor_without_checks(P, p, r)
 end
 
+##### Pointing Inversion #####
+Base.:(-)(g::GeneralizedSpherical) = constructor_without_checks(typeof(g), -g.pointing, g.r)
+
 ##### Base.isapprox #####
 Base.isapprox(c1::LocalCartesian, c2::LocalCartesian; kwargs...) = isapprox(to_svector(c1), to_svector(c2); kwargs...)
 function Base.isapprox(c1::GenericLocalPosition, c2::GenericLocalPosition; kwargs...)
