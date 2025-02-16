@@ -46,10 +46,14 @@ end
     @test Spherical(1,2,3) isa GeneralizedSpherical{Float64, ThetaPhi{Float64}}
     @test Spherical{Float32}(1,2,3) isa GeneralizedSpherical{Float32, ThetaPhi{Float32}}
 
+
     s = rand(Spherical)
     @test s.r == s.range == s.distance
     @test s.θ == s.theta == s.pointing.θ
     @test s.φ == s.phi == s.pointing.φ
+
+    @test !isnan(s)
+    @test isnan(Spherical(Val{NaN}()))
 
     @test AzElDistance(1,2,3) isa GeneralizedSpherical{Float64, AzEl{Float64}}
     @test AzElDistance{Float32}(1,2,3) isa GeneralizedSpherical{Float32, AzEl{Float32}}

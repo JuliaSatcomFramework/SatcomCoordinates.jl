@@ -4,6 +4,14 @@
 # Handled by generic LengthCartesian constructor in fallbacks.jl
 
 # GeneralizedSpherical
+# Nan constructor
+function (::Type{GS})(::Val{NaN}) where GS <: GeneralizedSpherical
+    G = enforce_numbertype(GS)
+    T = numbertype(G)
+    PT = pointing_type(G)
+    p = PT(Val{NaN}())
+    constructor_without_checks(GeneralizedSpherical{T, PT}, p, to_meters(T(NaN)))
+end
 # Constructor from pointing and range, with specific numbertype
 function GeneralizedSpherical{T}(p::P, r::ValidDistance) where {T <: AbstractFloat, P <: AngularPointing}
     B = basetype(P)
