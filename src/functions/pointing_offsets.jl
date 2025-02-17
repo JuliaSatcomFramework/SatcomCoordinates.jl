@@ -17,20 +17,11 @@ function (::Type{TPO})(args...) where TPO <: ThetaPhiOffset
 end
 
 ##### Base.getproperty #####
-function Base.getproperty(uv::UVOffset, s::Symbol)
-    inner = getfield(uv, :inner)
-    s === :inner && return inner
-    getproperty(inner, s)
-end
-function Base.getproperty(tp::ThetaPhiOffset, s::Symbol)
-    inner = getfield(tp, :inner)
-    s === :inner && return inner
-    getproperty(inner, s)
-end
+property_aliases(::Type{<:UVOffset}) = property_aliases(UV)
+property_aliases(::Type{<:ThetaPhiOffset}) = property_aliases(ThetaPhi)
 
-##### Base.isnan #####
-Base.isnan(uv::UVOffset) = return isnan(uv.inner)
-Base.isnan(tp::ThetaPhiOffset) = return isnan(tp.inner)
+##### raw_properties #####
+raw_properties(po::AbstractPointingOffset) = raw_properties(getfield(po, :inner))
 
 ##### Basic Operations #####
 function Base.:(-)(uv1::UV, uv2::UV) 
@@ -71,8 +62,8 @@ offset.theta ≈ Δθ
 See also: [`add_angular_offset`](@ref), [`get_angular_offset`](@ref)
 """
 function get_angular_distance(p₁::AbstractPointing, p₂::AbstractPointing)
-	p₁_xyz = convert(PointingVersor, p₁) |> to_svector
-	p₂_xyz = convert(PointingVersor, p₂) |> to_svector
+	p₁_xyz = convert(PointingVersor, p₁) |> normalized_svector
+	p₂_xyz = convert(PointingVersor, p₂) |> normalized_svector
 	return acos(min(p₁_xyz'p₂_xyz, 1)) |> asdeg
 end
 
@@ -153,7 +144,7 @@ See also: [`add_angular_offset`](@ref)
 """
 function get_angular_offset(p₁::AbstractPointing, p₂::AbstractPointing)
 	R = angle_offset_rotation(convert(ThetaPhi, p₁)) # We take p₁ as reference
-	p₂_xyz = convert(PointingVersor, p₂) |> to_svector # We create the 3D vector corresponding to p₂
+	p₂_xyz = convert(PointingVersor, p₂) |> normalized_svector # We create the 3D vector corresponding to p₂
 	# Check the comments in `angle_offset_rotation` and the link therein to understand this line
 	x, y, z = R' * p₂_xyz
     out = constructor_without_checks(enforce_numbertype(PointingVersor, x), x, y, z)
@@ -207,7 +198,7 @@ See also: [`get_angular_offset`](@ref), [`get_angular_distance`](@ref), [`ThetaP
 function add_angular_offset(::Type{O}, p₀::P, offset_angles::ThetaPhi) where {O <: AbstractPointing, P <: AbstractPointing}
 	θφ_in = convert(ThetaPhi, p₀)
 	R = angle_offset_rotation(θφ_in)
-	perturbation = convert(PointingVersor, offset_angles) |> to_svector
+	perturbation = convert(PointingVersor, offset_angles) |> normalized_svector
 	# Check the comments in `angle_offset_rotation` and the link therein to understand this line
 	x,y,z = R * perturbation
     out_direction = constructor_without_checks(enforce_numbertype(PointingVersor, x), x, y, z)
@@ -224,4 +215,4 @@ PlutoShowHelpers.repl_summary(p::AbstractPointingOffset) = shortname(p.inner) * 
 
 PlutoShowHelpers.show_namedtuple(p::UVOffset) = show_namedtuple(p.inner)
 
-PlutoShowHelpers.show_namedtuple(p::ThetaPhiOffset) = map(DualDisplayAngle, raw_nt(p.inner))
+PlutoShowHelpers.show_namedtuple(p::ThetaPhiOffset) = map(DualDisplayAngle, normalized_properties(p.inner))

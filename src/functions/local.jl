@@ -36,11 +36,10 @@ end
 
 ##### Base.getproperty #####
 # GenerializedSpherical
-function Base.getproperty(g::GeneralizedSpherical, s::Symbol)
-    s == :pointing && return getfield(g, :pointing)
-    s in (:r, :range, :distance) && return getfield(g, :r)
-    return getproperty(getfield(g, :pointing), s)
-end
+property_aliases(::Type{GeneralizedSpherical{T, P}}) where {T, P} = (;
+    property_aliases(P)...,
+    r = DISTANCE_ALIASES
+)
 
 ##### convert #####
 # LocalCartesian <-> GeneralizedSpherical
@@ -48,14 +47,14 @@ function _convert_different(::Type{L}, src::G) where {L <: LocalCartesian, G <: 
     C = enforce_numbertype(L, src)
     (; pointing, r) = src
     p = convert(PointingVersor, pointing)
-    (;x, y, z) = to_svector(p) .* r
+    (;x, y, z) = normalized_svector(p) .* r
     constructor_without_checks(C, x, y, z)
 end
 function _convert_different(::Type{G}, src::L) where {G <: GeneralizedSpherical, L <: LocalCartesian}
     P = enforce_numbertype(G, src)
-    (; x, y, z) = src |> to_svector
+    (; x, y, z) = src |> normalized_svector
     p = PointingVersor(x, y, z)
-    r = norm(to_svector(src)) * u"m"
+    r = norm(normalized_svector(src)) * u"m"
     constructor_without_checks(P, p, r)
 end
 
@@ -63,7 +62,7 @@ end
 Base.:(-)(g::GeneralizedSpherical) = constructor_without_checks(typeof(g), -g.pointing, g.r)
 
 ##### Base.isapprox #####
-Base.isapprox(c1::LocalCartesian, c2::LocalCartesian; kwargs...) = isapprox(to_svector(c1), to_svector(c2); kwargs...)
+Base.isapprox(c1::LocalCartesian, c2::LocalCartesian; kwargs...) = isapprox(normalized_svector(c1), normalized_svector(c2); kwargs...)
 function Base.isapprox(c1::GenericLocalPosition, c2::GenericLocalPosition; kwargs...)
     c1 = convert(LocalCartesian, c1)
     c2 = convert(LocalCartesian, c2)
@@ -92,10 +91,10 @@ function Random.rand(rng::AbstractRNG, ::SamplerType{G}) where G <: GeneralizedS
 end
 
 ##### Utilities #####
-function raw_nt(g::GeneralizedSpherical)
-    pt_nt = @inline raw_nt(getfield(g, :pointing))
-    nt = (pt_nt..., r = getfield(g, :r))
-    map(normalize_value, nt)
+function raw_properties(c::GeneralizedSpherical{<:Any, P}) where P <: AbstractPointing
+    p = getfield(c, :pointing)
+    r = getfield(c, :r)
+    return (; raw_properties(p)..., r)
 end
 
 # Custom implementation of change_numbertype for GeneralizedSpherical

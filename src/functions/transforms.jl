@@ -46,7 +46,7 @@ TransformsBase.parameters(t::AbstractCRSTransform) = getfields(t)
 
 # Fallback apply, actual methods should be defined taking StaticVector as reference input if not for special cases
 function TransformsBase.apply(t::AbstractCRSTransform, coords::LocalCartesian) 
-    new_coords, _ = apply(t, to_svector(coords))
+    new_coords, _ = apply(t, normalized_svector(coords))
     return LocalCartesian(new_coords), nothing
 end
 
@@ -64,12 +64,12 @@ TransformsBase.apply(t::AbstractCRSRotation, coords::StaticVector) =
 # Affine transform
 function TransformsBase.apply(t::AbstractAffineCRSTransform, coords::StaticVector)
     rotated, _ = apply(rotation(t), coords)
-    new_coords = rotated + to_svector(origin(t))
+    new_coords = rotated + normalized_svector(origin(t))
     return new_coords, nothing
 end
 
 function TransformsBase.apply(t::InverseTransform{<:Any, <:AbstractAffineCRSTransform}, coords::StaticVector)
-    shifted = coords - to_svector(origin(t))
+    shifted = coords - normalized_svector(origin(t))
     rotated, _ = apply(rotation(t), shifted)
     return rotated, nothing
 end

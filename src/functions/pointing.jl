@@ -99,7 +99,7 @@ end
 
 # ThetaPhi <-> PointingVersor
 function _convert_different(::Type{P}, tp::ThetaPhi) where P <: PointingVersor
-	(; θ, φ) = raw_nt(tp)
+	(; θ, φ) = normalized_properties(tp)
 	sθ,cθ = sincos(θ)
 	sφ,cφ = sincos(φ)
 	x = sθ * cφ
@@ -142,7 +142,7 @@ function _convert_different(::Type{E}, p::PointingVersor) where E <: AzEl
     constructor_without_checks(enforce_numbertype(E, p), az, el)
 end
 function _convert_different(::Type{P}, p::AzEl) where P <: PointingVersor
-    (;az, el) = raw_nt(p)
+    (;az, el) = normalized_properties(p)
     saz,caz = sincos(az)
     sel,cel = sincos(el)
     x = saz * cel
@@ -159,7 +159,7 @@ function _convert_different(::Type{E}, p::PointingVersor) where E <: ElOverAz
     constructor_without_checks(enforce_numbertype(E, p), az, el)
 end
 function _convert_different(::Type{P}, p::ElOverAz) where P <: PointingVersor
-    (;az, el) = raw_nt(p)
+    (;az, el) = normalized_properties(p)
     saz,caz = sincos(az)
     sel,cel = sincos(el)
     x = -saz * cel
@@ -178,7 +178,7 @@ function _convert_different(::Type{A}, p::PointingVersor) where A <: AzOverEl
     constructor_without_checks(enforce_numbertype(A, p), az, el)
 end
 function _convert_different(::Type{P}, p::AzOverEl) where P <: PointingVersor
-    (;el, az) = raw_nt(p)
+    (;el, az) = normalized_properties(p)
     sel,cel = sincos(el)
     saz,caz = sincos(az)
     x = -saz
@@ -194,32 +194,29 @@ function _convert_different(::Type{D}, p::S) where {D <: AbstractPointing, S <: 
     return convert(D, pv)
 end
 
-##### Base.getproperty #####
+##### Property Aliases #####
 # PointingVersor
-function Base.getproperty(p::PointingVersor, s::Symbol)
-    s ∈ (:x, :u) && return getfield(p, :x)
-    s ∈ (:y, :v) && return getfield(p, :y)
-    s ∈ (:z, :w) && return getfield(p, :z)
-    throw(ArgumentError("Objects of type `PointingVersor` do not have a property called $s"))
-end
+property_aliases(::Type{<:PointingVersor}) = (;
+    x = (:x, :u),
+    y = (:y, :v),
+    z = (:z, :w)
+)
 
 # ThetaPhi
-function Base.getproperty(p::ThetaPhi, s::Symbol)
-    s ∈ (:t, :θ, :theta) && return getfield(p, :θ)
-    s ∈ (:p, :φ, :ϕ, :phi) && return getfield(p, :φ)
-    throw(ArgumentError("Objects of type `ThetaPhi` do not have a property called $s"))
-end
+property_aliases(::Type{<:ThetaPhi}) = (;
+    θ = THETA_ALIASES,
+    φ = PHI_ALIASES
+)
 
 # AzEl/AzOverEl/ElOverAz
-function Base.getproperty(p::Union{AzOverEl, ElOverAz, AzEl}, s::Symbol)
-    s ∈ (:az, :azimuth) && return getfield(p, :az)
-    s ∈ (:el, :elevation) && return getfield(p, :el)
-    throw(ArgumentError("Objects of type `$(p |> typeof |> basetype)` do not have a property called $s"))
-end
+property_aliases(::Type{<:Union{AzOverEl, ElOverAz, AzEl}}) = (;
+    az = AZIMUTH_ALIASES,
+    el = ELEVATION_ALIASES
+)
 
 ##### Base.isapprox #####
 # PointingVersor
-Base.isapprox(p1::PointingVersor, p2::PointingVersor; kwargs...) = isapprox(to_svector(p1), to_svector(p2); kwargs...)
+Base.isapprox(p1::PointingVersor, p2::PointingVersor; kwargs...) = isapprox(normalized_svector(p1), normalized_svector(p2); kwargs...)
 
 # General isapprox method, passing via PointingVersor
 Base.isapprox(p1::PointingVersor, p2::Union{UV, AngularPointing}; kwargs...) = isapprox(p1, convert(PointingVersor, p2); kwargs...)
@@ -249,9 +246,9 @@ function Random.rand(rng::AbstractRNG, ::Random.SamplerType{AE}) where AE <: Uni
 end
 
 ##### Utilities #####
-to_svector(p::PointingVersor) = SVector{3, numbertype(p)}(p.x, p.y, p.z)
+normalized_svector(p::PointingVersor) = SVector{3, numbertype(p)}(p.x, p.y, p.z)
 
 ###### Custom show overloads ######
 PlutoShowHelpers.repl_summary(p::AbstractPointing) = shortname(p) * " Pointing"
 
-PlutoShowHelpers.show_namedtuple(p::AngularPointing) = map(DualDisplayAngle, raw_nt(p))
+PlutoShowHelpers.show_namedtuple(p::AngularPointing) = map(DualDisplayAngle, normalized_properties(p))

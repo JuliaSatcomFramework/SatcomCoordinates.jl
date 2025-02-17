@@ -1,5 +1,5 @@
 @testsnippet setup_topocentric begin
-    using SatcomCoordinates: numbertype, to_svector, raw_nt, @u_str
+    using SatcomCoordinates: numbertype, normalized_svector, normalized_properties, @u_str
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
@@ -28,8 +28,8 @@ end
         @test p1 ≈ convert(P{Float32}, p1)
 
         c1, c2 = rand(P, 2)
-        @test to_svector(c1 + c2) == to_svector(c1) + to_svector(c2)
-        @test to_svector(c1 - c2) == to_svector(c1) - to_svector(c2)
+        @test normalized_svector(c1 + c2) == normalized_svector(c1) + normalized_svector(c2)
+        @test normalized_svector(c1 - c2) == normalized_svector(c1) - normalized_svector(c2)
 
         c3 = rand(P{Float32})
         @test c1 + c3 isa P{Float64}
