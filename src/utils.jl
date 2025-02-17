@@ -174,6 +174,3 @@ function normalize_value(val::PS)
         val
     end
 end
-
-raw_nt(x) = normalized_properties(x)
-to_svector(x) = normalized_svector(x)
