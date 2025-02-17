@@ -8,7 +8,7 @@ using PlutoShowHelpers: PlutoShowHelpers, DefaultShowOverload, HideWhenCompact, 
 using Random: Random, SamplerType, AbstractRNG
 using Rotations: Rotations, Rotation, nearest_rotation, RotMatrix3
 using TransformsBase: TransformsBase, Transform, Identity, isinvertible, isrevertible, inverse, apply
-using Unitful: Unitful, Quantity, ustrip, rad, @u_str, °, km
+using Unitful: Unitful, Quantity, ustrip, rad, @u_str, °, km, dimension
 
 # From deps
 export °, km, @u_str # From Unitful
@@ -16,7 +16,7 @@ export to_degrees, to_meters # From BasicTypes
 export Identity # From TransformsBase
 
 include("types/abstract_types.jl")
-export AbstractSatcomCoordinate, CartesianPosition, LengthCartesian, AngularPointing, AbstractPointing, AbstractCRSTransform
+export AbstractSatcomCoordinate, CartesianPosition, LengthCartesian, AngularPointing, AbstractPointing, AbstractCRSTransform, AbstractFieldValue
 public AbstractPointingOffset
 
 include("types/pointing.jl")
@@ -50,9 +50,11 @@ include("functions/local.jl")
 include("functions/transforms.jl")
 public origin, rotation
 
-include("functions/fallbacks.jl")
+include("functions/fieldvalues.jl")
 
 include("utils.jl")
-export numbertype, enforce_numbertype, has_numbertype, change_numbertype, default_numbertype
+export numbertype, enforce_numbertype, has_numbertype, change_numbertype, default_numbertype, property_aliases, raw_properties
+
+include("functions/fallbacks.jl")
 
 end # module SatComCoordinates

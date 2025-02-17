@@ -28,7 +28,7 @@ Base.:(-)(c1::C1, c2::C2) where {C1 <: CartesianPosition, C2 <: CartesianPositio
 Base.zero(::Type{C}) where C <: CartesianPosition = constructor_without_checks(enforce_numbertype(C), map(to_meters, zero(SVector{3, Float64}))...)
 
 # isnan
-Base.isnan(coords::C) where C <: AbstractSatcomCoordinate = any(isnan, raw_properties(coords))
+Base.isnan(x::Union{AbstractSatcomCoordinate, AbstractFieldValue}) = any(isnan, raw_properties(x))
 
 # isapprox
 function Base.isapprox(c1::C1, c2::C2; kwargs...) where {C1 <: CartesianPosition, C2 <: CartesianPosition}
@@ -106,7 +106,7 @@ change_numbertype(::Type{T}) where T <: AbstractFloat = return Base.Fix1(change_
 change_numbertype(::Type{T}, c::C) where {T <: AbstractFloat, C <: WithNumbertype} = return convert(basetype(C){T}, c)
 
 # Base.getproperty fallback with generated function (to have faster getproperty)
-@generated function Base.getproperty(c::AbstractSatcomCoordinate, s::Symbol)
+@generated function Base.getproperty(c::Union{AbstractSatcomCoordinate, AbstractFieldValue}, s::Symbol)
     aliases = property_aliases(c)
     block = Expr(:block)
     args = block.args

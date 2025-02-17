@@ -57,5 +57,38 @@ Currently only has two concrete subtypes: [`UVOffset`](@ref) and [`ThetaPhiOffse
 """
 abstract type AbstractPointingOffset{T} <: AbstractSatcomCoordinate{T, 2} end
 
+"""
+    AbstractCRSTransform{T}
+
+Abstract type representing a coordinate transform between two CRSs with numbertype `T`.
+"""
 abstract type AbstractCRSTransform{T} <: Transform end
+
+"""
+    AbstractAffineCRSTransform{T}
+
+Abstract type representing an affine transform between two CRSs with numbertype `T`.
+"""
 abstract type AbstractAffineCRSTransform{T} <: AbstractCRSTransform{T} end
+
+"""
+    AbstractFieldValue{T, N, CRS <: AbstractPosition{T, N}, F}
+
+Abstract type representing the value of a physical field expressed in a specific `CRS` in `N` dimensions with numbertype `T`.
+
+A method of `property_aliases` is defined for this abstract type that simply returns `property_aliases(CRS)`.
+
+Default concrete implementations of this subtype are expected to have a single inner field `svector` which is a `SVector{N, F}` to exploit the `raw_properties` method defined on this abstract type.
+
+An example concrete type representing velocity in a 3D CRS can be implemented as follows (assuming to have `Quantity`, `@u_str` and `dimension` imported from `Unitful`):
+
+```julia
+struct VelocityFieldValue{T, CRS <: CartesianPosition{T, 3}} <: AbstractFieldValue{T, 3, CRS, Quantity{T, dimension(u"m/s"), typeof(u"m/s")}}
+    svector::SVector{3, Quantity{T, dimension(u"m/s"), typeof(u"m/s")}}
+end
+```
+
+!!! note
+    `SatcomCoordinates.jl` currently does not implement concrete subtypes of `AbstractFieldValue`, but only defines the following methods: `raw_properties(::AbstractFieldValue{T, N, CRS})`, `property_aliases(::Type{<:AbstractFieldValue{T, N, CRS}})` and `Base.getproperty(::AbstractFieldValue, ::Symbol)`.
+"""
+abstract type AbstractFieldValue{T, N, CRS <: AbstractPosition{T, N}, F} end

@@ -145,6 +145,8 @@ See also [`normalized_properties`](@ref), [`svector`](@ref)
 """
 raw_properties(c::AbstractSatcomCoordinate) = getfields(c)
 
+property_names(T::Type) = keys(property_aliases(T))
+
 """
     property_aliases(T::Type)
 
