@@ -51,3 +51,10 @@ const ForwardOrInverse{F <: AbstractCRSTransform} = Union{F, InverseTransform{<:
 Union representing the types defined and exported by this package, which always have a numbertype as first parameter.
 """
 const WithNumbertype{T} = Union{AbstractSatcomCoordinate{T}, AbstractCRSTransform{T}}
+
+# These are const variables used to overload getproperty for specific fields
+const THETA_ALIASES = (:θ, :theta, :t)
+const PHI_ALIASES = (:φ, :ϕ, :phi, :p)
+const AZIMUTH_ALIASES = (:az, :azimuth)
+const ELEVATION_ALIASES = (:el, :elevation)
+const DISTANCE_ALIASES = (:r, :distance, :range)

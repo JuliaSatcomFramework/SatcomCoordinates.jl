@@ -28,19 +28,19 @@ Base.:(-)(c1::C1, c2::C2) where {C1 <: CartesianPosition, C2 <: CartesianPositio
 Base.zero(::Type{C}) where C <: CartesianPosition = constructor_without_checks(enforce_numbertype(C), map(to_meters, zero(SVector{3, Float64}))...)
 
 # isnan
-Base.isnan(coords::C) where C <: AbstractSatcomCoordinate = any(isnan, raw_nt(coords))
+Base.isnan(coords::C) where C <: AbstractSatcomCoordinate = any(isnan, raw_properties(coords))
 
 # isapprox
 function Base.isapprox(c1::C1, c2::C2; kwargs...) where {C1 <: CartesianPosition, C2 <: CartesianPosition}
     basetype(C1) == basetype(C2) || throw(ArgumentError("Cannot compare coordinates of different types: $C1 and $C2"))
-    isapprox(to_svector(c1), to_svector(c2); kwargs...)
+    isapprox(normalized_svector(c1), normalized_svector(c2); kwargs...)
 end
 
 # Rand for LengthCartesian
 function Random.rand(rng::AbstractRNG, ::Random.SamplerType{L}) where L <: LengthCartesian
     C = enforce_numbertype(L)
     T = numbertype(C)
-    p = rand(rng, PointingVersor{T}) |> to_svector
+    p = rand(rng, PointingVersor{T}) |> normalized_svector
     x, y, z = p * (1e3 * ((1 + rand(rng)) * u"m"))
     constructor_without_checks(C, x, y, z)
 end
@@ -105,6 +105,20 @@ change_numbertype(::Type{T}) where T <: AbstractFloat = return Base.Fix1(change_
 # Generic fallback for own types calling convert
 change_numbertype(::Type{T}, c::C) where {T <: AbstractFloat, C <: WithNumbertype} = return convert(basetype(C){T}, c)
 
+# Base.getproperty fallback with generated function (to have faster getproperty)
+@generated function Base.getproperty(c::AbstractSatcomCoordinate, s::Symbol)
+    aliases = property_aliases(c)
+    block = Expr(:block)
+    args = block.args
+    push!(args, :(nt = raw_properties(c)))
+    push!(args, :(s in $(fieldnames(c)) && return getfield(c, s)))
+    for (k, v) in pairs(aliases)
+        push!(args, :(s in $v && return getproperty(nt, $(QuoteNode(k)))))
+    end
+    push!(args, :(throw(ArgumentError("Objects of type `$(typeof(c))` do not have a property called `$s`"))))
+    return block
+end
+
 # Overload show method
 # Basic overloads
 Base.show(io::IO, mime::MIME"text/plain", x::WithNumbertype) = show(io, mime, DefaultShowOverload(x))
@@ -115,7 +129,7 @@ PlutoShowHelpers.shortname(x::AbstractSatcomCoordinate) = x |> typeof |> basetyp
 
 PlutoShowHelpers.repl_summary(p::AbstractSatcomCoordinate) = shortname(p) * " Coordinate"
 
-PlutoShowHelpers.show_namedtuple(c::LengthCartesian) = map(DisplayLength, raw_nt(c))
+PlutoShowHelpers.show_namedtuple(c::LengthCartesian) = map(DisplayLength, normalized_properties(c))
 
 function PlutoShowHelpers.show_namedtuple(c::AngleAngleDistance)
     nt = getfields(c)
