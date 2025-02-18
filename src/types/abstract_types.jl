@@ -88,7 +88,11 @@ struct VelocityFieldValue{T, CRS <: CartesianPosition{T, 3}} <: AbstractFieldVal
 end
 ```
 
-!!! note
-    `SatcomCoordinates.jl` currently does not implement concrete subtypes of `AbstractFieldValue`, but only defines the following methods: `raw_properties(::AbstractFieldValue{T, N, CRS})`, `property_aliases(::Type{<:AbstractFieldValue{T, N, CRS}})` and `Base.getproperty(::AbstractFieldValue, ::Symbol)`.
+# Concrete subtypes
+`SatcomCoordinates.jl` currently does not implement concrete subtypes of `AbstractFieldValue`, but only defines the following methods: 
+- `raw_properties(::AbstractFieldValue{T, N, CRS, F})`: Assumes that the concrete subtype has a field called `svector` which is an `SVector{N, F}`
+- `property_aliases(::Type{<:AbstractFieldValue{T, N, CRS}})`: Simply returns `property_aliases(CRS)`
+- `normalized_svector(::AbstractFieldValue)`: Assumes that the concrete subtype has a field called `svector` and simply returns it, eventually stripping the units from the elements if they are of type `Quantity`.
+- `Base.getproperty(::AbstractFieldValue, ::Symbol)`: Based on the same `@generated` function used for objects of type `AbstractSatcomCoordinate` and requiring `property_aliases` and `raw_properties` to be defined for the concrete subtype.
 """
 abstract type AbstractFieldValue{T, N, CRS <: AbstractPosition{T, N}, F} end
