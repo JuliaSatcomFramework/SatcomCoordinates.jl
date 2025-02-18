@@ -28,7 +28,7 @@ Base.:(-)(c1::C1, c2::C2) where {C1 <: CartesianPosition, C2 <: CartesianPositio
 Base.zero(::Type{C}) where C <: CartesianPosition = constructor_without_checks(enforce_numbertype(C), map(to_meters, zero(SVector{3, Float64}))...)
 
 # isnan
-Base.isnan(x::Union{AbstractSatcomCoordinate, AbstractFieldValue}) = any(isnan, raw_properties(x))
+Base.isnan(x::Union{AbstractSatcomCoordinate, AbstractFieldValue}) = any(isnan, normalized_properties(x))
 
 # isapprox
 function Base.isapprox(c1::C1, c2::C2; kwargs...) where {C1 <: CartesianPosition, C2 <: CartesianPosition}
