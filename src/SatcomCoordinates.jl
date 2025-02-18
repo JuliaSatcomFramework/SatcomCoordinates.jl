@@ -53,7 +53,7 @@ public origin, rotation
 include("functions/fieldvalues.jl")
 
 include("utils.jl")
-export numbertype, enforce_numbertype, has_numbertype, change_numbertype, default_numbertype, property_aliases, raw_properties
+export numbertype, enforce_numbertype, has_numbertype, change_numbertype, default_numbertype, property_aliases, raw_properties, normalized_svector, normalized_properties
 
 include("functions/fallbacks.jl")
 
