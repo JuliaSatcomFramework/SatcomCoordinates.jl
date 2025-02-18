@@ -1,6 +1,6 @@
 module SatcomCoordinates
 
-using BasicTypes: BasicTypes, constructor_without_checks, to_degrees, to_meters, Met, Deg, Rad, UnitfulAngleQuantity, ValidAngle, Point2D, Point3D, Point, PS, ValidDistance, to_radians, basetype, asdeg, stripdeg
+using BasicTypes: BasicTypes, constructor_without_checks, to_degrees, to_meters, Met, Deg, Rad, UnitfulAngleQuantity, ValidAngle, Point2D, Point3D, Point, PS, ValidDistance, to_radians, basetype, asdeg, stripdeg, Length
 using ConstructionBase: ConstructionBase, getfields
 using StaticArrays: StaticArrays, FieldVector, SVector, @SVector, SA, StaticMatrix, StaticVector
 using LinearAlgebra: LinearAlgebra, normalize, norm
@@ -16,7 +16,7 @@ export to_degrees, to_meters # From BasicTypes
 export Identity # From TransformsBase
 
 include("types/abstract_types.jl")
-export AbstractSatcomCoordinate, CartesianPosition, LengthCartesian, AngularPointing, AbstractPointing, AbstractCRSTransform, AbstractFieldValue
+export AbstractSatcomCoordinate, CartesianPosition, LengthCartesian, AngularPointing, AbstractPointing, AbstractCRSTransform, AbstractFieldValue, AbstractPosition
 public AbstractPointingOffset
 
 include("types/pointing.jl")

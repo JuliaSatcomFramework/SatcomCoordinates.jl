@@ -67,46 +67,6 @@ function default_numbertype(args::Vararg{Any, N}) where N
     T <: AbstractFloat ? T : Float64
 end
 
-##### Misc Utilities ####
-
-"""
-    az, el = wrap_spherical_angles_normalized(az::T, el::T, ::Type{<:ThetaPhi}) where T <: Deg{<:Real}
-    θ, φ = wrap_spherical_angles_normalized(θ::T, φ::T, ::Type{<:Union{AzOverEl, ElOverAz}}) where T <: Deg{<:Real}
-
-Function that takes as input two angles representing two orthogonal angular components of spherical coordinates (e.g. θ/φ, el/az, etc.) and returns two angles normalized to a consistent wrapping identifying the full sphere:
-- `θ/φ` angles are wrapped such that `θ ∈ [0°, 180°]` and `φ ∈ [-180°, 180°]`
-- `el/az` angles are wrapped such that `el ∈ [-90°, 90°]` and `az ∈ [-180°, 180°]`
-
-!!! note
-    This function already assumes that the provided input angles are already normalized such that both are in the [-180°, 180°] range. If you want to normalize the inputs automatically use the `wrap_first_angle` function.
-"""
-wrap_spherical_angles_normalized(az::T, el::T, ::Type{<:Union{AzOverEl, ElOverAz, AER, AzEl}}) where {T <: Deg{<:Real}} =
-    ifelse(
-        abs(el) <= 90°,  # Condition
-        (az, el), # Azimuth angle is already between -180° and 180° as it's already been normalized
-        (az - copysign(180°,az), el - copysign(180°,el)) # Need to wrap
-    )
-
-wrap_spherical_angles_normalized(θ::T, φ::T, ::Type{<:ThetaPhi}) where {T <: Deg{<:Real}} =
-    ifelse(
-        θ >= 0°,  # Condition
-        (θ, φ), # First angle is already between -90° and 90°
-        (-θ, φ - copysign(180°,φ)) # Need to wrap
-    )
-
-"""
-    az, el = wrap_spherical_angles(az::ValidAngle, el::ValidAngle, ::Type{<:ThetaPhi}) where T <: Deg{<:Real}
-    θ, φ = wrap_spherical_angles(θ::ValidAngle, φ::ValidAngle, ::Type{<:Union{AzOverEl, ElOverAz}}) where T <: Deg{<:Real}
-
-Function that takes as input two angles representing two orthogonal angular components of spherical coordinates (e.g. θ/φ, el/az, etc.) and returns two angles normalized to a consistent wrapping identifying the full sphere:
-- `θ/φ` angles are wrapped such that `θ ∈ [0°, 180°]` and `φ ∈ [-180°, 180°]`
-- `el/az` angles are wrapped such that `el ∈ [-90°, 90°]` and `az ∈ [-180°, 180°]`
-
-!!! 
-"""
-wrap_spherical_angles(α::ValidAngle, β::ValidAngle, ::Type{T}) where T <: Union{ThetaPhi, AzOverEl, ElOverAz} = wrap_spherical_angles_normalized(to_degrees(α, RoundNearest), to_degrees(β, RoundNearest), T)
-wrap_spherical_angles(p::Point2D, ::Type{T}) where T <: Union{ThetaPhi, AzOverEl, ElOverAz} = wrap_spherical_angles(p[1], p[2], T)
-
 """
     normalized_svector(coord::AbstractSatcomCoordinate)
 
@@ -166,12 +126,54 @@ function property_aliases(T::Type)
     return NamedTuple{fn}(vals)
 end
 
+##### Misc Utilities ####
+
+"""
+    az, el = wrap_spherical_angles_normalized(az::T, el::T, ::Type{<:ThetaPhi}) where T <: Deg{<:Real}
+    θ, φ = wrap_spherical_angles_normalized(θ::T, φ::T, ::Type{<:Union{AzOverEl, ElOverAz}}) where T <: Deg{<:Real}
+
+Function that takes as input two angles representing two orthogonal angular components of spherical coordinates (e.g. θ/φ, el/az, etc.) and returns two angles normalized to a consistent wrapping identifying the full sphere:
+- `θ/φ` angles are wrapped such that `θ ∈ [0°, 180°]` and `φ ∈ [-180°, 180°]`
+- `el/az` angles are wrapped such that `el ∈ [-90°, 90°]` and `az ∈ [-180°, 180°]`
+
+!!! note
+    This function already assumes that the provided input angles are already normalized such that both are in the [-180°, 180°] range. If you want to normalize the inputs automatically use the `wrap_first_angle` function.
+"""
+wrap_spherical_angles_normalized(az::T, el::T, ::Type{<:Union{AzOverEl, ElOverAz, AER, AzEl}}) where {T <: Deg{<:Real}} =
+    ifelse(
+        abs(el) <= 90°,  # Condition
+        (az, el), # Azimuth angle is already between -180° and 180° as it's already been normalized
+        (az - copysign(180°,az), el - copysign(180°,el)) # Need to wrap
+    )
+
+wrap_spherical_angles_normalized(θ::T, φ::T, ::Type{<:ThetaPhi}) where {T <: Deg{<:Real}} =
+    ifelse(
+        θ >= 0°,  # Condition
+        (θ, φ), # First angle is already between -90° and 90°
+        (-θ, φ - copysign(180°,φ)) # Need to wrap
+    )
+
+"""
+    az, el = wrap_spherical_angles(az::ValidAngle, el::ValidAngle, ::Type{<:ThetaPhi}) where T <: Deg{<:Real}
+    θ, φ = wrap_spherical_angles(θ::ValidAngle, φ::ValidAngle, ::Type{<:Union{AzOverEl, ElOverAz}}) where T <: Deg{<:Real}
+
+Function that takes as input two angles representing two orthogonal angular components of spherical coordinates (e.g. θ/φ, el/az, etc.) and returns two angles normalized to a consistent wrapping identifying the full sphere:
+- `θ/φ` angles are wrapped such that `θ ∈ [0°, 180°]` and `φ ∈ [-180°, 180°]`
+- `el/az` angles are wrapped such that `el ∈ [-90°, 90°]` and `az ∈ [-180°, 180°]`
+
+!!! 
+"""
+wrap_spherical_angles(α::ValidAngle, β::ValidAngle, ::Type{T}) where T <: Union{ThetaPhi, AzOverEl, ElOverAz} = wrap_spherical_angles_normalized(to_degrees(α, RoundNearest), to_degrees(β, RoundNearest), T)
+wrap_spherical_angles(p::Point2D, ::Type{T}) where T <: Union{ThetaPhi, AzOverEl, ElOverAz} = wrap_spherical_angles(p[1], p[2], T)
+
 # Internal function used to strip unit from field values and convert degress to radians
 function normalize_value(val::PS)
     if val isa Deg
         stripdeg(val)
-    elseif val isa Union{Met, Rad}
+    elseif val isa Rad
         ustrip(val)
+    elseif val isa Length
+        to_meters(val) |> ustrip
     else
         val
     end
