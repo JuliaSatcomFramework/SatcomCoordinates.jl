@@ -67,6 +67,65 @@ function default_numbertype(args::Vararg{Any, N}) where N
     T <: AbstractFloat ? T : Float64
 end
 
+"""
+    normalized_svector(coord::AbstractSatcomCoordinate)
+
+Generate the unitless SVector containing the _normalized_ fields of the provided coordinate.
+
+!!! note
+    By _normalized_ we mean that fields containing Uniftul quantities are stripped of their units and in the case of `Deg` fields, they are converted to radians as trig functions are faster for radians inputs.
+
+See also [`normalized_properties`](@ref)
+"""
+function normalized_svector(coords::C) where C <: AbstractSatcomCoordinate
+    normalized_properties(coords) |> Tuple |> SVector{3, numbertype(C)}
+end
+
+"""
+    normalized_properties(coords::AbstractSatcomCoordinate)
+Generated a NamedTuple from the provided Object which has the same names as the object fields but contains _normalized_ values of its fields
+
+!!! note
+    By _normalized_ we mean that fields containing Uniftul quantities are stripped of their units and in the case of `Deg` fields, they are converted to radians as trig functions are faster for radians inputs.
+
+See also [`raw_properties`](@ref), [`svector`](@ref)
+"""
+function normalized_properties(coords::C) where C <: AbstractSatcomCoordinate
+    map(normalize_value, raw_properties(coords))
+end
+
+"""
+    raw_properties(c::AbstractSatcomCoordinate)
+
+Generate a NamedTuple from the provided Object which should be used for iteration over the object `properties`. All of the properties of an `AbstractSatcomCoordinate` should be Numbers or Quantities.
+
+This defaults to the `getfields` function from `ConstructionsBase.jl` module but should be overloaded for specific types that encapsulate other coordinates as fields (e.g. `GeneralizedSpherical`).
+
+See also [`normalized_properties`](@ref), [`svector`](@ref)
+"""
+raw_properties(c::AbstractSatcomCoordinate) = getfields(c)
+
+property_names(T::Type) = keys(property_aliases(T))
+
+"""
+    property_aliases(T::Type)
+
+This function should return a NamedTuple whose keys shall be consistent with the keys of the NamedTuple returned by [`raw_properties`](@ref) and whose values should be Tuples of Symbols identifying alternatives names (i.e. aliases) for the specific property names to be used within the `Base.getproperty` method for objects of type `T`.
+
+For example, the `property_aliases` function for `ThetaPhi` objects returns the following NamedTuple:
+```julia
+property_aliases(ThetaPhi) == (;
+    θ = (:θ, :t, :theta),
+    φ = (:φ, :ϕ, :p, :phi)
+)
+```
+"""
+function property_aliases(T::Type)
+    fn = fieldnames(T)
+    vals = ntuple(i -> (fn[i], ), length(fn))
+    return NamedTuple{fn}(vals)
+end
+
 ##### Misc Utilities ####
 
 """
@@ -107,69 +166,14 @@ Function that takes as input two angles representing two orthogonal angular comp
 wrap_spherical_angles(α::ValidAngle, β::ValidAngle, ::Type{T}) where T <: Union{ThetaPhi, AzOverEl, ElOverAz} = wrap_spherical_angles_normalized(to_degrees(α, RoundNearest), to_degrees(β, RoundNearest), T)
 wrap_spherical_angles(p::Point2D, ::Type{T}) where T <: Union{ThetaPhi, AzOverEl, ElOverAz} = wrap_spherical_angles(p[1], p[2], T)
 
-"""
-    normalized_svector(coord::AbstractSatcomCoordinate)
-
-Generate the unitless SVector containing the _normalized_ fields of the provided coordinate.
-
-!!! note
-    By _normalized_ we mean that fields containing Uniftul quantities are stripped of their units and in the case of `Deg` fields, they are converted to radians as trig functions are faster for radians inputs.
-
-See also [`normalized_properties`](@ref)
-"""
-function normalized_svector(coords::C) where C <: AbstractSatcomCoordinate
-    normalized_properties(coords) |> Tuple |> SVector{3, numbertype(C)}
-end
-
-"""
-    normalized_properties(coords::AbstractSatcomCoordinate)
-Generated a NamedTuple from the provided Object which has the same names as the object fields but contains _normalized_ values of its fields
-
-!!! note
-    By _normalized_ we mean that fields containing Uniftul quantities are stripped of their units and in the case of `Deg` fields, they are converted to radians as trig functions are faster for radians inputs.
-
-See also [`raw_properties`](@ref), [`svector`](@ref)
-"""
-function normalized_properties(coords::C) where C <: AbstractSatcomCoordinate
-    map(normalize_value, raw_properties(coords))
-end
-
-"""
-    raw_properties(c::AbstractSatcomCoordinate)
-
-Generate a NamedTuple from the provided Object which should be used for iteration over the object `properties`. All of the properties of an `AbstractSatcomCoordinate` should be Numbers or Quantities.
-
-This defaults to the `getfields` function from `ConstructionsBase.jl` module but should be overloaded for specific types that encapsulate other coordinates as fields (e.g. `GeneralizedSpherical`).
-
-See also [`normalized_properties`](@ref), [`svector`](@ref)
-"""
-raw_properties(c::AbstractSatcomCoordinate) = getfields(c)
-
-"""
-    property_aliases(T::Type)
-
-This function should return a NamedTuple whose keys shall be consistent with the keys of the NamedTuple returned by [`raw_properties`](@ref) and whose values should be Tuples of Symbols identifying alternatives names (i.e. aliases) for the specific property names to be used within the `Base.getproperty` method for objects of type `T`.
-
-For example, the `property_aliases` function for `ThetaPhi` objects returns the following NamedTuple:
-```julia
-property_aliases(ThetaPhi) == (;
-    θ = (:θ, :t, :theta),
-    φ = (:φ, :ϕ, :p, :phi)
-)
-```
-"""
-function property_aliases(T::Type)
-    fn = fieldnames(T)
-    vals = ntuple(i -> (fn[i], ), length(fn))
-    return NamedTuple{fn}(vals)
-end
-
 # Internal function used to strip unit from field values and convert degress to radians
 function normalize_value(val::PS)
     if val isa Deg
         stripdeg(val)
-    elseif val isa Union{Met, Rad}
+    elseif val isa Rad
         ustrip(val)
+    elseif val isa Length
+        to_meters(val) |> ustrip
     else
         val
     end

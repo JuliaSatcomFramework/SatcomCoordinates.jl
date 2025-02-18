@@ -20,12 +20,11 @@ end
 
 ##### Base.getproperty #####
 # LLA
-function Base.getproperty(lla::LLA, s::Symbol) 
-    s in (:lat, :latitude) && return getfield(lla, :lat)
-    s in (:lon, :longitude) && return getfield(lla, :lon)
-    s in (:alt, :altitude, :h, :height) && return getfield(lla, :alt)
-    throw(ArgumentError("Objects of type `LLA` do not have a property called $s"))
-end
+property_aliases(::Type{<:LLA}) = (
+    lat = LATITUDE_ALIASES,
+    lon = LONGITUDE_ALIASES,
+    alt = ALTITUDE_ALIASES
+)
 
 ##### Base.isapprox #####
 function Base.isapprox(x1::LLA, x2::LLA; angle_atol = deg2rad(1e-5), alt_atol = 1e-3, atol = nothing, kwargs...)

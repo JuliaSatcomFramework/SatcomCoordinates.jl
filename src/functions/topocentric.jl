@@ -22,28 +22,25 @@ Base.:(-)(aer::AER) = constructor_without_checks(typeof(aer), aer.az - copysign(
 
 ##### Base.getproperty #####
 ## ENU
-function Base.getproperty(enu::ENU, s::Symbol) 
-    s in (:x, :east) && return getfield(enu, :x)
-    s in (:y, :north) && return getfield(enu, :y)
-    s in (:z, :up) && return getfield(enu, :z)
-    throw(ArgumentError("Objects of type `ENU` do not have a property called $s"))
-end
+property_aliases(::Type{<:ENU}) = (
+    x = (:x, :east),
+    y = (:y, :north),
+    z = (:z, :up)
+)
 
 ## NED
-function Base.getproperty(ned::NED, s::Symbol) 
-    s in (:x, :north) && return getfield(ned, :x)
-    s in (:y, :east) && return getfield(ned, :y)
-    s in (:z, :down) && return getfield(ned, :z)
-    throw(ArgumentError("Objects of type `NED` do not have a property called $s"))
-end
+property_aliases(::Type{<:NED}) = (
+    x = (:x, :north),
+    y = (:y, :east),
+    z = (:z, :down)
+)
 
 ## AER
-function Base.getproperty(aer::AER, s::Symbol) 
-    s in (:az, :azimuth) && return getfield(aer, :az)
-    s in (:el, :elevation) && return getfield(aer, :el)
-    s in (:r, :range, :distance) && return getfield(aer, :r)
-    throw(ArgumentError("Objects of type `AER` do not have a property called $s"))
-end
+property_aliases(::Type{<:AER}) = (
+    az = AZIMUTH_ALIASES,
+    el = ELEVATION_ALIASES,
+    r = DISTANCE_ALIASES
+)
 
 ##### Random.rand #####
 function Random.rand(rng::AbstractRNG, ::Random.SamplerType{A}) where A <: AER
