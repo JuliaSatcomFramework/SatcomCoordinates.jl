@@ -246,7 +246,7 @@ function Random.rand(rng::AbstractRNG, ::Random.SamplerType{AE}) where AE <: Uni
 end
 
 ##### Utilities #####
-normalized_svector(p::PointingVersor) = SVector{3, numbertype(p)}(p.x, p.y, p.z)
+normalized_svector(p::Union{UV, AngularPointing}) = normalized_properties(p) |> Tuple |> SVector{2, numbertype(p)}
 
 ###### Custom show overloads ######
 PlutoShowHelpers.repl_summary(p::AbstractPointing) = shortname(p) * " Pointing"
