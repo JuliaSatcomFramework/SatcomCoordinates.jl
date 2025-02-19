@@ -64,7 +64,7 @@ end
 function _convert_different(::Type{A}, src::S) where {A <: AER, S <: Union{ENU, NED}}
     C = enforce_numbertype(A, src)
     enu = convert(ENU, src)
-    sv = normalized_svector(enu)
+    sv = raw_svector(enu)
     r = norm(sv) * u"m"
     (;az, el) = convert(AzEl, PointingVersor(sv...))
     constructor_without_checks(C, az, el, r)
@@ -75,7 +75,7 @@ function _convert_different(::Type{S}, src::A) where {S <: Union{ENU, NED}, A <:
     (; az, el, r) = src
     ae = constructor_without_checks(AzEl{T}, az, el)
     p = convert(PointingVersor, ae)
-    (;x, y, z) = normalized_svector(p) .* r
+    (;x, y, z) = raw_svector(p) .* r
     enu = constructor_without_checks(ENU{T}, x, y, z)
     convert(S, enu)
 end
@@ -86,4 +86,4 @@ function Base.isapprox(c1::TopocentricPosition, c2::TopocentricPosition; kwargs.
     e2 = convert(ENU, c2)
     isapprox(e1, e2; kwargs...)
 end
-Base.isapprox(c1::ENU, c2::ENU; kwargs...) = isapprox(normalized_svector(c1), normalized_svector(c2); kwargs...)
+Base.isapprox(c1::ENU, c2::ENU; kwargs...) = isapprox(raw_svector(c1), raw_svector(c2); kwargs...)

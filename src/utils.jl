@@ -68,62 +68,27 @@ function default_numbertype(args::Vararg{Any, N}) where N
 end
 
 """
-    normalized_svector(coord::AbstractSatcomCoordinate)
+    raw_svector(coord::AbstractSatcomCoordinate)
 
-Generate the unitless SVector containing the _normalized_ fields of the provided coordinate.
+Extracts the raw `SVector` storing the data for the provided coordinate. This assumes that `coord` has a field called `svector` and just calls `getfield(coord, :svector)`.
 
-!!! note
-    By _normalized_ we mean that fields containing Uniftul quantities are stripped of their units and in the case of `Deg` fields, they are converted to radians as trig functions are faster for radians inputs.
+Concrete subtypes that do not follow this convention should overload this function.
 
-See also [`normalized_properties`](@ref)
+
+See also [`raw_properties`](@ref)
 """
-function normalized_svector(coords::C) where C <: AbstractSatcomCoordinate
-    normalized_properties(coords) |> Tuple |> SVector{3, numbertype(C)}
-end
+raw_svector(coords::AbstractSatcomCoordinate) = return getfield(coords, :svector)
 
 """
-    normalized_properties(coords::AbstractSatcomCoordinate)
-Generated a NamedTuple from the provided Object which has the same names as the object fields but contains _normalized_ values of its fields
+    raw_properties(coords::AbstractSatcomCoordinate)
+Generate a NamedTuple starting from the raw `SVector` holding the coords data and assigning a label to each valid property of the coordinate (as defined by the `Base.propertynames(coords)` function).
 
-!!! note
-    By _normalized_ we mean that fields containing Uniftul quantities are stripped of their units and in the case of `Deg` fields, they are converted to radians as trig functions are faster for radians inputs.
-
-See also [`raw_properties`](@ref), [`svector`](@ref)
+See also [`raw_svector`](@ref)
 """
-function normalized_properties(coords::C) where C <: AbstractSatcomCoordinate
-    map(normalize_value, raw_properties(coords))
-end
-
-"""
-    raw_properties(c::AbstractSatcomCoordinate)
-
-Generate a NamedTuple from the provided Object which should be used for iteration over the object `properties`. All of the properties of an `AbstractSatcomCoordinate` should be Numbers or Quantities.
-
-This defaults to the `getfields` function from `ConstructionsBase.jl` module but should be overloaded for specific types that encapsulate other coordinates as fields (e.g. `GeneralizedSpherical`).
-
-See also [`normalized_properties`](@ref), [`svector`](@ref)
-"""
-raw_properties(c::AbstractSatcomCoordinate) = getfields(c)
-
-property_names(T::Type) = keys(property_aliases(T))
-
-"""
-    property_aliases(T::Type)
-
-This function should return a NamedTuple whose keys shall be consistent with the keys of the NamedTuple returned by [`raw_properties`](@ref) and whose values should be Tuples of Symbols identifying alternatives names (i.e. aliases) for the specific property names to be used within the `Base.getproperty` method for objects of type `T`.
-
-For example, the `property_aliases` function for `ThetaPhi` objects returns the following NamedTuple:
-```julia
-property_aliases(ThetaPhi) == (;
-    θ = (:θ, :t, :theta),
-    φ = (:φ, :ϕ, :p, :phi)
-)
-```
-"""
-function property_aliases(T::Type)
-    fn = fieldnames(T)
-    vals = ntuple(i -> (fn[i], ), length(fn))
-    return NamedTuple{fn}(vals)
+function raw_properties(coords::AbstractSatcomCoordinate)
+    nms = propertynames(coords)
+    svector = raw_svector(coords)
+    return NamedTuple{nms}(Tuple(svector))
 end
 
 ##### Misc Utilities ####
@@ -139,7 +104,7 @@ Function that takes as input two angles representing two orthogonal angular comp
 !!! note
     This function already assumes that the provided input angles are already normalized such that both are in the [-180°, 180°] range. If you want to normalize the inputs automatically use the `wrap_first_angle` function.
 """
-wrap_spherical_angles_normalized(az::T, el::T, ::Type{<:Union{AzOverEl, ElOverAz, AER, AzEl}}) where {T <: Deg{<:Real}} =
+wrap_spherical_angles_normalized(az::T, el::T, ::Type{<:Union{AzOverEl, ElOverAz, AzEl}}) where {T <: Deg{<:Real}} =
     ifelse(
         abs(el) <= 90°,  # Condition
         (az, el), # Azimuth angle is already between -180° and 180° as it's already been normalized
@@ -166,15 +131,6 @@ Function that takes as input two angles representing two orthogonal angular comp
 wrap_spherical_angles(α::ValidAngle, β::ValidAngle, ::Type{T}) where T <: Union{ThetaPhi, AzOverEl, ElOverAz} = wrap_spherical_angles_normalized(to_degrees(α, RoundNearest), to_degrees(β, RoundNearest), T)
 wrap_spherical_angles(p::Point2D, ::Type{T}) where T <: Union{ThetaPhi, AzOverEl, ElOverAz} = wrap_spherical_angles(p[1], p[2], T)
 
-# Internal function used to strip unit from field values and convert degress to radians
-function normalize_value(val::PS)
-    if val isa Deg
-        stripdeg(val)
-    elseif val isa Rad
-        ustrip(val)
-    elseif val isa Length
-        to_meters(val) |> ustrip
-    else
-        val
-    end
-end
+##### TO MOVE
+
+const WithNumbertype{T} = Union{AbstractSatcomCoordinate{T}, AbstractCRSTransform{T}}

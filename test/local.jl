@@ -1,6 +1,6 @@
 @testsnippet setup_local begin
     using SatcomCoordinates
-    using SatcomCoordinates: numbertype, normalized_svector, normalized_properties, @u_str, has_pointingtype, pointing_type
+    using SatcomCoordinates: numbertype, raw_svector, raw_properties, @u_str, has_pointingtype, pointing_type
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
@@ -34,8 +34,8 @@ end
     end
 
     c1, c2 = rand(LocalCartesian, 2)
-    @test normalized_svector(c1 + c2) == normalized_svector(c1) + normalized_svector(c2)
-    @test normalized_svector(c1 - c2) == normalized_svector(c1) - normalized_svector(c2)
+    @test raw_svector(c1 + c2) == raw_svector(c1) + raw_svector(c2)
+    @test raw_svector(c1 - c2) == raw_svector(c1) - raw_svector(c2)
 
     c3 = rand(LocalCartesian{Float32})
     @test c1 + c3 isa LocalCartesian{Float64}
@@ -72,8 +72,8 @@ end
         @test @nallocs(getproperty(rand(Spherical), :theta)) == 0
         @test @nallocs(getproperty(rand(Spherical), :phi)) == 0
 
-        @test @nallocs(normalized_properties(rand(Spherical))) == 0
-        @test @nallocs(normalized_properties(rand(AzElDistance))) == 0
+        @test @nallocs(raw_properties(rand(Spherical))) == 0
+        @test @nallocs(raw_properties(rand(AzElDistance))) == 0
     end
 
     @test GeneralizedSpherical{Float32}(rand(ThetaPhi), rand()) isa Spherical{Float32}
@@ -96,7 +96,7 @@ end
     @test pointing_type(GeneralizedSpherical{Float64, ThetaPhi{Float64}}) == ThetaPhi{Float64}
 
     p = rand(Spherical)
-    @test normalized_properties(p) isa NamedTuple{(:θ, :φ, :r), Tuple{Float64, Float64, Float64}}
+    @test raw_properties(p) isa NamedTuple{(:θ, :φ, :r), Tuple{Float64, Float64, Float64}}
 
     for PT in (ThetaPhi, AzEl, ElOverAz, AzOverEl)
         gs = rand(GeneralizedSpherical{Float64, PT{Float64}})

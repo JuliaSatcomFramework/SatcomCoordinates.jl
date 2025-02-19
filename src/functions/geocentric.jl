@@ -52,7 +52,7 @@ end
 function Random.rand(rng::AbstractRNG, ::Random.SamplerType{E}) where E <: Union{ECI, ECEF}
     C = enforce_numbertype(E)
     T = numbertype(C)
-    p = rand(rng, PointingVersor{T}) |> normalized_svector
+    p = rand(rng, PointingVersor{T}) |> raw_svector
     x, y, z = p * (7e6 * ((1 + rand(rng)) * u"m"))
     constructor_without_checks(C, x, y, z)
 end

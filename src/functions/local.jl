@@ -1,45 +1,24 @@
+#### Traits ####
+position_trait(::Type{<:GeneralizedSpherical}) = SphericalPositionTrait()
+
 ##### Constructors #####
 
 # LocalCartesian
-# Handled by generic LengthCartesian constructor in fallbacks.jl
+# Handled by generic constructor in fallbacks.jl
 
 # GeneralizedSpherical
-# Nan constructor
-function (::Type{GS})(::Val{NaN}) where GS <: GeneralizedSpherical
-    G = enforce_numbertype(GS)
-    T = numbertype(G)
-    PT = pointing_type(G)
-    p = PT(Val{NaN}())
-    constructor_without_checks(GeneralizedSpherical{T, PT}, p, to_meters(T(NaN)))
-end
-# Constructor from pointing and range, with specific numbertype
-function GeneralizedSpherical{T}(p::P, r::ValidDistance) where {T <: AbstractFloat, P <: AngularPointing}
-    B = basetype(P)
-    pc = convert(B{T}, p)
-    constructor_without_checks(GeneralizedSpherical{T, typeof(pc)}, p, to_meters(r))
-end
-
-# Constructor from pointing and range, with inferred numbertype
-function GeneralizedSpherical(p::P, r::ValidDistance) where {P <: AngularPointing} 
-    T = default_numbertype(p, r)
-    GeneralizedSpherical{T}(p, r)
-end
-
-function (::Type{P})(α::ValidAngle, β::ValidAngle, r::ValidDistance) where {P <: GeneralizedSpherical}
-    NT = default_numbertype(α, β, r)
-    G = enforce_numbertype(P, NT)
-    T = numbertype(G)
-    PT = enforce_numbertype(pointing_type(P), T)
-    p = PT(α, β)
-    constructor_without_checks(GeneralizedSpherical{T, PT}, p, to_meters(r))
+function construct_inner_svector(::Type{GeneralizedSpherical{T, P}}, args::Vararg{PS, 3}) where {T <: AbstractFloat, P <: AngularPointing}
+    a1, a2, r = args
+    p = P{T}(a1, a2)
+    r = to_meters(r) |> ustrip
+    a1, a2 = raw_svector(p)
+    sv = SVector{3, T}(a1, a2, r)
+    constructor_without_checks(GeneralizedSpherical{T, P}, sv)
 end
 
 ##### Base.getproperty #####
 # GenerializedSpherical
-property_aliases(::Type{GeneralizedSpherical{T, P}}) where {T, P} = (;
-    property_aliases(P)...,
-    r = DISTANCE_ALIASES
-)
+properties_names(::Type{GeneralizedSpherical{T, P}}) where {T, P} = (property_names(P)..., :r)
 
 ##### convert #####
 # LocalCartesian <-> GeneralizedSpherical
@@ -47,14 +26,14 @@ function _convert_different(::Type{L}, src::G) where {L <: LocalCartesian, G <: 
     C = enforce_numbertype(L, src)
     (; pointing, r) = src
     p = convert(PointingVersor, pointing)
-    (;x, y, z) = normalized_svector(p) .* r
+    (;x, y, z) = raw_svector(p) .* r
     constructor_without_checks(C, x, y, z)
 end
 function _convert_different(::Type{G}, src::L) where {G <: GeneralizedSpherical, L <: LocalCartesian}
     P = enforce_numbertype(G, src)
-    (; x, y, z) = src |> normalized_svector
+    (; x, y, z) = src |> raw_svector
     p = PointingVersor(x, y, z)
-    r = norm(normalized_svector(src)) * u"m"
+    r = norm(raw_svector(src)) * u"m"
     constructor_without_checks(P, p, r)
 end
 
@@ -62,7 +41,7 @@ end
 Base.:(-)(g::GeneralizedSpherical) = constructor_without_checks(typeof(g), -g.pointing, g.r)
 
 ##### Base.isapprox #####
-Base.isapprox(c1::LocalCartesian, c2::LocalCartesian; kwargs...) = isapprox(normalized_svector(c1), normalized_svector(c2); kwargs...)
+Base.isapprox(c1::LocalCartesian, c2::LocalCartesian; kwargs...) = isapprox(raw_svector(c1), raw_svector(c2); kwargs...)
 function Base.isapprox(c1::GenericLocalPosition, c2::GenericLocalPosition; kwargs...)
     c1 = convert(LocalCartesian, c1)
     c2 = convert(LocalCartesian, c2)

@@ -1,5 +1,5 @@
 @testsnippet setup_geocentric begin
-    using SatcomCoordinates: numbertype, normalized_svector, normalized_properties, @u_str
+    using SatcomCoordinates: numbertype, raw_svector, raw_properties, @u_str
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes

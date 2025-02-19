@@ -11,34 +11,18 @@ abstract type AbstractSatcomCoordinate{T, N} end
 abstract type AbstractPosition{T, N} <: AbstractSatcomCoordinate{T, N} end
 
 """
-    AngleAngleDistance{T} <: AbstractSatcomCoordinate{T, 3}
-
-Abstract type representing a position in 3 dimensions, identified by two angles and a distance.
-"""
-abstract type AngleAngleDistance{T} <: AbstractPosition{T, 3} end
-
-"""
-    CartesianPosition{T, N} <: AbstractSatcomCoordinate{T, N}
-
-Abstract type representing a coordinate in `N` dimensions which is backed by
-fields all of type `T`. 
-Concrete subtypes of this are subtypes of `FieldVector`
-"""
-abstract type CartesianPosition{T, N} <: AbstractPosition{T, N} end
-
-"""
-    LengthCartesian{T, N} <: CartesianPosition{T, N}
-
-Abstract type representing a coordinate in `N` dimensions which is backed by fields all of type `Met{T}`. 
-"""
-abstract type LengthCartesian{T, N} <: CartesianPosition{T, N} end
-
-"""
     AbstractPointing{T} <: AbstractSatcomCoordinate{T, 3}
 
 Abstract type representing a pointing direction in 3 dimensions which is backed by fields with shared [`numbertype`](@ref) `T`.
 """
 abstract type AbstractPointing{T} <: AbstractSatcomCoordinate{T, 3} end
+
+"""
+    AbstractLocalPosition{T} <: AbstractPosition{T, 3}
+
+Abstract type representing a position in a local coordinate system.
+"""
+abstract type AbstractLocalPosition{T, N} <: AbstractPosition{T, N} end
 
 """
     AngularPointing{T}
@@ -92,7 +76,7 @@ end
 `SatcomCoordinates.jl` currently does not implement concrete subtypes of `AbstractFieldValue`, but only defines the following methods: 
 - `raw_properties(::AbstractFieldValue{T, N, CRS, F})`: Assumes that the concrete subtype has a field called `svector` which is an `SVector{N, F}`
 - `property_aliases(::Type{<:AbstractFieldValue{T, N, CRS}})`: Simply returns `property_aliases(CRS)`
-- `normalized_svector(::AbstractFieldValue)`: Assumes that the concrete subtype has a field called `svector` and simply returns it, eventually stripping the units from the elements if they are of type `Quantity`.
+- `raw_svector(::AbstractFieldValue)`: Assumes that the concrete subtype has a field called `svector` and simply returns it, eventually stripping the units from the elements if they are of type `Quantity`.
 - `Base.getproperty(::AbstractFieldValue, ::Symbol)`: Based on the same `@generated` function used for objects of type `AbstractSatcomCoordinate` and requiring `property_aliases` and `raw_properties` to be defined for the concrete subtype.
 """
-abstract type AbstractFieldValue{T, N, CRS <: AbstractPosition{T, N}, F} end
+abstract type AbstractFieldValue{CRS, F} end

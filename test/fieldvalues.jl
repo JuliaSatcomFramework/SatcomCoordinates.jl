@@ -25,7 +25,7 @@ end
     @test fv.z == 3u"m/s"
     @test fv.svector == sv
 
-    @test normalized_svector(fv) == map(ustrip, sv)
+    @test raw_svector(fv) == map(ustrip, sv)
 
     struct ComplexFieldValue{T, CRS <: AbstractPosition{T, 3}} <: AbstractFieldValue{T, 3, CRS, Complex{T}}
         svector::SVector{3, Complex{T}}
@@ -34,7 +34,7 @@ end
     svu = @SVector rand(Complex{Float64}, 3)
     fvu = ComplexFieldValue{Float64, Spherical{Float64}}(svu)
 
-    @test normalized_svector(fvu) == svu
+    @test raw_svector(fvu) == svu
 
     @test fvu.θ == fvu.theta == svu[1]
     @test fvu.ϕ == fvu.phi == svu[2]
@@ -42,11 +42,11 @@ end
     @test fvu.svector == svu
 
     @testset "Allocations" begin
-        @test @nallocs(normalized_svector(fv)) == 0
+        @test @nallocs(raw_svector(fv)) == 0
         @test @nallocs(getproperty(fv, :x)) == 0
         @test @nallocs(getproperty(fv, :svector)) == 0
 
-        @test @nallocs(normalized_svector(fvu)) == 0
+        @test @nallocs(raw_svector(fvu)) == 0
         @test @nallocs(getproperty(fvu, :θ)) == 0
         @test @nallocs(getproperty(fvu, :svector)) == 0
     end

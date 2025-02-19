@@ -1,5 +1,5 @@
 @testsnippet setup_pointing begin
-    using SatcomCoordinates: numbertype, normalized_svector
+    using SatcomCoordinates: numbertype, raw_svector
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
@@ -8,7 +8,7 @@ end
 
 @testitem "PointingVersor" setup=[setup_pointing] begin
     p = PointingVersor(rand(3)...)
-    @test norm(normalized_svector(p)) ≈ 1
+    @test norm(raw_svector(p)) ≈ 1
 
     @test_throws "do not have a property" rand(PointingVersor).q
 
@@ -23,7 +23,7 @@ end
     p = PointingVersor((0.0, 0, 1f0))
     @test p.z == 1.0 && p.z isa Float64
 
-    @test normalized_svector(-p) == -normalized_svector(p)
+    @test raw_svector(-p) == -raw_svector(p)
 
     # Test some randomness properties
     @testset "rand" begin
