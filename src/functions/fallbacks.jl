@@ -22,7 +22,7 @@ _position_properties(::CartesianPositionTrait, p::AbstractPosition) = map(to_met
 function _position_properties(::SphericalPositionTrait, p::AbstractPosition{T, 3}) where T
     a1, a2, r = raw_svector(p)
     nms = propertynames(p)
-    return NamedTuple{nms}(asdeg(a1), asdeg(a2), to_meters(r))
+    return NamedTuple{nms}((asdeg(a1), asdeg(a2), to_meters(r)))
 end
 
 function Base.getproperty(p::AbstractSatcomCoordinate, s::Symbol)
@@ -34,7 +34,7 @@ end
 # This function should take as input independent 
 function construct_inner_svector end
 
-function construct_inner_svector(::Type{<:AbstractPosition{T, N}}, args::Vararg{Real, N}) where {T <: AbstractFloat, N}
+function construct_inner_svector(::Type{<:AbstractPosition{T, N}}, args::Vararg{PS, N}) where {T <: AbstractFloat, N}
     return SVector{N, T}(args...)
 end
 

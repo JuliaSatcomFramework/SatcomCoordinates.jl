@@ -48,8 +48,8 @@ If of the provided argument is `NaN`, the returned `PointingAndDistance` object 
 
 See also: [`Spherical`](@ref), [`AzElDistance`](@ref), [`LocalCartesian`](@ref).
 """
-struct GeneralizedSpherical{T, P <: AngularPointing} <: AbstractLocalPosition{T, 3}
+struct GeneralizedSpherical{P <: AngularPointing, T} <: AbstractLocalPosition{T, 3}
     svector::SVector{3, T}
 
-    BasicTypes.constructor_without_checks(::Type{GeneralizedSpherical{T, P}}, svector::SVector{3, T}) where {T, P} = new{T, P}(svector)
+    BasicTypes.constructor_without_checks(::Type{GeneralizedSpherical{P, T}}, svector::SVector{3, T}) where {T, P} = new{P, T}(svector)
 end

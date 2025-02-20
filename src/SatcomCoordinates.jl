@@ -50,7 +50,7 @@ include("functions/pointing.jl")
 
 # include("functions/geocentric.jl")
 # include("functions/topocentric.jl")
-# include("functions/local.jl")
+include("functions/local.jl")
 # include("functions/transforms.jl")
 # public origin, rotation
 
