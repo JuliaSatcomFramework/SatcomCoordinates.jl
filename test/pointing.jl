@@ -10,7 +10,7 @@ end
     p = PointingVersor(rand(3)...)
     @test norm(raw_svector(p)) ≈ 1
 
-    @test_throws "do not have a property" rand(PointingVersor).q
+    @test_throws "is not a valid property" rand(PointingVersor).q
 
     # Specifying numbertype
     p = PointingVersor{Float32}(rand(3)...)
@@ -51,7 +51,7 @@ end
 
         p = rand(PointingVersor)
         # Check that custom getproperty does not allocate
-        f(p) = (p.x, p.y, p.z, p.u, p.v, p.w)
+        f(p) = (p.x, p.y, p.z)
         @test @nallocs(f(p)) == 0
     end
 end
@@ -99,16 +99,17 @@ end
 @testitem "ThetaPhi" setup=[setup_pointing] begin
     tp = ThetaPhi(0,0)
     @test numbertype(tp) == Float64
-    @test tp.θ == tp.theta == tp.t == 0
-    @test tp.φ == tp.phi == tp.p == 0
+    @test tp.θ == 0°
+    @test tp.φ == 0°
     @test tp.θ isa Deg{Float64}
+    @test tp.φ isa Deg{Float64}
 
-    @test_throws "do not have a property" rand(ThetaPhi).q
+    @test_throws "is not a valid property" rand(ThetaPhi).q
 
     tp = ThetaPhi{Float32}(1,0)
     @test numbertype(tp) == Float32
     @test tp.θ isa Deg{Float32}
-    @test tp.θ == 1°
+    @test tp.θ ≈ 1° atol = 1e-6 # We need tolerance as we go store in rad and get deg back from getproperty
 
     @test ThetaPhi(1,0) == ThetaPhi((1,0)) == ThetaPhi(SVector(1,0)) 
 
@@ -146,7 +147,7 @@ end
         @test @nallocs(ThetaPhi(((1,0)))) == 0
         @test @nallocs(ThetaPhi(SVector(1,0))) == 0
 
-        f(tp) = (tp.θ, tp.φ, tp.t, tp.p, tp.theta, tp.phi)
+        f(tp) = (tp.θ, tp.φ)
         @test @nallocs(f(tp)) == 0
     end
 
@@ -188,11 +189,11 @@ end
     for P in (AzOverEl, ElOverAz, AzEl)
         p = P(1,2)
         @test numbertype(p) == Float64
-        @test p.az ==  p.azimuth == 1°
-        @test p.el == p.elevation == 2°
+        @test p.az == 1°
+        @test p.el == 2°
         @test p.az isa Deg{Float64}
 
-        @test_throws "do not have a property" rand(P).q
+        @test_throws "is not a valid property" rand(P).q
 
         # Test constructors with tuple or SVector
         @test P(1,2) == P((1,2)) == P(SVector(1,2))
@@ -393,7 +394,7 @@ end
             fwd_valid =  ae ≈ p
             tp′ = convert(ThetaPhi, ae)
             rtn_valid = tp′ ≈ tp
-            wrap_valid = -180° <= ae.az <= 180° && -180° <= tp.phi <= 180°
+            wrap_valid = -180° <= ae.az <= 180° && -180° <= tp.φ <= 180°
             return fwd_valid && rtn_valid && wrap_valid
         end
     end

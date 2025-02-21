@@ -289,6 +289,8 @@ function Random.rand(rng::AbstractRNG, ::Random.SamplerType{AE}) where AE <: Uni
 end
 
 ##### Utilities #####
+svector_size(::Type{<:AbstractPointing}) = 2
+svector_size(::Type{<:PointingVersor}) = 3
 
 ###### Custom show overloads ######
 PlutoShowHelpers.repl_summary(p::PointingVersor) = "PointingVersor"

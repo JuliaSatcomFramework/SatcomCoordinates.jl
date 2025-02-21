@@ -4,7 +4,10 @@
 CRSRotation(R::StaticMatrix{3, 3}) = CRSRotation(nearest_rotation(R))
 
 # Basic transform
-BasicCRSTransform(rotation::StaticMatrix{3, 3}, origin::CartesianPosition) = BasicCRSTransform(CRSRotation(rotation), origin)
+function BasicCRSTransform(rotation::StaticMatrix{3, 3}, origin::AbstractPosition) 
+    position_trait(origin) isa CartesianPositionTrait || throw(ArgumentError("`origin` must be a position in Cartesian coordinates"))
+    BasicCRSTransform(CRSRotation(rotation), origin)
+end
 
 
 ##### Our Interface #####

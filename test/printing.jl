@@ -12,7 +12,7 @@ end
     s = repr(rand(AzElDistance))
     @test contains(s, "AzElDistance")
 
-    s = repr(rand(GeneralizedSpherical{Float64, AzOverEl{Float64}}))
+    s = repr(rand(GeneralizedSpherical{AzOverEl, Float64}))
     @test contains(s, "AzOverEl")
 
     s = repr(MIME"text/plain"(), rand(ECEF))

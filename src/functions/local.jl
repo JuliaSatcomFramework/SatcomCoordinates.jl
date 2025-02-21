@@ -107,8 +107,10 @@ has_pointingtype(::Type{<:GeneralizedSpherical{P}}) where {P} = return true
 # Returns the pointing type of a GeneralizedSpherical subtype, if it's unique or throw an error otherwise
 pointing_type(::Type{GeneralizedSpherical}) = throw(ArgumentError("No pointing type can be uniquely inferred from GeneralizedSpherical"))
 pointing_type(::Type{<:GeneralizedSpherical{P}}) where {P} = P
+pointing_type(g::GeneralizedSpherical) = pointing_type(typeof(g))
 
 # #### Custom show methods ####
 
 PlutoShowHelpers.shortname(::Spherical) = "Spherical"
 PlutoShowHelpers.shortname(::AzElDistance) = "AzElDistance"
+PlutoShowHelpers.shortname(::GeneralizedSpherical{P, T}) where {P, T} = "GeneralizedSpherical{$(shortname(P{T}))}"

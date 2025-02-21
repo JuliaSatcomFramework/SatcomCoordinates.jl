@@ -1,4 +1,5 @@
 ##### Constructors #####
+position_trait(::Type{<:LLA}) = SphericalPositionTrait()
 
 ## ECI/ECEF
 # Handled by generic LengthCartesian constructor in fallbacks.jl
@@ -50,6 +51,6 @@ function Random.rand(rng::AbstractRNG, ::Random.SamplerType{E}) where E <: Union
     C = enforce_numbertype(E)
     T = numbertype(C)
     p = rand(rng, PointingVersor{T}) |> raw_svector
-    sv = p * (7e6 * ((1 + rand(rng))))
+    sv = p * (7e6 * ((1 + rand(rng)))) |> change_numbertype(T)
     constructor_without_checks(C, sv)
 end

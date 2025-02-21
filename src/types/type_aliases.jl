@@ -29,4 +29,4 @@ const ForwardOrInverse{F <: AbstractCRSTransform} = Union{F, InverseTransform{<:
 
 Union representing the types defined and exported by this package, which always have a numbertype as first parameter.
 """
-const WithNumbertype{T} = Union{AbstractSatcomCoordinate{T}, AbstractCRSTransform{T}}
+const WithNumbertype{T} = Union{AbstractSatcomCoordinate{T}, AbstractCRSTransform{T}, AbstractFieldValue{<:Any, <:Any, T}}

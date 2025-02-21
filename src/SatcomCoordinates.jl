@@ -1,14 +1,14 @@
 module SatcomCoordinates
 
 using BasicTypes: BasicTypes, constructor_without_checks, to_degrees, to_meters, Met, Deg, Rad, UnitfulAngleQuantity, ValidAngle, Point2D, Point3D, Point, PS, ValidDistance, to_radians, basetype, asdeg, stripdeg, Length
-using ConstructionBase: ConstructionBase, getproperties
+using ConstructionBase: ConstructionBase, getproperties, getfields
 using StaticArrays: StaticArrays, FieldVector, SVector, @SVector, SA, StaticMatrix, StaticVector
 using LinearAlgebra: LinearAlgebra, normalize, norm
 using PlutoShowHelpers: PlutoShowHelpers, DefaultShowOverload, HideWhenCompact, DualDisplayAngle, DisplayLength, InsidePluto, OutsidePluto, HideWhenFull, Ellipsis, repl_summary, shortname, longname, show_namedtuple
 using Random: Random, SamplerType, AbstractRNG
 using Rotations: Rotations, Rotation, nearest_rotation, RotMatrix3
 using TransformsBase: TransformsBase, Transform, Identity, isinvertible, isrevertible, inverse, apply
-using Unitful: Unitful, Quantity, ustrip, rad, @u_str, °, km, dimension
+using Unitful: Unitful, Quantity, ustrip, rad, @u_str, °, km, Units
 
 # From deps
 export °, km, @u_str # From Unitful
@@ -51,10 +51,10 @@ export get_angular_distance, get_angular_offset, add_angular_offset
 include("functions/geocentric.jl")
 include("functions/topocentric.jl")
 include("functions/local.jl")
-# include("functions/transforms.jl")
-# public origin, rotation
+include("functions/transforms.jl")
+public origin, rotation
 
-# include("functions/fieldvalues.jl")
+include("functions/fieldvalues.jl")
 
 include("utils.jl")
 export numbertype, enforce_numbertype, has_numbertype, change_numbertype, default_numbertype, property_aliases, raw_properties, raw_svector, raw_properties

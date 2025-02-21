@@ -1,6 +1,6 @@
 @testsnippet setup_pointing_offsets begin
     using SatcomCoordinates
-    using SatcomCoordinates: numbertype, raw_svector, raw_properties, @u_str, has_pointingtype, pointing_type, rotation, origin, UVOffset, ThetaPhiOffset
+    using SatcomCoordinates: numbertype, raw_svector, raw_properties, @u_str, has_pointingtype, pointing_type, rotation, origin, UVOffset, ThetaPhiOffset, PointingOffset, _as_pointing, _from_pointing, PointingOffset
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
@@ -19,10 +19,6 @@ end
 
     @test uv_offset == UVOffset(uv_offset.u, uv_offset.v)
 
-    @test uv_offset.inner isa UV
-    @test uv_offset.inner.u === uv_offset.u
-    @test uv_offset.inner.v === uv_offset.v
-
     tp1, tp2 = rand(ThetaPhi, 2)
     tp_offset = get_angular_offset(tp1, tp2)
     @test tp_offset isa ThetaPhiOffset
@@ -30,16 +26,13 @@ end
 
     @test isnan(ThetaPhiOffset(Val{NaN}()))
 
-    @test tp_offset.inner isa ThetaPhi
-    @test tp_offset.inner.θ === tp_offset.t === tp_offset.θ
-    @test tp_offset.inner.φ === tp_offset.p === tp_offset.φ
+    @test tp_offset.θ isa Deg
+    @test tp_offset.φ isa Deg
 
     @test rand(UVOffset) isa UVOffset
     @test rand(ThetaPhiOffset) isa ThetaPhiOffset
     @test rand(UVOffset{Float32}) isa UVOffset{Float32}
     @test rand(ThetaPhiOffset{Float32}) isa ThetaPhiOffset{Float32}
-
-    @test tp_offset == ThetaPhiOffset(tp_offset.t, tp_offset.p) == constructor_without_checks(ThetaPhiOffset{Float64}, tp_offset.t, tp_offset.p)
 end
 
 @testitem "angular distance/offset" setup=[setup_pointing_offsets] begin

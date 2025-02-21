@@ -1,12 +1,24 @@
 # # Addition, subtraction and sign inversion
-# Base.:(-)(c::C) where C <: CartesianPosition = constructor_without_checks(C, -c.x, -c.y, -c.z)
-# function Base.:(+)(c1::C1, c2::C2) where {C1 <: CartesianPosition, C2 <: CartesianPosition} 
-#     C = basetype(C1)
-#     C == basetype(C2) || throw(ArgumentError("Cannot add coordinates of different types: $C1 and $C2"))
-#     T = promote_type(numbertype(C1), numbertype(C2))
-#     constructor_without_checks(C{T}, c1.x + c2.x, c1.y + c2.y, c1.z + c2.z)
-# end
-# Base.:(-)(c1::C1, c2::C2) where {C1 <: CartesianPosition, C2 <: CartesianPosition} = c1 + (-c2)
+function Base.:(-)(c::AbstractPosition) 
+    trait = position_trait(c)
+    applicable(_negate_position, trait, c) || throw(ArgumentError("Cannot negate coordinates of type $(typeof(c))"))
+    _negate_position(trait, c)
+end
+_negate_position(::CartesianPositionTrait, c::AbstractPosition) = constructor_without_checks(typeof(c), -raw_svector(c))
+
+function Base.:(+)(c1::C1, c2::C2) where {C1 <: AbstractPosition, C2 <: AbstractPosition} 
+    C = basetype(C1)
+    C == basetype(C2) || throw(ArgumentError("Cannot add coordinates of different types: $C1 and $C2"))
+    trait = position_trait(C1)
+    applicable(_sum_positions, trait, c1, c2) || throw(ArgumentError("Cannot add coordinates of type $(basetype(c1))"))
+    return _sum_positions(trait, c1, c2)
+end
+function _sum_positions(::CartesianPositionTrait, c1::AbstractPosition, c2::AbstractPosition)
+    T = promote_type(numbertype(c1), numbertype(c2))
+    sv = raw_svector(c1) + raw_svector(c2) |> change_numbertype(T)
+    constructor_without_checks(basetype(c1){T}, sv)
+end
+Base.:(-)(c1::C1, c2::C2) where {C1 <: AbstractPosition, C2 <: AbstractPosition} = c1 + (-c2)
 
 #### Properties ####
 
@@ -38,10 +50,10 @@ function construct_inner_svector(::Type{<:AbstractPosition{T, N}}, args::Vararg{
     return SVector{N, T}(args...)
 end
 
-svector_size(::Type{<:StaticVector{N}}) where N = N
-svector_size(T::Type{<:AbstractSatcomCoordinate}) = svector_size(fieldtypes(enforce_numbertype(T)) |> first)
+svector_size(::Type{<:StaticVector{N}}) where N = return N
+svector_size(::Type{<:AbstractSatcomCoordinate{<:Any, N}}) where N = return N
 
-function (P::Type{<:AbstractSatcomCoordinate})(::Val{NaN})
+function (P::Type{<:Union{AbstractSatcomCoordinate, AbstractFieldValue}})(::Val{NaN})
     PT = enforce_numbertype(P)
     T = numbertype(PT)
     N = svector_size(PT)
@@ -49,16 +61,25 @@ function (P::Type{<:AbstractSatcomCoordinate})(::Val{NaN})
     return constructor_without_checks(PT, sv)
 end
 
-function (P::Type{<:AbstractSatcomCoordinate{<:Any, N}})(args::Vararg{Any, N}) where N
+function (P::Type{<:Union{AbstractSatcomCoordinate{<:Any, N}, AbstractFieldValue}})(args::Vararg{Number, N}) where N
     PT = enforce_numbertype(P, default_numbertype(args...))
     any(isnan, args) && return PT(Val{NaN}())
     v = construct_inner_svector(PT, args...)
     return constructor_without_checks(PT, v)
 end
-(P::Type{<:AbstractSatcomCoordinate{<:Any, N}})(coords::Point{N}) where N = P(coords...)
+(P::Type{<:AbstractSatcomCoordinate{<:Any, N}})(coords::Point{N, PS}) where N = P(coords...)
 
-# # zero
-# Base.zero(::Type{C}) where C <: CartesianPosition = constructor_without_checks(enforce_numbertype(C), map(to_meters, zero(SVector{3, Float64}))...)
+# zero
+function Base.zero(C::Type{<:AbstractPosition})
+    trait = position_trait(C)
+    applicable(_zero_position, trait, C) || throw(ArgumentError("Base.zero is not defined for coordinates of type $C"))
+    return _zero_position(trait, C)
+end
+function _zero_position(::CartesianPositionTrait, C::Type{<:AbstractPosition}) 
+    CT = enforce_numbertype(C)
+    T = numbertype(CT)
+    constructor_without_checks(CT, zero(SVector{3, T}))
+end
 
 # isnan
 Base.isnan(x::Union{AbstractSatcomCoordinate, AbstractFieldValue}) = any(isnan, raw_properties(x))
@@ -77,7 +98,7 @@ function Random.rand(rng::AbstractRNG, ::Random.SamplerType{L}) where L <: Abstr
     C = enforce_numbertype(L)
     T = numbertype(C)
     p = rand(rng, PointingVersor{T}) |> raw_svector
-    sv = p * (1e3 * ((1 + rand(rng))))
+    sv = p * (1e3 * ((1 + rand(rng)))) |> change_numbertype(T)
     constructor_without_checks(C, sv)
 end
 

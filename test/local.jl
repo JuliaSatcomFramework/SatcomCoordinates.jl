@@ -1,6 +1,6 @@
 @testsnippet setup_local begin
     using SatcomCoordinates
-    using SatcomCoordinates: numbertype, raw_svector, raw_properties, @u_str, has_pointingtype, pointing_type
+    using SatcomCoordinates: numbertype, raw_svector, raw_properties, @u_str, has_pointingtype, pointing_type, inner_pointing
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
@@ -43,63 +43,60 @@ end
 end
 
 @testitem "GeneralizedSpherical" setup=[setup_local] begin
-    @test Spherical(1,2,3) isa GeneralizedSpherical{Float64, ThetaPhi{Float64}}
-    @test Spherical{Float32}(1,2,3) isa GeneralizedSpherical{Float32, ThetaPhi{Float32}}
+    @test Spherical(1,2,3) isa GeneralizedSpherical{ThetaPhi, Float64}
+    @test Spherical{Float32}(1,2,3) isa GeneralizedSpherical{ThetaPhi, Float32}
 
 
     s = rand(Spherical)
-    @test s.r == s.range == s.distance
-    @test s.θ == s.theta == s.pointing.θ
-    @test s.φ == s.phi == s.pointing.φ
+    @test s.r isa Met
+    @test s.θ isa Deg
+    @test s.φ isa Deg
 
     @test !isnan(s)
     @test isnan(Spherical(Val{NaN}()))
 
-    @test AzElDistance(1,2,3) isa GeneralizedSpherical{Float64, AzEl{Float64}}
-    @test AzElDistance{Float32}(1,2,3) isa GeneralizedSpherical{Float32, AzEl{Float32}}
+    @test AzElDistance(1,2,3) isa GeneralizedSpherical{AzEl, Float64}
+    @test AzElDistance{Float32}(1,2,3) isa GeneralizedSpherical{AzEl, Float32}
 
-    g = rand(GeneralizedSpherical{Float32, ElOverAz{Float32}})
-    @test g.pointing isa ElOverAz{Float32}
+    g = rand(GeneralizedSpherical{ElOverAz, Float32})
+    @test inner_pointing(g) isa ElOverAz{Float32}
 
-    @test g.az == g.azimuth == g.pointing.az
-    @test g.el == g.elevation == g.pointing.el
-    @test g.r == g.range == g.distance
+    @test g.az isa Deg{Float32}
+    @test g.el isa Deg{Float32}
+    @test g.r isa Met{Float32}
 
     @testset "Allocations" begin
         @test @nallocs(Spherical(1,2,3)) == 0
 
-        @test @nallocs(getproperty(rand(Spherical), :pointing)) == 0
-        @test @nallocs(getproperty(rand(Spherical), :theta)) == 0
-        @test @nallocs(getproperty(rand(Spherical), :phi)) == 0
+        @test @nallocs(getproperty(rand(Spherical), :θ)) == 0
+        @test @nallocs(getproperty(rand(Spherical), :φ)) == 0
+        @test @nallocs(getproperty(rand(Spherical), :r)) == 0
 
         @test @nallocs(raw_properties(rand(Spherical))) == 0
         @test @nallocs(raw_properties(rand(AzElDistance))) == 0
     end
 
-    @test GeneralizedSpherical{Float32}(rand(ThetaPhi), rand()) isa Spherical{Float32}
     @test GeneralizedSpherical(rand(ThetaPhi{Float32}), rand(Float32)) isa Spherical{Float32}
+    @test GeneralizedSpherical(rand(ThetaPhi{Float32}), rand()) isa Spherical{Float32}
     @test GeneralizedSpherical(rand(ThetaPhi), rand(Float32)) isa Spherical{Float64}
-    @test GeneralizedSpherical(rand(ThetaPhi{Float32}), rand(Float64)) isa Spherical{Float64}
 
     @test !has_pointingtype(GeneralizedSpherical)
-    @test !has_pointingtype(GeneralizedSpherical{Float64})
-    @test has_pointingtype(GeneralizedSpherical{Float64, ThetaPhi{Float64}})
+    @test has_pointingtype(GeneralizedSpherical{ThetaPhi, Float64})
     @test has_pointingtype(Spherical)
     @test has_pointingtype(AzElDistance)
 
-    @test pointing_type(rand(Spherical)) == ThetaPhi{Float64}
+    @test pointing_type(rand(Spherical)) == ThetaPhi
     @test pointing_type(Spherical) == ThetaPhi
     @test pointing_type(AzElDistance) == AzEl
 
     @test_throws "No pointing type can be uniquely inferred from GeneralizedSpherical" pointing_type(GeneralizedSpherical)
-    @test_throws "No pointing type can be uniquely inferred from GeneralizedSpherical" pointing_type(GeneralizedSpherical{Float64})
-    @test pointing_type(GeneralizedSpherical{Float64, ThetaPhi{Float64}}) == ThetaPhi{Float64}
+    @test pointing_type(GeneralizedSpherical{ThetaPhi}) == ThetaPhi
 
     p = rand(Spherical)
     @test raw_properties(p) isa NamedTuple{(:θ, :φ, :r), Tuple{Float64, Float64, Float64}}
 
     for PT in (ThetaPhi, AzEl, ElOverAz, AzOverEl)
-        gs = rand(GeneralizedSpherical{Float64, PT{Float64}})
+        gs = rand(GeneralizedSpherical{PT})
         @test convert(LocalCartesian, -gs) ≈ -convert(LocalCartesian, gs)
     end
 end
@@ -107,7 +104,7 @@ end
 
 @testitem "Conversions" setup=[setup_local] begin
     PTs = map(Iterators.product((ThetaPhi, AzEl, ElOverAz, AzOverEl), (Float32, Float64))) do (P, T)
-        GeneralizedSpherical{T, P{T}}
+        GeneralizedSpherical{P, T}
     end
 
     for PT in PTs

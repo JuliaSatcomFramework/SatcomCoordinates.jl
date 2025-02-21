@@ -70,19 +70,20 @@ Abstract type representing an affine transform between two CRSs with numbertype 
 abstract type AbstractAffineCRSTransform{T} <: AbstractCRSTransform{T} end
 
 """
-    AbstractFieldValue{T, N, CRS <: AbstractPosition{T, N}, F}
+    AbstractFieldValue{U, CRS, T}
 
-Abstract type representing the value of a physical field expressed in a specific `CRS` in `N` dimensions with numbertype `T`.
+Abstract type representing the value of a physical field expressed in a specific coordinate reference system `CRS`, and whose components have an associated unit `U` and a numbertype `T`.
 
 A method of `property_aliases` is defined for this abstract type that simply returns `property_aliases(CRS)`.
 
-Default concrete implementations of this subtype are expected to have a single inner field `svector` which is a `SVector{N, F}` to exploit the `raw_properties` method defined on this abstract type.
+Default concrete implementations of this subtype are expected to have a single inner field `svector` which is a `SVector{N, T}` (`N` being the number of dimensions of the referenced `CRS`) to exploit the `raw_properties` method defined on this abstract type.
 
 An example concrete type representing velocity in a 3D CRS can be implemented as follows (assuming to have `Quantity`, `@u_str` and `dimension` imported from `Unitful`):
 
 ```julia
-struct VelocityFieldValue{T, CRS <: CartesianPosition{T, 3}} <: AbstractFieldValue{T, 3, CRS, Quantity{T, dimension(u"m/s"), typeof(u"m/s")}}
-    svector::SVector{3, Quantity{T, dimension(u"m/s"), typeof(u"m/s")}}
+const U = typeof(u"m/s")
+struct VelocityFieldValue{CRS <: AbstractPosition{<:Any, 3}, T} <: AbstractFieldValue{U, CRS, T}
+    svector::SVector{3, T}
 end
 ```
 
@@ -93,4 +94,4 @@ end
 - `raw_svector(::AbstractFieldValue)`: Assumes that the concrete subtype has a field called `svector` and simply returns it, eventually stripping the units from the elements if they are of type `Quantity`.
 - `Base.getproperty(::AbstractFieldValue, ::Symbol)`: Based on the same `@generated` function used for objects of type `AbstractSatcomCoordinate` and requiring `property_aliases` and `raw_properties` to be defined for the concrete subtype.
 """
-abstract type AbstractFieldValue{CRS, F} end
+abstract type AbstractFieldValue{U <: Units, CRS, T} end
