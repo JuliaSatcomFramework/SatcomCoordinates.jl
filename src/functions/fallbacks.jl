@@ -63,20 +63,23 @@ end
 # isnan
 Base.isnan(x::Union{AbstractSatcomCoordinate, AbstractFieldValue}) = any(isnan, raw_properties(x))
 
-# # isapprox
-# function Base.isapprox(c1::C1, c2::C2; kwargs...) where {C1 <: CartesianPosition, C2 <: CartesianPosition}
-#     basetype(C1) == basetype(C2) || throw(ArgumentError("Cannot compare coordinates of different types: $C1 and $C2"))
-#     isapprox(raw_svector(c1), raw_svector(c2); kwargs...)
-# end
+# isapprox
+function Base.isapprox(c1::AbstractPosition, c2::AbstractPosition; kwargs...)
+    C1 = typeof(c1)
+    C2 = typeof(c2)
+    basetype(C1) == basetype(C2) || throw(ArgumentError("Cannot compare coordinates of different types: $C1 and $C2"))
+    return isapprox_position(position_trait(c1), c1, c2; kwargs...)
+end
+isapprox_position(::CartesianPositionTrait, c1::AbstractPosition, c2::AbstractPosition; kwargs...) = isapprox(raw_svector(c1), raw_svector(c2); kwargs...)
 
-# # Rand for LengthCartesian
-# function Random.rand(rng::AbstractRNG, ::Random.SamplerType{L}) where L <: LengthCartesian
-#     C = enforce_numbertype(L)
-#     T = numbertype(C)
-#     p = rand(rng, PointingVersor{T}) |> raw_svector
-#     x, y, z = p * (1e3 * ((1 + rand(rng)) * u"m"))
-#     constructor_without_checks(C, x, y, z)
-# end
+# Rand for AbstractPosition
+function Random.rand(rng::AbstractRNG, ::Random.SamplerType{L}) where L <: AbstractPosition{<:Any, 3}
+    C = enforce_numbertype(L)
+    T = numbertype(C)
+    p = rand(rng, PointingVersor{T}) |> raw_svector
+    sv = p * (1e3 * ((1 + rand(rng))))
+    constructor_without_checks(C, sv)
+end
 
 function Base.convert(::Type{C1}, c::C2) where {C1 <: AbstractSatcomCoordinate, C2 <: AbstractSatcomCoordinate}
     isnan(c) && return enforce_numbertype(C1, c)(Val{NaN}())
@@ -127,7 +130,7 @@ enforce_numbertype(::Type{C}, default::T = 1.0) where {C, T} =
 # change_numbertype
 # Fallbacks for types not defined in this package
 change_numbertype(::Type{T}, x::Real) where T <: AbstractFloat = convert(T, x)
-change_numbertype(::Type{T}, x::SVector{3}) where T <: Real = convert(SVector{3, T}, x)
+change_numbertype(::Type{T}, x::SVector{N}) where {T <: Real, N} = convert(SVector{N, T}, x)
 change_numbertype(::Type{T}, r::RotMatrix3) where {T <: AbstractFloat} = convert(RotMatrix3{T}, r)
 change_numbertype(::Type, i::Identity) = i
 change_numbertype(::Type{T}, x::Deg) where T <: AbstractFloat = convert(Deg{T}, x)
@@ -151,12 +154,14 @@ PlutoShowHelpers.repl_summary(p::AbstractSatcomCoordinate) = shortname(p) * " Co
 
 PlutoShowHelpers.show_namedtuple(c::AbstractSatcomCoordinate) = getproperties(c)
 
-# PlutoShowHelpers.show_namedtuple(c::LengthCartesian) = map(DisplayLength, raw_properties(c))
-
-# function PlutoShowHelpers.show_namedtuple(c::AngleAngleDistance)
-#     nt = getfields(c)
-#     map(nt) do val
-#         val isa Deg && return DualDisplayAngle(normalize_value(val))
-#         val isa Met && return DisplayLength(normalize_value(val))
-#     end
-# end
+PlutoShowHelpers.show_namedtuple(p::AbstractPosition) = _show_namedtuple(position_trait(p), p)
+_show_namedtuple(::CartesianPositionTrait, p::AbstractPosition) = map(DisplayLength, raw_properties(p))
+function _show_namedtuple(::SphericalPositionTrait, p::AbstractPosition) 
+    nms = propertynames(p)
+    a1, a2, r = raw_svector(p)
+    return NamedTuple{nms}((
+        DualDisplayAngle(a1),
+        DualDisplayAngle(a2),
+        DisplayLength(r)
+    ))
+end

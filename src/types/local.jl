@@ -35,12 +35,13 @@ Represents a position in a local CRS, defined by an angular pointing direction a
     The parameter `P` should not be a concrete type of angular pointing but a basic subtype without the `numbertype` parameter, e.g. `AzEl` instead of `AzEl{Float64}`.
 
 # Properties
-- `angle1::Deg{T}`: First angle of the referenced angular pointing CRS `P`. The name of the property is actually not `angle1` but will be the first property of objects of type `P`
-- `angle2::Deg{T}`: Second angle of the referenced angular pointing CRS `P`. The name of the property is actually not `angle2` but will be the second property of objects of type `P`
+- `angle1::Deg{T}`: First angle of the referenced angular pointing CRS `P`. The name of the property is actually not `angle1` but will be the first property name of objects of type `P`
+- `angle2::Deg{T}`: Second angle of the referenced angular pointing CRS `P`. The name of the property is actually not `angle2` but will be the second property name of objects of type `P`
 - `r::Met{T}`: The distance of the object from the origin of the CRS
 
 # Basic Constructors
-    PointingAndDistance(pointing::AngularPointing, r::ValidDistance)
+    GeneralizedSpherical(pointing::AngularPointing, r::ValidDistance)
+    GeneralizedSpherical{P[, T]}(a1::ValidAngle, a2::ValidAngle, r::ValidDistance)
 
 `ValidDistance` is either a Real Number, or a subtype of `Unitful.Length`.
 

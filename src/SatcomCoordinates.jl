@@ -24,14 +24,14 @@ include("types/traits.jl")
 include("types/pointing.jl")
 export PointingVersor, UV, ThetaPhi, AzEl, AzOverEl, ElOverAz
 
-# include("types/pointing_offsets.jl") 
-# public UVOffset, ThetaPhiOffset 
+include("types/pointing_offsets.jl") 
+public PointingOffset
 
-# include("types/geocentric.jl") 
-# export ECEF, ECI, LLA 
+include("types/geocentric.jl") 
+export ECEF, ECI, LLA 
 
-# include("types/topocentric.jl") 
-# export ENU, NED, AER 
+include("types/topocentric.jl") 
+export ENU, NED, AER 
 
 include("types/local.jl") 
 export LocalCartesian, GeneralizedSpherical 
@@ -45,11 +45,11 @@ export Spherical, AzElDistance
 include("functions/traits.jl")
 
 include("functions/pointing.jl")
-# include("functions/pointing_offsets.jl")
-# export get_angular_distance, get_angular_offset, add_angular_offset
+include("functions/pointing_offsets.jl")
+export get_angular_distance, get_angular_offset, add_angular_offset
 
-# include("functions/geocentric.jl")
-# include("functions/topocentric.jl")
+include("functions/geocentric.jl")
+include("functions/topocentric.jl")
 include("functions/local.jl")
 # include("functions/transforms.jl")
 # public origin, rotation

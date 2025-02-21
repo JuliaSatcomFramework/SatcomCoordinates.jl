@@ -104,7 +104,7 @@ Function that takes as input two angles representing two orthogonal angular comp
 !!! note
     This function already assumes that the provided input angles are already normalized such that both are in the [-180°, 180°] range. If you want to normalize the inputs automatically use the `wrap_first_angle` function.
 """
-wrap_spherical_angles_normalized(az::T, el::T, ::Type{<:Union{AzOverEl, ElOverAz, AzEl}}) where {T <: Deg{<:Real}} =
+wrap_spherical_angles_normalized(az::T, el::T, ::Type{<:Union{AzOverEl, ElOverAz, AzEl, AER}}) where {T <: Deg{<:Real}} =
     ifelse(
         abs(el) <= 90°,  # Condition
         (az, el), # Azimuth angle is already between -180° and 180° as it's already been normalized
@@ -128,8 +128,8 @@ Function that takes as input two angles representing two orthogonal angular comp
 
 !!! 
 """
-wrap_spherical_angles(α::ValidAngle, β::ValidAngle, ::Type{T}) where T <: Union{ThetaPhi, AzOverEl, ElOverAz} = wrap_spherical_angles_normalized(to_degrees(α, RoundNearest), to_degrees(β, RoundNearest), T)
-wrap_spherical_angles(p::Point2D, ::Type{T}) where T <: Union{ThetaPhi, AzOverEl, ElOverAz} = wrap_spherical_angles(p[1], p[2], T)
+wrap_spherical_angles(α::ValidAngle, β::ValidAngle, ::Type{T}) where T <: Union{ThetaPhi, AzOverEl, ElOverAz, AER} = wrap_spherical_angles_normalized(to_degrees(α, RoundNearest), to_degrees(β, RoundNearest), T)
+wrap_spherical_angles(p::Point2D, ::Type{T}) where T <: Union{ThetaPhi, AzOverEl, ElOverAz, AER} = wrap_spherical_angles(p[1], p[2], T)
 
 ##### TO MOVE
 

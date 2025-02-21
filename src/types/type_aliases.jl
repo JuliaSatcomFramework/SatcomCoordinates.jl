@@ -13,6 +13,10 @@ Type representing a position w.r.t. a local CRS in Azimuth, Elevation and Range 
 The difference between `AzElDistance` and [`AER`](@ref) is that `AER` is a always referred to the ENU CRS, while `AzElDistance` is for a generic local CRS.
 """
 const AzElDistance{T} = GeneralizedSpherical{AzEl, T}
+
+const UVOffset{T} = PointingOffset{UV, T}
+const ThetaPhiOffset{T} = PointingOffset{ThetaPhi, T}
+
 """
     const ForwardOrInverse{F <: AbstractCRSTransform} = Union{F, InverseTransform{<:Any, <:F}}
 

@@ -181,7 +181,7 @@ end
 - p̂ ⋅ û = w
 =#
 function _convert_different(::Type{E}, p::PointingVersor) where E <: AzEl
-    (;u,v,w) = raw_properties(p)
+    u,v,w = raw_svector(p)
     az = atan(u, v) # Already in the [-180°, 180°] range
     el = asin(w) # Already in the [-90°, 90°] range
     ET = enforce_numbertype(E, p)
@@ -202,7 +202,7 @@ end
 
 # ElOverAz <-> PointingVersor
 function _convert_different(::Type{E}, p::PointingVersor) where E <: ElOverAz
-    (;u,v,w) = raw_properties(p)
+    u,v,w = raw_svector(p)
     az = atan(-u,w) # Already in the [-180°, 180°] range
     el = asin(v) # Already in the [-90°, 90°] range
     ET = enforce_numbertype(E, p)
@@ -223,7 +223,7 @@ end
 
 # AzOverEl <-> PointingVersor
 function _convert_different(::Type{A}, p::PointingVersor) where A <: AzOverEl
-    (;u,v,w) = raw_properties(p)
+    u,v,w = raw_svector(p)
     el = atan(v/w) # Already returns a value in the range [-90°, 90°]
     az = asin(-u) # This only returns the value in the [-90°, 90°] range
     # Make the angle compatible with our ranges of azimuth and elevation

@@ -25,6 +25,20 @@ Abstract type representing a position in a local coordinate system.
 abstract type AbstractLocalPosition{T, N} <: AbstractPosition{T, N} end
 
 """
+    AbstractTopocentricPosition{T} <: AbstractPosition{T, 3}
+
+Abstract type representing a position in a topocentric coordinate system.
+"""
+abstract type AbstractTopocentricPosition{T} <: AbstractPosition{T, 3} end
+
+"""
+    AbstractGeocentricPosition{T} <: AbstractPosition{T, 3}
+
+Abstract type representing a position in a geocentric coordinate system.
+"""
+abstract type AbstractGeocentricPosition{T} <: AbstractPosition{T, 3} end
+
+"""
     AngularPointing{T}
 
 Abstract type representing a pointing direction identified by two angles in
