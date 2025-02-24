@@ -30,6 +30,12 @@ end
     @test contains(s, "ThetaPhi Pointing")
     @test contains(s, "θ = ")
 
+    s = repr(MIME"text/plain"(), rand(PointingVersor))
+    @test contains(s, "PointingVersor")
+    @test contains(s, "x = ")
+    @test contains(s, "y = ")
+    @test contains(s, "z = ")
+
     s = repr(MIME"text/plain"(), rand(UVOffset))
     @test contains(s, "UV Pointing Offset")
     @test contains(s, "u = ")

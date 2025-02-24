@@ -3,7 +3,7 @@ function construct_inner_svector(PO::Type{PointingOffset{P, T}}, x, y) where {P 
     _validate_type(PO)
     sv = SVector{2, T}(x, y)
     if P <: AngularPointing
-        sv = map(ustrip ∘ to_degrees, sv)
+        sv = map(stripdeg ∘ to_degrees, sv)
     end
     return sv
 end

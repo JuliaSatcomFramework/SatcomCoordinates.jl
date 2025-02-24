@@ -1,5 +1,5 @@
 @testitem "numbertype" begin
-    using SatcomCoordinates: numbertype, has_numbertype, enforce_numbertype
+    using SatcomCoordinates: numbertype, has_numbertype, enforce_numbertype, to_valid_numbertype
     using SatcomCoordinates.Unitful
     using SatcomCoordinates.StaticArrays
 
@@ -12,13 +12,16 @@
     @test numbertype(1u"°") == Int
     @test numbertype(1.0u"°") == Float64
     @test numbertype(1f0) == Float32
-    @test_throws "The numbertype function is not implemented" numbertype(1im)
+    @test_throws "not implemented" numbertype(NoUnits)
     @test_throws "numbertype parameter specified" numbertype(UV)
 
     @test enforce_numbertype(UV) == UV{Float64} # Provide a default as not present in input type
     @test enforce_numbertype(UV{Float32}) == UV{Float32} # Returns the same input type as it already has a numbertype
     @test enforce_numbertype(UV, Float32) == UV{Float32} # Provide a custom default as not present in input type
     @test enforce_numbertype(UV, 1) == UV{Int64} # Provide a custom default as not present in input type
+
+    @test to_valid_numbertype(Complex{Int}) == Complex{Float64}
+    @test_throws "can not be mapped" to_valid_numbertype(UV)
 end
 
 @testitem "wrap_spherical_angles" begin
@@ -35,13 +38,8 @@ end
 end
 
 @testitem "Misc" begin
-    using SatcomCoordinates: normalize_value, basetype, _convert_different
+    using SatcomCoordinates: basetype, _convert_different
     using Unitful
-    # @test normalize_value(1u"°") == deg2rad(1)
-    # @test normalize_value(1.0u"rad") == 1.0
-    # @test normalize_value(1u"m") == 1
-    # @test normalize_value(1f0) == 1f0
-    # @test normalize_value(1u"km") == 1000
 
     @test basetype(PointingVersor) == PointingVersor
     @test basetype(PointingVersor{Float32}) == PointingVersor

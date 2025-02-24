@@ -1,5 +1,5 @@
 @testsnippet setup_pointing begin
-    using SatcomCoordinates: numbertype, raw_svector
+    using SatcomCoordinates: numbertype, raw_svector, svector_size
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
@@ -9,6 +9,8 @@ end
 @testitem "PointingVersor" setup=[setup_pointing] begin
     p = PointingVersor(rand(3)...)
     @test norm(raw_svector(p)) ≈ 1
+
+    @test svector_size(PointingVersor) == 3 == svector_size(first(fieldtypes(PointingVersor{Float64})))
 
     @test_throws "is not a valid property" rand(PointingVersor).q
 
@@ -60,6 +62,7 @@ end
     using SatcomCoordinates: UV_CONSTRUCTOR_TOLERANCE
     uv = UV(0,0)
     @test numbertype(uv) == Float64
+    @test svector_size(UV) == 2
     
     @test numbertype(UV{Float32}(1,0)) == Float32
 
@@ -98,6 +101,7 @@ end
 
 @testitem "ThetaPhi" setup=[setup_pointing] begin
     tp = ThetaPhi(0,0)
+    @test svector_size(ThetaPhi) == 2
     @test numbertype(tp) == Float64
     @test tp.θ == 0°
     @test tp.φ == 0°
@@ -187,6 +191,7 @@ end
 
 @testitem "AzOverEl/ElOverAz/AzEl" setup=[setup_pointing] begin
     for P in (AzOverEl, ElOverAz, AzEl)
+        @test svector_size(P) == 2
         p = P(1,2)
         @test numbertype(p) == Float64
         @test p.az == 1°

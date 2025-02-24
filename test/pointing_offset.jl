@@ -17,7 +17,17 @@ end
 
     @test isnan(UVOffset(Val{NaN}()))
 
+
     @test uv_offset == UVOffset(uv_offset.u, uv_offset.v)
+
+    @test UVOffset(.1,.2) == _from_pointing(UV(.1,.2))
+
+    tpo = ThetaPhiOffset(1,2)
+
+    nt = raw_properties(tpo)
+    @test nt.θ isa Float64 && nt.φ isa Float64
+    @test nt.θ ≈ deg2rad(1)
+    @test nt.φ ≈ deg2rad(2)
 
     tp1, tp2 = rand(ThetaPhi, 2)
     tp_offset = get_angular_offset(tp1, tp2)
