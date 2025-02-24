@@ -8,7 +8,7 @@ using PlutoShowHelpers: PlutoShowHelpers, DefaultShowOverload, HideWhenCompact, 
 using Random: Random, SamplerType, AbstractRNG
 using Rotations: Rotations, Rotation, nearest_rotation, RotMatrix3
 using TransformsBase: TransformsBase, Transform, Identity, isinvertible, isrevertible, inverse, apply
-using Unitful: Unitful, Quantity, ustrip, rad, @u_str, °, km, Units
+using Unitful: Unitful, Quantity, ustrip, rad, @u_str, °, km, Units, NoUnits
 
 # From deps
 export °, km, @u_str # From Unitful
@@ -16,7 +16,7 @@ export to_degrees, to_meters # From BasicTypes
 export Identity # From TransformsBase
 
 include("types/abstract_types.jl")
-export AbstractSatcomCoordinate, CartesianPosition, LengthCartesian, AngularPointing, AbstractPointing, AbstractCRSTransform, AbstractFieldValue, AbstractPosition
+export AbstractSatcomCoordinate, AngularPointing, AbstractPointing, AbstractCRSTransform, AbstractFieldValue, AbstractPosition
 public AbstractPointingOffset
 
 include("types/traits.jl")
@@ -57,7 +57,7 @@ public origin, rotation
 include("functions/fieldvalues.jl")
 
 include("utils.jl")
-export numbertype, enforce_numbertype, has_numbertype, change_numbertype, default_numbertype, property_aliases, raw_properties, raw_svector, raw_properties
+export numbertype, enforce_numbertype, has_numbertype, change_numbertype, default_numbertype, raw_properties, raw_svector, raw_properties
 
 include("functions/fallbacks.jl")
 
