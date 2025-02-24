@@ -64,7 +64,7 @@ See also [`numbertype`](@ref), [`enforce_numbertype`](@ref), [`has_numbertype`](
 """
 function default_numbertype(args::Vararg{Any, N}) where N
     T = promote_type(map(numbertype, args)...)
-    T <: AbstractFloat ? T : Float64
+    return to_valid_numbertype(T)
 end
 
 """

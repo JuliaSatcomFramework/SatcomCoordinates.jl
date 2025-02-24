@@ -22,7 +22,7 @@ Base.:(-)(c1::C1, c2::C2) where {C1 <: AbstractPosition, C2 <: AbstractPosition}
 
 #### Properties ####
 
-Base.propertynames(p::AbstractSatcomCoordinate) = properties_names(typeof(p))
+Base.propertynames(p::Union{AbstractSatcomCoordinate, AbstractFieldValue}) = properties_names(typeof(p))
 
 properties_names(::Type{<:AbstractPosition{<:Any, 3}}) = (:x, :y, :z)
 
@@ -37,7 +37,7 @@ function _position_properties(::SphericalPositionTrait, p::AbstractPosition{T, 3
     return NamedTuple{nms}((asdeg(a1), asdeg(a2), to_meters(r)))
 end
 
-function Base.getproperty(p::AbstractSatcomCoordinate, s::Symbol)
+function Base.getproperty(p::Union{AbstractSatcomCoordinate, AbstractFieldValue}, s::Symbol)
     s in propertynames(p) || throw(ArgumentError("Property $s is not a valid property for objects of type $(typeof(p))"))
     nt = getproperties(p)
     return getproperty(nt, s)
@@ -129,7 +129,7 @@ end
 # numbertype
 # Generic versions not on types of this package
 numbertype(::Type{<:Quantity{T}}) where T  = T
-numbertype(::Type{T}) where T <: Real = T
+numbertype(::Type{T}) where T <: Union{Real, Complex} = T
 numbertype(::T) where T = numbertype(T)
 numbertype(T::DataType) = error("The numbertype function is not implemented for type $T")
 numbertype(::Type{<:AbstractArray{T}}) where T = T
@@ -143,10 +143,17 @@ has_numbertype(::Type{<:WithNumbertype{T}}) where {T} = return true
 has_numbertype(::Type{<:WithNumbertype}) = return false
 
 # enforce_numbertype
-enforce_numbertype(::Type{C}, ::Type{T}) where {C, T <: Real} =
+enforce_numbertype(::Type{C}, ::Type{T}) where {C, T <: Number} =
     has_numbertype(C) ? C : C{T}
-enforce_numbertype(::Type{C}, default::T = 1.0) where {C, T} =
+enforce_numbertype(::Type{C}, default::T) where {C, T} =
     enforce_numbertype(C, numbertype(T))
+enforce_numbertype(C::Type{<:WithNumbertype}) = enforce_numbertype(C, Float64)
+
+# to_valid_numbertype
+to_valid_numbertype(::Type{<:Integer}) = return Float64
+to_valid_numbertype(T::Type{<:AbstractFloat}) = return T
+to_valid_numbertype(::Type{C}) where {T, C <: Complex{T}} = return Complex{to_valid_numbertype(T)}
+to_valid_numbertype(T::Type) = throw(ArgumentError("The provided numbertype $T can not be mapped to a valid numbertype"))
 
 # change_numbertype
 # Fallbacks for types not defined in this package
@@ -173,7 +180,7 @@ PlutoShowHelpers.shortname(x::AbstractSatcomCoordinate) = x |> typeof |> basetyp
 
 PlutoShowHelpers.repl_summary(p::AbstractSatcomCoordinate) = shortname(p) * " Coordinate"
 
-PlutoShowHelpers.show_namedtuple(c::AbstractSatcomCoordinate) = getproperties(c)
+PlutoShowHelpers.show_namedtuple(c::Union{AbstractSatcomCoordinate, AbstractFieldValue}) = getproperties(c)
 
 PlutoShowHelpers.show_namedtuple(p::AbstractPosition) = _show_namedtuple(position_trait(p), p)
 _show_namedtuple(::CartesianPositionTrait, p::AbstractPosition) = map(DisplayLength, raw_properties(p))
