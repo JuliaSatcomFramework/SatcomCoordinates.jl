@@ -1,48 +1,105 @@
-# Generic NaN constructor for all SatcomCoordinate types
-(::Type{C})(::Val{NaN}) where C <: AbstractSatcomCoordinate = constructor_without_checks(enforce_numbertype(C), NaN, NaN, NaN)
-(::Type{C})(::Val{NaN}) where C <: LengthCartesian = constructor_without_checks(enforce_numbertype(C), NaN * u"m", NaN * u"m", NaN * u"m")
-(::Type{C})(::Val{NaN}) where C <: AngleAngleDistance = constructor_without_checks(enforce_numbertype(C), NaN * u"°", NaN * u"°", NaN * u"m")
-
-# Generic Tuple/SVector constructor for all LengthCartesian types
-(::Type{P})(pt::Point{3, ValidDistance}) where P <: LengthCartesian = P(pt...)
-
-# Generic 3-arg constructor for LengthCartesian types
-function (::Type{P})(xyz::Vararg{ValidDistance, 3}) where P <: LengthCartesian
-    PP = enforce_numbertype(P, default_numbertype(xyz...))
-    any(isnan, xyz) && return PP(Val{NaN}())
-    x, y, z = map(to_meters, xyz)
-    constructor_without_checks(PP, x, y, z)
+# # Addition, subtraction and sign inversion
+function Base.:(-)(c::AbstractPosition) 
+    trait = position_trait(c)
+    applicable(_negate_position, trait, c) || throw(ArgumentError("Cannot negate coordinates of type $(typeof(c))"))
+    _negate_position(trait, c)
 end
+_negate_position(::CartesianPositionTrait, c::AbstractPosition) = constructor_without_checks(typeof(c), -raw_svector(c))
 
-# Addition, subtraction and sign inversion
-Base.:(-)(c::C) where C <: CartesianPosition = constructor_without_checks(C, -c.x, -c.y, -c.z)
-function Base.:(+)(c1::C1, c2::C2) where {C1 <: CartesianPosition, C2 <: CartesianPosition} 
+function Base.:(+)(c1::C1, c2::C2) where {C1 <: AbstractPosition, C2 <: AbstractPosition} 
     C = basetype(C1)
     C == basetype(C2) || throw(ArgumentError("Cannot add coordinates of different types: $C1 and $C2"))
-    T = promote_type(numbertype(C1), numbertype(C2))
-    constructor_without_checks(C{T}, c1.x + c2.x, c1.y + c2.y, c1.z + c2.z)
+    trait = position_trait(C1)
+    applicable(_sum_positions, trait, c1, c2) || throw(ArgumentError("Cannot add coordinates of type $(basetype(c1))"))
+    return _sum_positions(trait, c1, c2)
 end
-Base.:(-)(c1::C1, c2::C2) where {C1 <: CartesianPosition, C2 <: CartesianPosition} = c1 + (-c2)
+function _sum_positions(::CartesianPositionTrait, c1::AbstractPosition, c2::AbstractPosition)
+    T = promote_type(numbertype(c1), numbertype(c2))
+    sv = raw_svector(c1) + raw_svector(c2) |> change_numbertype(T)
+    constructor_without_checks(basetype(c1){T}, sv)
+end
+Base.:(-)(c1::C1, c2::C2) where {C1 <: AbstractPosition, C2 <: AbstractPosition} = c1 + (-c2)
+
+#### Properties ####
+
+Base.propertynames(p::Union{AbstractSatcomCoordinate, AbstractFieldValue}) = properties_names(typeof(p))
+
+properties_names(::Type{<:AbstractPosition{<:Any, 3}}) = (:x, :y, :z)
+
+ConstructionBase.getproperties(p::AbstractSatcomCoordinate) = raw_properties(p)
+# For positions we resort to a Trait to dispatch on whether it's Cartesian or AngleAngleDistance
+ConstructionBase.getproperties(p::AbstractPosition) = _position_properties(position_trait(p), p)
+
+_position_properties(::CartesianPositionTrait, p::AbstractPosition) = map(to_meters, raw_properties(p))
+function _position_properties(::SphericalPositionTrait, p::AbstractPosition{T, 3}) where T
+    a1, a2, r = raw_svector(p)
+    nms = propertynames(p)
+    return NamedTuple{nms}((asdeg(a1), asdeg(a2), to_meters(r)))
+end
+
+function Base.getproperty(p::Union{AbstractSatcomCoordinate, AbstractFieldValue}, s::Symbol)
+    s in propertynames(p) || throw(ArgumentError("Property $s is not a valid property for objects of type $(typeof(p))"))
+    nt = getproperties(p)
+    return getproperty(nt, s)
+end
+
+# This function should take as input independent 
+function construct_inner_svector end
+
+function construct_inner_svector(::Type{<:AbstractPosition{T, N}}, args::Vararg{PS, N}) where {T <: AbstractFloat, N}
+    return SVector{N, T}(args...)
+end
+
+svector_size(::Type{<:StaticVector{N}}) where N = return N
+svector_size(::Type{<:AbstractSatcomCoordinate{<:Any, N}}) where N = return N
+
+function (P::Type{<:Union{AbstractSatcomCoordinate, AbstractFieldValue}})(::Val{NaN})
+    PT = enforce_numbertype(P)
+    T = numbertype(PT)
+    N = svector_size(PT)
+    sv = ntuple(_ -> T(NaN), N) |> SVector{N, T}
+    return constructor_without_checks(PT, sv)
+end
+
+function (P::Type{<:Union{AbstractSatcomCoordinate{<:Any, N}, AbstractFieldValue}})(args::Vararg{Number, N}) where N
+    PT = enforce_numbertype(P, default_numbertype(args...))
+    any(isnan, args) && return PT(Val{NaN}())
+    v = construct_inner_svector(PT, args...)
+    return constructor_without_checks(PT, v)
+end
+(P::Type{<:AbstractSatcomCoordinate{<:Any, N}})(coords::Point{N, PS}) where N = P(coords...)
 
 # zero
-Base.zero(::Type{C}) where C <: CartesianPosition = constructor_without_checks(enforce_numbertype(C), map(to_meters, zero(SVector{3, Float64}))...)
-
-# isnan
-Base.isnan(x::Union{AbstractSatcomCoordinate, AbstractFieldValue}) = any(isnan, normalized_properties(x))
-
-# isapprox
-function Base.isapprox(c1::C1, c2::C2; kwargs...) where {C1 <: CartesianPosition, C2 <: CartesianPosition}
-    basetype(C1) == basetype(C2) || throw(ArgumentError("Cannot compare coordinates of different types: $C1 and $C2"))
-    isapprox(normalized_svector(c1), normalized_svector(c2); kwargs...)
+function Base.zero(C::Type{<:AbstractPosition})
+    trait = position_trait(C)
+    applicable(_zero_position, trait, C) || throw(ArgumentError("Base.zero is not defined for coordinates of type $C"))
+    return _zero_position(trait, C)
+end
+function _zero_position(::CartesianPositionTrait, C::Type{<:AbstractPosition}) 
+    CT = enforce_numbertype(C)
+    T = numbertype(CT)
+    constructor_without_checks(CT, zero(SVector{3, T}))
 end
 
-# Rand for LengthCartesian
-function Random.rand(rng::AbstractRNG, ::Random.SamplerType{L}) where L <: LengthCartesian
+# isnan
+Base.isnan(x::Union{AbstractSatcomCoordinate, AbstractFieldValue}) = any(isnan, raw_properties(x))
+
+# isapprox
+function Base.isapprox(c1::AbstractPosition, c2::AbstractPosition; kwargs...)
+    C1 = typeof(c1)
+    C2 = typeof(c2)
+    basetype(C1) == basetype(C2) || throw(ArgumentError("Cannot compare coordinates of different types: $C1 and $C2"))
+    return isapprox_position(position_trait(c1), c1, c2; kwargs...)
+end
+isapprox_position(::CartesianPositionTrait, c1::AbstractPosition, c2::AbstractPosition; kwargs...) = isapprox(raw_svector(c1), raw_svector(c2); kwargs...)
+
+# Rand for AbstractPosition
+function Random.rand(rng::AbstractRNG, ::Random.SamplerType{L}) where L <: AbstractPosition{<:Any, 3}
     C = enforce_numbertype(L)
     T = numbertype(C)
-    p = rand(rng, PointingVersor{T}) |> normalized_svector
-    x, y, z = p * (1e3 * ((1 + rand(rng)) * u"m"))
-    constructor_without_checks(C, x, y, z)
+    p = rand(rng, PointingVersor{T}) |> raw_svector
+    sv = p * (1e3 * ((1 + rand(rng)))) |> change_numbertype(T)
+    constructor_without_checks(C, sv)
 end
 
 function Base.convert(::Type{C1}, c::C2) where {C1 <: AbstractSatcomCoordinate, C2 <: AbstractSatcomCoordinate}
@@ -59,8 +116,9 @@ function _convert_same(::Type{C}, c::C) where C <: AbstractSatcomCoordinate
 end
 function _convert_same(::Type{C1}, c::C2) where {C1 <: AbstractSatcomCoordinate, C2 <: AbstractSatcomCoordinate}
     has_numbertype(C1) || return c # If numbertype was specified, we don't need to convert
-    vals = @inline getfields(c)
-    return constructor_without_checks(C1, vals...)
+    T = numbertype(C1)
+    sv = change_numbertype(T, raw_svector(c))
+    return constructor_without_checks(C1, sv)
 end
 
 function _convert_different(::Type{C1}, c::C2) where {C1 <: AbstractSatcomCoordinate, C2 <: AbstractSatcomCoordinate}
@@ -71,7 +129,7 @@ end
 # numbertype
 # Generic versions not on types of this package
 numbertype(::Type{<:Quantity{T}}) where T  = T
-numbertype(::Type{T}) where T <: Real = T
+numbertype(::Type{T}) where T <: Union{Real, Complex} = T
 numbertype(::T) where T = numbertype(T)
 numbertype(T::DataType) = error("The numbertype function is not implemented for type $T")
 numbertype(::Type{<:AbstractArray{T}}) where T = T
@@ -85,15 +143,22 @@ has_numbertype(::Type{<:WithNumbertype{T}}) where {T} = return true
 has_numbertype(::Type{<:WithNumbertype}) = return false
 
 # enforce_numbertype
-enforce_numbertype(::Type{C}, ::Type{T}) where {C, T <: Real} =
+enforce_numbertype(::Type{C}, ::Type{T}) where {C, T <: Number} =
     has_numbertype(C) ? C : C{T}
-enforce_numbertype(::Type{C}, default::T = 1.0) where {C, T} =
+enforce_numbertype(::Type{C}, default::T) where {C, T} =
     enforce_numbertype(C, numbertype(T))
+enforce_numbertype(C::Type{<:WithNumbertype}) = enforce_numbertype(C, Float64)
+
+# to_valid_numbertype
+to_valid_numbertype(::Type{<:Integer}) = return Float64
+to_valid_numbertype(T::Type{<:AbstractFloat}) = return T
+to_valid_numbertype(::Type{C}) where {T, C <: Complex{T}} = return Complex{to_valid_numbertype(T)}
+to_valid_numbertype(T::Type) = throw(ArgumentError("The provided numbertype $T can not be mapped to a valid numbertype"))
 
 # change_numbertype
 # Fallbacks for types not defined in this package
 change_numbertype(::Type{T}, x::Real) where T <: AbstractFloat = convert(T, x)
-change_numbertype(::Type{T}, x::SVector{3}) where T <: Real = convert(SVector{3, T}, x)
+change_numbertype(::Type{T}, x::SVector{N}) where {T <: Real, N} = convert(SVector{N, T}, x)
 change_numbertype(::Type{T}, r::RotMatrix3) where {T <: AbstractFloat} = convert(RotMatrix3{T}, r)
 change_numbertype(::Type, i::Identity) = i
 change_numbertype(::Type{T}, x::Deg) where T <: AbstractFloat = convert(Deg{T}, x)
@@ -105,20 +170,6 @@ change_numbertype(::Type{T}) where T <: AbstractFloat = return Base.Fix1(change_
 # Generic fallback for own types calling convert
 change_numbertype(::Type{T}, c::C) where {T <: AbstractFloat, C <: WithNumbertype} = return convert(basetype(C){T}, c)
 
-# Base.getproperty fallback with generated function (to have faster getproperty)
-@generated function Base.getproperty(c::Union{AbstractSatcomCoordinate, AbstractFieldValue}, s::Symbol)
-    aliases = property_aliases(c)
-    block = Expr(:block)
-    args = block.args
-    push!(args, :(nt = raw_properties(c)))
-    push!(args, :(s in $(fieldnames(c)) && return getfield(c, s)))
-    for (k, v) in pairs(aliases)
-        push!(args, :(s in $v && return getproperty(nt, $(QuoteNode(k)))))
-    end
-    push!(args, :(throw(ArgumentError("Objects of type `$(typeof(c))` do not have a property called `$s`"))))
-    return block
-end
-
 # Overload show method
 # Basic overloads
 Base.show(io::IO, mime::MIME"text/plain", x::WithNumbertype) = show(io, mime, DefaultShowOverload(x))
@@ -129,12 +180,16 @@ PlutoShowHelpers.shortname(x::AbstractSatcomCoordinate) = x |> typeof |> basetyp
 
 PlutoShowHelpers.repl_summary(p::AbstractSatcomCoordinate) = shortname(p) * " Coordinate"
 
-PlutoShowHelpers.show_namedtuple(c::LengthCartesian) = map(DisplayLength, normalized_properties(c))
+PlutoShowHelpers.show_namedtuple(c::Union{AbstractSatcomCoordinate, AbstractFieldValue}) = getproperties(c)
 
-function PlutoShowHelpers.show_namedtuple(c::AngleAngleDistance)
-    nt = getfields(c)
-    map(nt) do val
-        val isa Deg && return DualDisplayAngle(normalize_value(val))
-        val isa Met && return DisplayLength(normalize_value(val))
-    end
+PlutoShowHelpers.show_namedtuple(p::AbstractPosition) = _show_namedtuple(position_trait(p), p)
+_show_namedtuple(::CartesianPositionTrait, p::AbstractPosition) = map(DisplayLength, raw_properties(p))
+function _show_namedtuple(::SphericalPositionTrait, p::AbstractPosition) 
+    nms = propertynames(p)
+    a1, a2, r = raw_svector(p)
+    return NamedTuple{nms}((
+        DualDisplayAngle(a1),
+        DualDisplayAngle(a2),
+        DisplayLength(r)
+    ))
 end

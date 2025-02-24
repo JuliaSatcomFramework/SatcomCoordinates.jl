@@ -12,7 +12,7 @@ end
     s = repr(rand(AzElDistance))
     @test contains(s, "AzElDistance")
 
-    s = repr(rand(GeneralizedSpherical{Float64, AzOverEl{Float64}}))
+    s = repr(rand(GeneralizedSpherical{AzOverEl, Float64}))
     @test contains(s, "AzOverEl")
 
     s = repr(MIME"text/plain"(), rand(ECEF))
@@ -29,6 +29,12 @@ end
     s = repr(MIME"text/plain"(), rand(ThetaPhi))
     @test contains(s, "ThetaPhi Pointing")
     @test contains(s, "θ = ")
+
+    s = repr(MIME"text/plain"(), rand(PointingVersor))
+    @test contains(s, "PointingVersor")
+    @test contains(s, "x = ")
+    @test contains(s, "y = ")
+    @test contains(s, "z = ")
 
     s = repr(MIME"text/plain"(), rand(UVOffset))
     @test contains(s, "UV Pointing Offset")

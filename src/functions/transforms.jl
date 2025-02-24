@@ -4,7 +4,10 @@
 CRSRotation(R::StaticMatrix{3, 3}) = CRSRotation(nearest_rotation(R))
 
 # Basic transform
-BasicCRSTransform(rotation::StaticMatrix{3, 3}, origin::CartesianPosition) = BasicCRSTransform(CRSRotation(rotation), origin)
+function BasicCRSTransform(rotation::StaticMatrix{3, 3}, origin::AbstractPosition) 
+    position_trait(origin) isa CartesianPositionTrait || throw(ArgumentError("`origin` must be a position in Cartesian coordinates"))
+    BasicCRSTransform(CRSRotation(rotation), origin)
+end
 
 
 ##### Our Interface #####
@@ -46,7 +49,7 @@ TransformsBase.parameters(t::AbstractCRSTransform) = getfields(t)
 
 # Fallback apply, actual methods should be defined taking StaticVector as reference input if not for special cases
 function TransformsBase.apply(t::AbstractCRSTransform, coords::LocalCartesian) 
-    new_coords, _ = apply(t, normalized_svector(coords))
+    new_coords, _ = apply(t, raw_svector(coords))
     return LocalCartesian(new_coords), nothing
 end
 
@@ -64,12 +67,12 @@ TransformsBase.apply(t::AbstractCRSRotation, coords::StaticVector) =
 # Affine transform
 function TransformsBase.apply(t::AbstractAffineCRSTransform, coords::StaticVector)
     rotated, _ = apply(rotation(t), coords)
-    new_coords = rotated + normalized_svector(origin(t))
+    new_coords = rotated + raw_svector(origin(t))
     return new_coords, nothing
 end
 
 function TransformsBase.apply(t::InverseTransform{<:Any, <:AbstractAffineCRSTransform}, coords::StaticVector)
-    shifted = coords - normalized_svector(origin(t))
+    shifted = coords - raw_svector(origin(t))
     rotated, _ = apply(rotation(t), shifted)
     return rotated, nothing
 end

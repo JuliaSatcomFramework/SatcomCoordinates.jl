@@ -1,8 +1,8 @@
 """
-    struct LocalCartesian{T} <: LengthCartesian{T, 3}
+    struct LocalCartesian{T} <: AbstractLocalPosition{T, 3}
 Represents a position in a generic local CRS. 
 
-# Fields
+# Properties
 - `x::Met{T}`: X-coordinate in meters
 - `y::Met{T}`: Y-coordinate in meters
 - `z::Met{T}`: Z-coordinate in meters
@@ -20,27 +20,28 @@ All subtypes of `P <: AbstractSatcomCoordinate` can also be constructed using a 
 
 See also: [`GeneralizedSpherical`](@ref).
 """
-struct LocalCartesian{T} <: LengthCartesian{T, 3}
-    x::Met{T}
-    y::Met{T}
-    z::Met{T}
+struct LocalCartesian{T} <: AbstractLocalPosition{T, 3}
+    svector::SVector{3, T}
 
-    BasicTypes.constructor_without_checks(::Type{LocalCartesian{T}}, x, y, z) where T = new{T}(x, y, z)
+    BasicTypes.constructor_without_checks(::Type{LocalCartesian{T}}, svector::SVector{3, T}) where T = new{T}(svector)
 end
 
 
 """
-    struct GeneralizedSpherical{T, P <: AbstractPointing{T}} <: AngleAngleDistance{T}
+    struct GeneralizedSpherical{T, P <: AngularPointing} <: AbstractPosition{T, 3}
 Represents a position in a local CRS, defined by an angular pointing direction and a distance.
 
-# Fields
-- `pointing::P`: The pointing direction of the object
+!!! note
+    The parameter `P` should not be a concrete type of angular pointing but a basic subtype without the `numbertype` parameter, e.g. `AzEl` instead of `AzEl{Float64}`.
+
+# Properties
+- `angle1::Deg{T}`: First angle of the referenced angular pointing CRS `P`. The name of the property is actually not `angle1` but will be the first property name of objects of type `P`
+- `angle2::Deg{T}`: Second angle of the referenced angular pointing CRS `P`. The name of the property is actually not `angle2` but will be the second property name of objects of type `P`
 - `r::Met{T}`: The distance of the object from the origin of the CRS
 
-The `r` field can also be accessed via `getproperty` using the `distance` alias:
-
 # Basic Constructors
-    PointingAndDistance(pointing::P, r::ValidDistance)
+    GeneralizedSpherical(pointing::AngularPointing, r::ValidDistance)
+    GeneralizedSpherical{P[, T]}(a1::ValidAngle, a2::ValidAngle, r::ValidDistance)
 
 `ValidDistance` is either a Real Number, or a subtype of `Unitful.Length`.
 
@@ -48,9 +49,8 @@ If of the provided argument is `NaN`, the returned `PointingAndDistance` object 
 
 See also: [`Spherical`](@ref), [`AzElDistance`](@ref), [`LocalCartesian`](@ref).
 """
-struct GeneralizedSpherical{T, P <: AbstractPointing{T}} <: AngleAngleDistance{T}
-    pointing::P
-    r::Met{T}
+struct GeneralizedSpherical{P <: AngularPointing, T} <: AbstractLocalPosition{T, 3}
+    svector::SVector{3, T}
 
-    BasicTypes.constructor_without_checks(::Type{GeneralizedSpherical{T, P}}, pointing, r) where {T, P} = new{T, P}(pointing, r)
+    BasicTypes.constructor_without_checks(::Type{GeneralizedSpherical{P, T}}, svector::SVector{3, T}) where {T, P} = new{P, T}(svector)
 end
