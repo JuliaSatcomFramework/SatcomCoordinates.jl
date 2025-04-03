@@ -1,5 +1,5 @@
 @testsnippet setup_geocentric begin
-    using SatcomCoordinates: numbertype, normalized_svector, normalized_properties, @u_str
+    using SatcomCoordinates: numbertype, raw_svector, raw_properties, @u_str
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
@@ -51,11 +51,11 @@ end
     @test rand(LLA) ≉ rand(LLA)
 
     lla = rand(LLA)
-    @test lla.lat == lla.latitude
-    @test lla.lon == lla.longitude
-    @test lla.alt == lla.altitude == lla.h == lla.height
+    @test lla.lat isa Deg
+    @test lla.lon isa Deg
+    @test lla.alt isa Met
 
-    @test_throws "do not have a property" rand(LLA).q
+    @test_throws "not a valid property" lla.q
 
     @testset "Allocations" begin
         @test @nallocs(LLA(0,0,700km)) == 0

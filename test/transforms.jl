@@ -1,6 +1,6 @@
 @testsnippet setup_transforms begin
     using SatcomCoordinates
-    using SatcomCoordinates: numbertype, normalized_svector, normalized_properties, @u_str, has_pointingtype, pointing_type, rotation, origin, AbstractCRSRotation
+    using SatcomCoordinates: numbertype, raw_svector, raw_properties, @u_str, has_pointingtype, pointing_type, rotation, origin, AbstractCRSRotation
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes

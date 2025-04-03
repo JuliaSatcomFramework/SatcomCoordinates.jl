@@ -1,35 +1,31 @@
 ##### Constructors #####
+position_trait(::Type{<:LLA}) = SphericalPositionTrait()
 
 ## ECI/ECEF
 # Handled by generic LengthCartesian constructor in fallbacks.jl
 
 ## LLA
-function LLA{T}(lat::ValidAngle, lon::ValidAngle, alt::ValidDistance) where T
-    any(isnan, (lat, lon, alt)) && return LLA{T}(Val{NaN}())
-    lat = to_degrees(lat)
-    lon = to_degrees(lon, RoundNearest)
+function construct_inner_svector(::Type{LLA{T}}, lat::ValidAngle, lon::ValidAngle, alt::ValidDistance) where T <: AbstractFloat
+    lat = to_degrees(lat) |> stripdeg
+    lon = to_degrees(lon, RoundNearest) |> stripdeg
     @assert -90° ≤ lat ≤ 90° "The input latitude must satisfy `lat ∈ [-90°, 90°]`"
-    alt = to_meters(alt)
-    constructor_without_checks(LLA{T}, lat, lon, alt)
+    alt = to_meters(alt) |> ustrip
+    return SVector{3, T}(lat, lon, alt)
 end
-function LLA(lat::ValidAngle, lon::ValidAngle, alt::ValidDistance)
-    T = default_numbertype(lat, lon, alt)
-    LLA{T}(lat, lon, alt)
-end
-(::Type{L})(lat::ValidAngle, lon::ValidAngle) where L <: LLA = L(lat, lon, 0)
+# Constructor without altitude
+(L::Type{<:LLA})(lat::ValidAngle, lon::ValidAngle) = L(lat, lon, 0)
 
 ##### Base.getproperty #####
 # LLA
-property_aliases(::Type{<:LLA}) = (
-    lat = LATITUDE_ALIASES,
-    lon = LONGITUDE_ALIASES,
-    alt = ALTITUDE_ALIASES
-)
+properties_names(::Type{<:LLA}) = (:lat, :lon, :alt)
 
 ##### Base.isapprox #####
-function Base.isapprox(x1::LLA, x2::LLA; angle_atol = deg2rad(1e-5), alt_atol = 1e-3, atol = nothing, kwargs...)
-    alt_atol = to_meters(alt_atol)
+function Base.isapprox(x1::LLA, x2::LLA; angle_atol = 1e-5°, alt_atol = 1e-3, atol = nothing, kwargs...)
+    alt_atol = to_meters(alt_atol) |> ustrip
+    angle_atol = to_degrees(angle_atol) |> stripdeg
 	@assert atol isa Nothing "You can't provide an absolute tolerance directly for comparing `LLA` objects, please use the independent kwargs `angle_atol` [radians] for the longitude and latitude atol and `alt_atol` [m] for the altitude one"
+    x1 = raw_properties(x1)
+    x2 = raw_properties(x2)
 	# Altitude, we default to an absolute tolerance of 1mm for isapprox
 	isapprox(x1.alt,x2.alt; atol = alt_atol, kwargs...) || return false
 	# Angles, we default to a default tolerance of 1e-5 degrees for isapprox
@@ -43,16 +39,18 @@ end
 
 ##### Random.rand #####
 function Random.rand(rng::AbstractRNG, ::Random.SamplerType{L}) where L <: LLA
-    lat = rand(rng) * 180° - 90°
-    lon = rand(rng) * 360° - 180°
-    alt = 0.0 * u"m"
-    constructor_without_checks(enforce_numbertype(L), lat, lon, alt)
+    LT = enforce_numbertype(L)
+    T = numbertype(LT)
+    lat = rand(rng) * π - π/2
+    lon = rand(rng) * 2π - π
+    alt = 0.0
+    constructor_without_checks(LT, SVector{3, T}(lat, lon, alt))
 end
 
 function Random.rand(rng::AbstractRNG, ::Random.SamplerType{E}) where E <: Union{ECI, ECEF}
     C = enforce_numbertype(E)
     T = numbertype(C)
-    p = rand(rng, PointingVersor{T}) |> normalized_svector
-    x, y, z = p * (7e6 * ((1 + rand(rng)) * u"m"))
-    constructor_without_checks(C, x, y, z)
+    p = rand(rng, PointingVersor{T}) |> raw_svector
+    sv = p * (7e6 * ((1 + rand(rng)))) |> change_numbertype(T)
+    constructor_without_checks(C, sv)
 end

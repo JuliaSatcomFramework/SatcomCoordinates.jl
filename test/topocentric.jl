@@ -1,5 +1,5 @@
 @testsnippet setup_topocentric begin
-    using SatcomCoordinates: numbertype, normalized_svector, normalized_properties, @u_str
+    using SatcomCoordinates: numbertype, raw_svector, raw_properties, @u_str
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
@@ -13,7 +13,7 @@ end
 
         @test P(1,2,3) == P((1,2,3)) == P(SA[1,2,3])
 
-        @test_throws "do not have a property" rand(P).q
+        @test_throws "is not a valid property" rand(P).q
 
         @test rand(P) isa P{Float64}
         @test rand(P{Float32}) isa P{Float32}
@@ -28,8 +28,8 @@ end
         @test p1 ≈ convert(P{Float32}, p1)
 
         c1, c2 = rand(P, 2)
-        @test normalized_svector(c1 + c2) == normalized_svector(c1) + normalized_svector(c2)
-        @test normalized_svector(c1 - c2) == normalized_svector(c1) - normalized_svector(c2)
+        @test raw_svector(c1 + c2) == raw_svector(c1) + raw_svector(c2)
+        @test raw_svector(c1 - c2) == raw_svector(c1) - raw_svector(c2)
 
         c3 = rand(P{Float32})
         @test c1 + c3 isa P{Float64}
@@ -38,14 +38,14 @@ end
     @test_throws "Cannot add coordinates" ENU(1,2,3) + NED(1,2,3)
 
     enu = rand(ENU)
-    @test enu.x === enu.east
-    @test enu.y === enu.north
-    @test enu.z === enu.up
+    @test enu.x isa Met
+    @test enu.y isa Met
+    @test enu.z isa Met
 
     ned = rand(NED)
-    @test ned.x === ned.north
-    @test ned.y === ned.east
-    @test ned.z === ned.down
+    @test ned.x isa Met
+    @test ned.y isa Met
+    @test ned.z isa Met
 
     @testset "Allocations" begin
         @test @nallocs(ENU(1,2,3)) == 0
@@ -64,15 +64,15 @@ end
 
     @test AER(190°, 90, 1000u"m") == AER(-170°, 90°, 1000u"m")
 
-    @test_throws "do not have a property" rand(AER).q
+    @test_throws "is not a valid property" rand(AER).q
 
     @test rand(AER) ≉ rand(AER)
     aer = rand(AER)
     @test aer ≈ aer
 
-    @test aer.azimuth == aer.az
-    @test aer.elevation == aer.el
-    @test aer.range == aer.r
+    @test aer.az isa Deg{Float64}
+    @test aer.el isa Deg{Float64}
+    @test aer.r isa Met{Float64}
 
     ae = rand(AER)
     @test convert(ENU, -ae) ≈ -convert(ENU, ae)
