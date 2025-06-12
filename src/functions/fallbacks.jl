@@ -53,6 +53,7 @@ end
 svector_size(::Type{<:StaticVector{N}}) where N = return N
 svector_size(::Type{<:AbstractSatcomCoordinate{<:Any, N}}) where N = return N
 
+## We use Val{NaN} to signal the constructor that it should fill the type with NaN values
 function (P::Type{<:Union{AbstractSatcomCoordinate, AbstractFieldValue}})(::Val{NaN})
     PT = enforce_numbertype(P)
     T = numbertype(PT)
