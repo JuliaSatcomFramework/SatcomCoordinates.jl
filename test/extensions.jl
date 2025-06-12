@@ -1,6 +1,6 @@
 @testsnippet setup_extensions begin
     using SatcomCoordinates
-    using SatcomCoordinates: normalized_properties, normalized_svector
+    using SatcomCoordinates: raw_properties, raw_svector
     using Test
     using TestAllocations
 end
@@ -40,10 +40,10 @@ end
     @test ecef_to_geodetic(rand(ECEF{Float32}), ellipsoid=e) isa LLA{Float32}
 
     # Some test for specific values
-    ecef = geodetic_to_ecef(LLA(0,0,0)) |> normalized_svector
+    ecef = geodetic_to_ecef(LLA(0,0,0)) |> raw_svector
     @test ecef ≈ [WGS84_ELLIPSOID.a, 0, 0]
 
-    ecef = geodetic_to_ecef(LLA(90,0,0)) |> normalized_svector
+    ecef = geodetic_to_ecef(LLA(90,0,0)) |> raw_svector
     @test ecef ≈ [0, 0, WGS84_ELLIPSOID.b]
 
     # Test some random fwd and rtn equivalence

@@ -19,7 +19,7 @@ struct CRSRotation{T, R <: Rotation{3, T}} <: AbstractCRSRotation{T}
 end
 
 """
-    BasicCRSTransform{T, R <: Union{CRSRotation{T}, Identity}, O <: CartesianPosition{T}} <: AbstractCRSTransform{T}
+    BasicCRSTransform{T, R <: Union{CRSRotation{T}, Identity}, O <: AbstractPosition{T, 3}} <: AbstractCRSTransform{T}
 
 A type representing a basic transformation (rotation + translation).
 
@@ -27,7 +27,7 @@ A type representing a basic transformation (rotation + translation).
 - `rotation::R`: The rotation of the transformation.
 - `origin::O`: The origin of the transformation.
 """
-struct BasicCRSTransform{T, R <: Union{CRSRotation{T}, Identity}, O <: CartesianPosition{T}} <: AbstractAffineCRSTransform{T}
+struct BasicCRSTransform{T, R <: Union{CRSRotation{T}, Identity}, O <: AbstractPosition{T, 3}} <: AbstractAffineCRSTransform{T}
     rotation::R
     origin::O
 end

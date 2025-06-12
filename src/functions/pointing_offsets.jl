@@ -1,41 +1,40 @@
 ##### Constructors #####
-(::Type{UO})(::Val{NaN}) where UO <: UVOffset = constructor_without_checks(enforce_numbertype(UO), NaN, NaN)
-function UVOffset{T}(u, v) where {T <: AbstractFloat}
-    any(isnan, (u, v)) && return UVOffset{T}(Val{NaN}())
-    constructor_without_checks(UVOffset{T}, u, v)
-end
-function UVOffset(uv::Vararg{Real, 2})
-    T = default_numbertype(uv...)
-    return UVOffset{T}(uv...)
-end
-# ThetaPhiOffset
-(::Type{TPO})(::Val{NaN}) where TPO <: ThetaPhiOffset = constructor_without_checks(enforce_numbertype(TPO), NaN * u"°", NaN * u"°")
-function (::Type{TPO})(args...) where TPO <: ThetaPhiOffset
-    tp = ThetaPhi(args...)
-    TP = enforce_numbertype(TPO, tp)
-    return constructor_without_checks(TP, tp)
+function construct_inner_svector(PO::Type{PointingOffset{P, T}}, x, y) where {P <: Union{UV, AngularPointing}, T}
+    _validate_type(PO)
+    sv = SVector{2, T}(x, y)
+    if P <: AngularPointing
+        sv = map(stripdeg ∘ to_degrees, sv)
+    end
+    return sv
 end
 
-##### Base.getproperty #####
-property_aliases(::Type{<:UVOffset}) = property_aliases(UV)
-property_aliases(::Type{<:ThetaPhiOffset}) = property_aliases(ThetaPhi)
+_validate_type(::Type{<:PointingOffset{P}}) where P = P === basetype(P) || throw(ArgumentError("When defining `PointingOffset{P, T}` types, `P` can only be a subtype of `UV` or `AngularPointing` without its numbertype parameter expressed. You should define `P` as `$(basetype(P))` instead of the provided `$(P)`"))
 
-##### raw_properties #####
-raw_properties(po::AbstractPointingOffset) = raw_properties(getfield(po, :inner))
+_as_pointing(po::PointingOffset{P, T}) where {P, T} = constructor_without_checks(P{T}, raw_svector(po))
+_from_pointing(uv::UV) = constructor_without_checks(PointingOffset{UV, numbertype(uv)}, raw_svector(uv))
+_from_pointing(p::AngularPointing) = constructor_without_checks(PointingOffset{basetype(p), numbertype(p)}, raw_svector(p))
+
+##### properties_names #####
+properties_names(::Type{<:PointingOffset{P}}) where P = properties_names(P)
+
+##### getproperties ####
+ConstructionBase.getproperties(p::PointingOffset{<:AngularPointing}) = map(asdeg, raw_properties(p))
 
 ##### Basic Operations #####
 function Base.:(-)(uv1::UV, uv2::UV) 
     T = promote_type(numbertype(uv1), numbertype(uv2))
-    return constructor_without_checks(UVOffset{T}, uv1.u - uv2.u, uv1.v - uv2.v)
+    sv = SVector{2, T}(uv1.u - uv2.u, uv1.v - uv2.v)
+    return constructor_without_checks(PointingOffset{UV, T}, sv)
 end
 Base.:(+)(uv::UV, δuv::UVOffset) = UV(uv.u + δuv.u, uv.v + δuv.v)
 
 ##### Random.rand #####
-function Random.rand(rng::AbstractRNG, ::SamplerType{P}) where P <: Union{UVOffset, ThetaPhiOffset}
-    PT = enforce_numbertype(P)  
-    T = numbertype(PT)
-    ST = P <: UVOffset ? UV{T} : ThetaPhi{T}
-    return constructor_without_checks(PT, rand(rng, ST))
+function Random.rand(rng::AbstractRNG, ::SamplerType{PO}) where {P, PO <: PointingOffset{P}}
+    _validate_type(PO)
+    POT = enforce_numbertype(PO)
+    T = numbertype(POT)
+    sv = rand(rng, P{T}) |> raw_svector
+    return constructor_without_checks(POT, sv)
 end
 
 #### Utilities ####
@@ -62,8 +61,8 @@ offset.theta ≈ Δθ
 See also: [`add_angular_offset`](@ref), [`get_angular_offset`](@ref)
 """
 function get_angular_distance(p₁::AbstractPointing, p₂::AbstractPointing)
-	p₁_xyz = convert(PointingVersor, p₁) |> normalized_svector
-	p₂_xyz = convert(PointingVersor, p₂) |> normalized_svector
+	p₁_xyz = convert(PointingVersor, p₁) |> raw_svector
+	p₂_xyz = convert(PointingVersor, p₂) |> raw_svector
 	return acos(min(p₁_xyz'p₂_xyz, 1)) |> asdeg
 end
 
@@ -144,16 +143,16 @@ See also: [`add_angular_offset`](@ref)
 """
 function get_angular_offset(p₁::AbstractPointing, p₂::AbstractPointing)
 	R = angle_offset_rotation(convert(ThetaPhi, p₁)) # We take p₁ as reference
-	p₂_xyz = convert(PointingVersor, p₂) |> normalized_svector # We create the 3D vector corresponding to p₂
+	p₂_xyz = convert(PointingVersor, p₂) |> raw_svector # We create the 3D vector corresponding to p₂
 	# Check the comments in `angle_offset_rotation` and the link therein to understand this line
-	x, y, z = R' * p₂_xyz
-    out = constructor_without_checks(enforce_numbertype(PointingVersor, x), x, y, z)
+    T = promote_type(numbertype(p₁), numbertype(p₂))
+	sv = R' * p₂_xyz
+    out = constructor_without_checks(PointingVersor{T}, sv)
 	# We transform from local cartesian coordinates into ThetaPhi, and then we
 	# convert into ThetaPhiOffset to emphasize that this is not a pointing
 	# direction.
 	tp = convert(ThetaPhi, out)
-    P = enforce_numbertype(ThetaPhiOffset, tp)
-    return constructor_without_checks(P, tp)
+    return _from_pointing(tp)
 end
 
 """
@@ -198,21 +197,21 @@ See also: [`get_angular_offset`](@ref), [`get_angular_distance`](@ref), [`ThetaP
 function add_angular_offset(::Type{O}, p₀::P, offset_angles::ThetaPhi) where {O <: AbstractPointing, P <: AbstractPointing}
 	θφ_in = convert(ThetaPhi, p₀)
 	R = angle_offset_rotation(θφ_in)
-	perturbation = convert(PointingVersor, offset_angles) |> normalized_svector
+	perturbation = convert(PointingVersor, offset_angles) |> raw_svector
 	# Check the comments in `angle_offset_rotation` and the link therein to understand this line
-	x,y,z = R * perturbation
-    out_direction = constructor_without_checks(enforce_numbertype(PointingVersor, x), x, y, z)
+    T = promote_type(numbertype(p₀), numbertype(offset_angles))
+	sv = R * perturbation
+    out_direction = constructor_without_checks(PointingVersor{T}, sv)
     O <: UV && @assert out_direction.z >= 0 "The resulting point has a θ > 90°, so it is located behind the viewer.
 Call the function with an explicit non-UV output type to allow target points behind the viewer."
     convert(O, out_direction)
 end
 add_angular_offset(O::Type{<:AbstractPointing}, p₀::AbstractPointing, θ::ValidAngle, φ::ValidAngle = 0.0) = add_angular_offset(O, p₀, ThetaPhi(θ, φ))
-add_angular_offset(O::Type{<:AbstractPointing}, p₀::AbstractPointing, tpo::ThetaPhiOffset) = add_angular_offset(O, p₀, tpo.inner)
+add_angular_offset(O::Type{<:AbstractPointing}, p₀::AbstractPointing, tpo::ThetaPhiOffset) = add_angular_offset(O, p₀, _as_pointing(tpo))
 add_angular_offset(p₀::AbstractPointing, args...) = add_angular_offset(typeof(p₀), p₀, args...)
 
 ##### custom show overloads #####
-PlutoShowHelpers.repl_summary(p::AbstractPointingOffset) = shortname(p.inner) * " Pointing Offset"
+PlutoShowHelpers.repl_summary(p::PointingOffset) = shortname(_as_pointing(p)) * " Pointing Offset"
+PlutoShowHelpers.shortname(p::PointingOffset{P, T}) where {P, T} = shortname(P{T})*"Offset"
 
-PlutoShowHelpers.show_namedtuple(p::UVOffset) = show_namedtuple(p.inner)
-
-PlutoShowHelpers.show_namedtuple(p::ThetaPhiOffset) = map(DualDisplayAngle, normalized_properties(p.inner))
+PlutoShowHelpers.show_namedtuple(p::PointingOffset) = show_namedtuple(_as_pointing(p))

@@ -6,7 +6,7 @@ are the `x`, `y`, and `z` components of the unit vector and can also be seen as
 the `u`, `v`, and `w` direction cosines of the direction identified by the
 `PointingVersor` instance.
 
-# Fields
+# Properties
 - `x::T`: The component along the X axis of the corresponding reference frame. Can also be accessed with the `u` property name.
 - `y::T`: The component along the Y axis of the corresponding reference frame. Can also be accessed with the `v` property name.
 - `z::T`: The component along the Z axis of the corresponding reference frame. Can also be accessed with the `w` property name.
@@ -14,11 +14,9 @@ the `u`, `v`, and `w` direction cosines of the direction identified by the
 See also: [`UV`](@ref), [`ThetaPhi`](@ref), [`AzOverEl`](@ref), [`ElOverAz`](@ref)
 """
 struct PointingVersor{T} <: AbstractPointing{T}
-    x::T
-    y::T
-    z::T
+    svector::SVector{3, T}
 
-    BasicTypes.constructor_without_checks(::Type{PointingVersor{T}}, x, y, z) where T = new{T}(x, y, z)
+    BasicTypes.constructor_without_checks(::Type{PointingVersor{T}}, svector::SVector{3, T}) where T = new{T}(svector)
 end
 
 # UV
@@ -37,7 +35,7 @@ representation](https://en.wikipedia.org/wiki/Spherical_coordinate_system) by th
 !!! note
     The inputs values must also satisfy `u^2 + v^2 <= 1 + SatcomCoordinates.UV_CONSTRUCTOR_TOLERANCE[]` or an error will be thrown. The `SatcomCoordinates.UV_CONSTRUCTOR_TOLERANCE` is a `Ref{Float64}` which defaults to 1e-5 (In case `u^2 + v^2 > 1` the inputs are normalized to ensure `u^2 + v^2 = 1`).
 
-# Fields
+# Properties
 - `u::T`
 - `v::T`
 
@@ -55,9 +53,9 @@ which will internally call the 2-arguments constructor.
 See also: [`PointingVersor`](@ref), [`ThetaPhi`](@ref)
 """
 struct UV{T} <: AbstractPointing{T}
-    u::T
-    v::T
-    BasicTypes.constructor_without_checks(::Type{UV{T}}, u, v) where {T} = new{T}(u, v)
+    svector::SVector{2, T}
+
+    BasicTypes.constructor_without_checks(::Type{UV{T}}, svector::SVector{2, T}) where {T} = new{T}(svector)
 end
 
 # ThetaPhi
@@ -73,7 +71,7 @@ Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`,
 - `v = sin(θ) * sin(φ)`
 - `w = cos(θ)`
 
-# Fields
+# Properties
 - `θ::Deg{T}`: The so-called `polar angle`, representing the angle between the `Z` axis and the `XY` plane of the reference frame. It is always normalized to fall within the [-90°, 90°] range.
 - `φ::Deg{T}`: The so-called `azimuth angle`, representing the angle between the `y` and `x` component of the pointing direction. It is always normalized to fall within the [-180°, 180°] range.
 
@@ -97,9 +95,9 @@ constructor.
 See also: [`PointingVersor`](@ref), [`UV`](@ref)
 """
 struct ThetaPhi{T} <: AngularPointing{T}
-	θ::Deg{T}
-	φ::Deg{T}
-    BasicTypes.constructor_without_checks(::Type{ThetaPhi{T}}, θ::Deg, φ::Deg) where T = new{T}(θ, φ)
+    svector::SVector{2, T}
+
+    BasicTypes.constructor_without_checks(::Type{ThetaPhi{T}}, svector::SVector{2, T}) where T = new{T}(svector)
 end
 
 ### AzOverEl ###
@@ -118,7 +116,7 @@ Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`,
 !!! note
     The equations above are used to represent the "Azimuth over Elevation" coordinates in GRASP. Some textbooks, however, use the opposite convention, meaning that the same equations (with a possible flip in the az/u sign) are used to describe an "Elevation over Azimuth" coordinate system. This is for example the case in the book _"Theory and Practice of Modern Antenna Range Measurements"_ by Clive Parini et al.
 
-# Fields
+# Properties
 - `az::Deg{T}: The azimuth angle in degrees, constrained to be in the [-180°, 180°] range.`
 - `el::Deg{T}: The elevation angle in degrees, constrained to be in the [-90°, 90°] range.`
 
@@ -126,10 +124,9 @@ Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`,
     The fields of `AzOverEl` objects can also be accessed via `getproperty` using the `azimuth` and `elevation` aliases.
 """
 struct AzOverEl{T} <: AngularPointing{T}
-    az::Deg{T}
-    el::Deg{T}
+    svector::SVector{2, T}
 
-    BasicTypes.constructor_without_checks(::Type{AzOverEl{T}}, az::Deg, el::Deg) where {T} = new{T}(az, el)
+    BasicTypes.constructor_without_checks(::Type{AzOverEl{T}}, svector::SVector{2, T}) where T = new{T}(svector)
 end
 
 ### ElOverAz ###
@@ -158,10 +155,9 @@ Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`,
 See also: [`AzOverEl`](@ref), [`ThetaPhi`](@ref), [`PointingVersor`](@ref), [`UV`](@ref)
 """
 struct ElOverAz{T} <: AngularPointing{T}
-    az::Deg{T}
-    el::Deg{T}
+    svector::SVector{2, T}
 
-    BasicTypes.constructor_without_checks(::Type{ElOverAz{T}}, az::Deg, el::Deg) where T = new{T}(az, el)
+    BasicTypes.constructor_without_checks(::Type{ElOverAz{T}}, svector::SVector{2, T}) where T = new{T}(svector)
 end
 
 """
@@ -186,8 +182,7 @@ Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`,
 See also: [`ThetaPhi`](@ref), [`PointingVersor`](@ref), [`UV`](@ref), [`ElOverAz`](@ref), [`AzOverEl`](@ref)
 """
 struct AzEl{T} <: AngularPointing{T}
-    az::Deg{T}
-    el::Deg{T}
+    svector::SVector{2, T}
 
-    BasicTypes.constructor_without_checks(::Type{AzEl{T}}, az::Deg, el::Deg) where T = new{T}(az, el)
+    BasicTypes.constructor_without_checks(::Type{AzEl{T}}, svector::SVector{2, T}) where T = new{T}(svector)
 end

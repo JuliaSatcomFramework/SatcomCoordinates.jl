@@ -1,8 +1,8 @@
 """
-    struct ECEF{T} <: LengthCartesian{T, 3}
+    struct ECEF{T} <: AbstractGeocentricPosition{T}
 Represents a position in the Earth-Centered, Earth-Fixed (ECEF) coordinate system (or generically for other planets, Ellipsoid-Centered, Ellipsoid-Fixed).
 
-# Fields
+# Properties
 - `x::Met{T}`: X-coordinate in meters
 - `y::Met{T}`: Y-coordinate in meters
 - `z::Met{T}`: Z-coordinate in meters
@@ -20,19 +20,17 @@ All subtypes of `P <: AbstractSatcomCoordinate` can also be constructed using a 
 
 See also: [`ECI`](@ref), [`LLA`](@ref).
 """
-struct ECEF{T} <: LengthCartesian{T, 3}
-    x::Met{T}
-    y::Met{T}
-    z::Met{T}
+struct ECEF{T} <: AbstractGeocentricPosition{T}
+    svector::SVector{3, T}
 
-    BasicTypes.constructor_without_checks(::Type{ECEF{T}}, x, y, z) where T = new{T}(x, y, z)
+    BasicTypes.constructor_without_checks(::Type{ECEF{T}}, sv::SVector{3, T}) where T = new{T}(sv)
 end
 
 """
-    struct ECI{T} <: LengthCartesian{T, 3}
+    struct ECI{T} <: AbstractGeocentricPosition{T}
 Represents a position in the Earth-Centered, Inertial (ECI) coordinate system (or generically for other planets, Ellipsoid-Centered, Inertial).
 
-# Fields
+# Properties
 - `x::Met{T}`: X-coordinate in meters
 - `y::Met{T}`: Y-coordinate in meters
 - `z::Met{T}`: Z-coordinate in meters
@@ -50,27 +48,20 @@ All subtypes of `P <: AbstractSatcomCoordinate` can also be constructed using a 
 
 See also: [`ECEF`](@ref), [`LLA`](@ref).
 """
-struct ECI{T} <: LengthCartesian{T, 3}
-    x::Met{T}
-    y::Met{T}
-    z::Met{T}
+struct ECI{T} <: AbstractGeocentricPosition{T}
+    svector::SVector{3, T}
 
-    BasicTypes.constructor_without_checks(::Type{ECI{T}}, x, y, z) where T = new{T}(x, y, z)
+    BasicTypes.constructor_without_checks(::Type{ECI{T}}, sv::SVector{3, T}) where T = new{T}(sv)
 end
 
 """
-    struct LLA{T} <: AngleAngleDistance{T}
+    struct LLA{T} <: AbstractGeocentricPosition{T}
 Identify a point on or above earth using geodetic coordinates
 
-# Fields
+# Properties
 - `lat::Deg{T}`: Latitude of the point in degrees [-90°, 90°]
 - `lon::Deg{T}`: Longitude of the point in degrees [-180°, 180°]
 - `alt::Met{T}`: Altitude of the point above the reference ellipsoid
-
-The fields of `LLA` objects can also be accessed via `getproperty` using the follwing alternative aliases:
-- `latitude` for `lat`
-- `longitude` for `lon`
-- `altitude`, `h` or `height` for `alt`
 
 # Basic Constructors
     LLA(lat::ValidAngle,lon::ValidAngle,alt::ValidDistance)
@@ -89,10 +80,8 @@ All subtypes of `P <: AbstractSatcomCoordinate` can also be constructed using a 
 
 See also: [`ECEF`](@ref), [`ECI`](@ref).
 """
-struct LLA{T} <: AngleAngleDistance{T}
-    lat::Deg{T}
-    lon::Deg{T}
-    alt::Met{T}
+struct LLA{T} <: AbstractGeocentricPosition{T}
+    svector::SVector{3, T}
 
-    BasicTypes.constructor_without_checks(::Type{LLA{T}}, lat, lon, alt) where T = new{T}(lat, lon, alt)
+    BasicTypes.constructor_without_checks(::Type{LLA{T}}, sv::SVector{3, T}) where T = new{T}(sv)
 end
