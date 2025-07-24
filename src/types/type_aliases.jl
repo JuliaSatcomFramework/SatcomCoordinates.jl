@@ -4,7 +4,7 @@
 
 Type representing a position in ISO/Physics spherical coordinates
 """
-const Spherical{T} = GeneralizedSpherical{ThetaPhi, T}
+const Spherical{CRS, T} = Position{SphericalCRS{ThetaPhiPointingType{CRS}}, T}
 
 """
     const AzElDistance{T} = GeneralizedSpherical{AzEl, T}

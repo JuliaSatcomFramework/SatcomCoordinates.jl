@@ -1,29 +1,17 @@
 """
-    PointingVersor{T} <: AbstractPointing{T}
+    AbstractPointingType
 
-A unit vector (versor) representing a pointing direction in 3D space. Its components
-are the `x`, `y`, and `z` components of the unit vector and can also be seen as
-the `u`, `v`, and `w` direction cosines of the direction identified by the
-`PointingVersor` instance.
-
-# Properties
-- `x::T`: The component along the X axis of the corresponding reference frame. Can also be accessed with the `u` property name.
-- `y::T`: The component along the Y axis of the corresponding reference frame. Can also be accessed with the `v` property name.
-- `z::T`: The component along the Z axis of the corresponding reference frame. Can also be accessed with the `w` property name.
-
-See also: [`UV`](@ref), [`ThetaPhi`](@ref), [`AzOverEl`](@ref), [`ElOverAz`](@ref)
+Abstract type representing any pointing type defined over a 3D Cartesian CRS.
+Different pointing types identify different ways of identifying a position on the unitary sphere (over the specified CRS) with two coordinates (e.g. theta/phi, azimuth/elevation, etc.)
 """
-struct PointingVersor{T} <: AbstractPointing{T}
-    svector::SVector{3, T}
-
-    BasicTypes.constructor_without_checks(::Type{PointingVersor{T}}, svector::SVector{3, T}) where T = new{T}(svector)
-end
+abstract type AbstractPointingType end
 
 # UV
 """
-    UV{T} <: AbstractPointing{T}
+    UV <: AbstractPointingType
 
-Specify a pointing direction in UV coordinates, which are equivalent to the direction cosines with respect to the `X` and `Y` axis of the reference frame. They can also be related to the spherical coordinates (ISO/Physics) [spherical coordinates
+Specify a pointing direction in UV coordinates over the cartesian CRS `CRS`. 
+U,V Coordinates are equivalent to the direction cosines with respect to the `X` and `Y` axis of the reference frame `CRS`. They can also be related to the spherical coordinates (ISO/Physics) [spherical coordinates
 representation](https://en.wikipedia.org/wiki/Spherical_coordinate_system) by the following equations:
 - `u = sin(θ) * cos(φ)`
 - `v = sin(θ) * sin(φ)`
@@ -52,17 +40,13 @@ which will internally call the 2-arguments constructor.
 
 See also: [`PointingVersor`](@ref), [`ThetaPhi`](@ref)
 """
-struct UV{T} <: AbstractPointing{T}
-    svector::SVector{2, T}
-
-    BasicTypes.constructor_without_checks(::Type{UV{T}}, svector::SVector{2, T}) where {T} = new{T}(svector)
-end
+struct UV <: AbstractPointingType end
 
 # ThetaPhi
 """
-    ThetaPhi{T} <: AngularPointing{T}
+    ThetaPhi <: AbstractPointingType
 
-An object specifying a pointing direction in ThetaPhi coordinates, defined as the θ and φ in
+An object specifying a pointing direction in ThetaPhi coordinates over the spherical CRS `CRS`, defined as the θ and φ in
 the (ISO/Physics definition) [spherical coordinates
 representation](https://en.wikipedia.org/wiki/Spherical_coordinate_system) 
 
@@ -94,15 +78,11 @@ constructor.
 
 See also: [`PointingVersor`](@ref), [`UV`](@ref)
 """
-struct ThetaPhi{T} <: AngularPointing{T}
-    svector::SVector{2, T}
-
-    BasicTypes.constructor_without_checks(::Type{ThetaPhi{T}}, svector::SVector{2, T}) where T = new{T}(svector)
-end
+struct ThetaPhi <: AbstractPointingType end
 
 ### AzOverEl ###
 """
-    AzOverEl{T} <: AngularPointing{T}
+    AzOverEl <: AbstractPointingType
 
 Object specifying a pointing direction in "Azimuth over Elevation" coordinates, which specify the elevation and azimuth angles that needs to be fed to an azimuth-over-elevation positioner for pointing to a target towards the pointing direction ̂p.
 
@@ -123,15 +103,11 @@ Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`,
 !!! note
     The fields of `AzOverEl` objects can also be accessed via `getproperty` using the `azimuth` and `elevation` aliases.
 """
-struct AzOverEl{T} <: AngularPointing{T}
-    svector::SVector{2, T}
-
-    BasicTypes.constructor_without_checks(::Type{AzOverEl{T}}, svector::SVector{2, T}) where T = new{T}(svector)
-end
+struct AzOverEl <: AbstractPointingType end
 
 ### ElOverAz ###
 """
-    ElOverAz{T} <: AngularPointing{T}
+    ElOverAz <: AbstractPointingType
 
 Object specifying a pointing direction in "Elevation over Azimuth" coordinates, which specify the azimuth and elevation angles that needs to be fed to an elevation-over-azimuth positioner for pointing to a target towards the pointing direction ̂p.
 
@@ -154,14 +130,10 @@ Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`,
 
 See also: [`AzOverEl`](@ref), [`ThetaPhi`](@ref), [`PointingVersor`](@ref), [`UV`](@ref)
 """
-struct ElOverAz{T} <: AngularPointing{T}
-    svector::SVector{2, T}
-
-    BasicTypes.constructor_without_checks(::Type{ElOverAz{T}}, svector::SVector{2, T}) where T = new{T}(svector)
-end
+struct ElOverAz <: AbstractPointingType end
 
 """
-    AzEl{T} <: AngularPointing{T}
+    AzEl <: AbstractPointingType
 
 Object specifying a pointing direction in "Elevation/Azimuth" coordinates, defined following the convention used for Azimuth-Elevation-Range ([`AER`](@ref)) coordinates used by MATLAB and by this package.
 
@@ -181,8 +153,60 @@ Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`,
 
 See also: [`ThetaPhi`](@ref), [`PointingVersor`](@ref), [`UV`](@ref), [`ElOverAz`](@ref), [`AzOverEl`](@ref)
 """
-struct AzEl{T} <: AngularPointing{T}
-    svector::SVector{2, T}
+struct AzEl <: AbstractPointingType end
 
-    BasicTypes.constructor_without_checks(::Type{AzEl{T}}, svector::SVector{2, T}) where T = new{T}(svector)
+struct PointingCRS{CRS <: AbstractCartesianCRS, PT <: AbstractPointingType} <: AbstractCRS 
+    parent_crs::CRS
+end
+PointingCRS(crs::AbstractCartesianCRS = Cartesian()) = PointingCRS{typeof(crs), ThetaPhi}(crs)
+PointingCRS(crs::AbstractCartesianCRS, pt::Type{<:AbstractPointingType}) = PointingCRS{typeof(crs), pt}(crs)
+
+parent_crs(crs::AbstractCRS) = hasfield(typeof(crs), :parent_crs) ? getfield(crs, :parent_crs) : crs
+
+wrap_spherical_angles_rad_normalized(az::T, el::T, ::Type{<:Union{AzOverEl, ElOverAz, AzEl}}) where {T <: AbstractFloat} =
+    ifelse(
+        abs(el) <= π/2,  # Condition
+        (az, el), # Azimuth angle is already between -180° and 180° as it's already been normalized
+        (az - copysign(π,az), el - copysign(π,el)) # Need to wrap
+    )
+
+wrap_spherical_angles_rad_normalized(θ::T, φ::T, ::Type{<:ThetaPhi}) where {T <: AbstractFloat} =
+    ifelse(
+        θ >= 0,  # Condition
+        (θ, φ), # First angle is already between -90° and 90°
+        (-θ, φ - copysign(π,φ)) # Need to wrap
+    )
+
+coords_units(::Type{UV}) = (; u = NoUnits, v = NoUnits)
+coords_units(::Type{ThetaPhi}) = (; θ = u"°", φ = u"°")
+coords_units(::Type{Union{AzOverEl, ElOverAz, AzEl}}) = (; az = u"°", el = u"°")
+coords_units(::Type{<:PointingCRS{<:Any, PT}}) where PT = coords_units(PT)
+
+function process_pointing_coords(PT::Type{<:AbstractPointingType}, coords::NTuple{2, <:AbstractFloat})
+    tup = map(coords) do val
+        rem2pi(deg2rad(val), RoundNearest)
+    end
+    wrap_spherical_angles_rad_normalized(tup..., PT)
+end
+
+const UV_CONSTRUCTOR_TOLERANCE = Ref{Float64}(1e-5)
+
+function process_pointing_coords(::Type{UV}, coords::NTuple{2, <:AbstractFloat})
+    u, v = coords
+    n = u^2 + v^2
+    tol = UV_CONSTRUCTOR_TOLERANCE[]
+    lim = 1 + tol
+    if (n > 1 && n <= lim)
+        c = 1 / sqrt(n)
+        u *= c
+        v *= c
+    end
+    if (n > lim) 
+        error("The provided inputs do not satisfy u^2 + v^2 <= 1 + tolerance
+    u = $u 
+    v = $v 
+    u^2 + v^2 = $n
+    tolerance = $(tol)")
+    end
+    return (u, v)
 end
