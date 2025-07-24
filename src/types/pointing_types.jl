@@ -164,8 +164,8 @@ PointingCRS(crs::AbstractCartesianCRS, pt::Type{<:AbstractPointingType}) = Point
 parentcrs(crs::AbstractCRS) = hasfield(typeof(crs), :parent_crs) ? getfield(crs, :parent_crs) : crs
 
 @define_properties ThetaPhi [
-    θ => (°, theta, t)
-    φ => (°, phi, p, ϕ)
+    θ => u"°" => (theta, t)
+    φ => u"°" => (phi, p, ϕ)
 ]
 
 @define_properties UV [
@@ -175,8 +175,8 @@ parentcrs(crs::AbstractCRS) = hasfield(typeof(crs), :parent_crs) ? getfield(crs,
 
 for PT in (:AzOverEl, :ElOverAz, :AzEl)
     @eval @define_properties $PT [
-        az => (°, azimuth)
-        el => (°, elevation)
+        az => u"°" => (azimuth,)
+        el => u"°" => (elevation,)
     ]
 end
 

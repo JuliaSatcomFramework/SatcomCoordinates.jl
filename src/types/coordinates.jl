@@ -58,8 +58,12 @@ end
 BasicTypes.valuetype(::Type{<:AbstractSatcomCoordinate{<:Any, T}}) where T = T
 BasicTypes.valuetype(::Type{<:AbstractSatcomCoordinate{<:Any}}) = Union{}
 
-coords_units(::Type{<:AbstractCartesianCRS}) = (; x = u"m", y = u"m", z = u"m")
 coords_units(::CRS) where CRS <: AbstractCRS = coords_units(CRS)
+@define_properties AbstractCartesianCRS [
+    x => u"m"
+    y => u"m"
+    z => u"m"
+]
 
 crs(coord::AbstractSatcomCoordinate) = getfield(coord, :crs)
 tuplecoords(coord::AbstractSatcomCoordinate) = getfield(coord, :tuplecoords)
@@ -127,5 +131,7 @@ defaultcrs(::Type{Pointing}) = PointingCRS()
 @inline Base.@constprop :aggressive function Base.getproperty(coord::AbstractSatcomCoordinate, s::Symbol)
     props = coords(coord)
     CRS = crs(coord) |> typeof
-    getproperty(props, resolve_property(CRS, s))
+    nm = resolve_property(CRS, s)::Symbol
+    nm === :__could_not_resolve_property__ && throw(ArgumentError("The requested property name `:$(s)` is not a valid property for a coordinate over a CRS of type `$CRS`"))
+    getproperty(props, nm)
 end

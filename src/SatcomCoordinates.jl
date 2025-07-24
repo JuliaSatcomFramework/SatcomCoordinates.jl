@@ -23,6 +23,8 @@ export AbstractCRS, AbstractCartesianCRS, AbstractPointingType, AbstractSpherica
 
 # include("types/traits.jl")
 
+export PointingCRS
+
 include("types/pointing_types.jl")
 export UV, ThetaPhi, AzEl, AzOverEl, ElOverAz
 
