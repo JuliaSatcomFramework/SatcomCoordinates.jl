@@ -161,7 +161,29 @@ end
 PointingCRS(crs::AbstractCartesianCRS = Cartesian()) = PointingCRS{typeof(crs), ThetaPhi}(crs)
 PointingCRS(crs::AbstractCartesianCRS, pt::Type{<:AbstractPointingType}) = PointingCRS{typeof(crs), pt}(crs)
 
-parent_crs(crs::AbstractCRS) = hasfield(typeof(crs), :parent_crs) ? getfield(crs, :parent_crs) : crs
+parentcrs(crs::AbstractCRS) = hasfield(typeof(crs), :parent_crs) ? getfield(crs, :parent_crs) : crs
+
+@define_properties ThetaPhi [
+    θ => (°, theta, t)
+    φ => (°, phi, p, ϕ)
+]
+
+@define_properties UV [
+    u => NoUnits
+    v => NoUnits
+]
+
+for PT in (:AzOverEl, :ElOverAz, :AzEl)
+    @eval @define_properties $PT [
+        az => (°, azimuth)
+        el => (°, elevation)
+    ]
+end
+
+coords_units(::Type{<:PointingCRS{<:Any, PT}}) where PT = coords_units(PT)
+Base.@constprop :aggressive function resolve_property(::Type{<:PointingCRS{<:Any, PT}}, propname::Symbol) where PT
+    resolve_property(PT, propname)
+end
 
 wrap_spherical_angles_rad_normalized(az::T, el::T, ::Type{<:Union{AzOverEl, ElOverAz, AzEl}}) where {T <: AbstractFloat} =
     ifelse(
@@ -176,11 +198,6 @@ wrap_spherical_angles_rad_normalized(θ::T, φ::T, ::Type{<:ThetaPhi}) where {T 
         (θ, φ), # First angle is already between -90° and 90°
         (-θ, φ - copysign(π,φ)) # Need to wrap
     )
-
-coords_units(::Type{UV}) = (; u = NoUnits, v = NoUnits)
-coords_units(::Type{ThetaPhi}) = (; θ = u"°", φ = u"°")
-coords_units(::Type{Union{AzOverEl, ElOverAz, AzEl}}) = (; az = u"°", el = u"°")
-coords_units(::Type{<:PointingCRS{<:Any, PT}}) where PT = coords_units(PT)
 
 function process_pointing_coords(PT::Type{<:AbstractPointingType}, coords::NTuple{2, <:AbstractFloat})
     tup = map(coords) do val

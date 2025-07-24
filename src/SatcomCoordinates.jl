@@ -15,6 +15,9 @@ export °, km, @u_str # From Unitful
 export to_degrees, to_meters # From BasicTypes
 export Identity # From TransformsBase
 
+include("utils.jl")
+public @define_properties
+
 include("types/abstract_types.jl")
 export AbstractCRS, AbstractCartesianCRS, AbstractPointingType, AbstractSphericalCRS, AbstractSatcomCoordinate, AbstractCRSTransform
 
@@ -25,6 +28,7 @@ export UV, ThetaPhi, AzEl, AzOverEl, ElOverAz
 
 include("types/coordinates.jl")
 export Cartesian, SphericalCRS, Pointing, Position
+
 
 # include("types/pointing_offsets.jl") 
 # public PointingOffset

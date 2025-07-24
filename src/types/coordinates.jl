@@ -82,7 +82,6 @@ function coords(coord::AbstractSatcomCoordinate)
 end
 
 @inline Base.propertynames(coord::AbstractSatcomCoordinate) = propertynames(coords_units(crs(coord)))
-@inline Base.getproperty(coord::AbstractSatcomCoordinate, s::Symbol) = getproperty(coords(coord), s)
 
 """
     Cartesian <: AbstractCartesianCRS
@@ -95,6 +94,15 @@ struct SphericalCRS{CRS <: PointingCRS} <: AbstractCRS
     parent_crs::CRS
 end
 SphericalCRS() = SphericalCRS(PointingCRS())
+
+coords_units(S::Type{<:SphericalCRS}) = (coords_units(pointingtype(S))..., r = u"m")
+Base.@constprop :aggressive function resolve_property(S::Type{<:SphericalCRS}, propname::Symbol)
+    if propname in (:r, :distance, :range)
+        return :r
+    else
+        return resolve_property(pointingtype(S), propname)
+    end
+end
 
 pointingtype(::Type{<:PointingCRS{<:Any, P}}) where P = P
 pointingtype(::Type{SphericalCRS{PCRS}}) where PCRS <: PointingCRS = pointingtype(PCRS)
@@ -115,3 +123,9 @@ end
 defaultcrs(::Type{<:AbstractSatcomCoordinate{CRS}}) where CRS <: AbstractCRS = CRS()
 defaultcrs(::Type{<:AbstractSatcomCoordinate{<:Any}}) = Cartesian()
 defaultcrs(::Type{Pointing}) = PointingCRS()
+
+@inline Base.@constprop :aggressive function Base.getproperty(coord::AbstractSatcomCoordinate, s::Symbol)
+    props = coords(coord)
+    CRS = crs(coord) |> typeof
+    getproperty(props, resolve_property(CRS, s))
+end
