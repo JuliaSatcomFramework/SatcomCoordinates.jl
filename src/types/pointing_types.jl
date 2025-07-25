@@ -1,10 +1,15 @@
 """
-    AbstractPointingType
+    AbstractPointingType{CRS <: AbstractCartesianCRS} <: AbstractCRS
 
 Abstract type representing any pointing type defined over a 3D Cartesian CRS.
 Different pointing types identify different ways of identifying a position on the unitary sphere (over the specified CRS) with two coordinates (e.g. theta/phi, azimuth/elevation, etc.)
+
+Although these are not strictly speaking CRSs themselves, they are considered a subtype of `AbstractCRS` to better fit within the package interface.
+
+See also: [`UV`](@ref), [`ThetaPhi`](@ref), [`AzOverEl`](@ref), [`ElOverAz`](@ref), [`AzEl`](@ref)
 """
-abstract type AbstractPointingType end
+abstract type AbstractPointingType{CRS <: AbstractCartesianCRS} <: AbstractCRS end
+(::Type{P})() where P <: AbstractPointingType = P(Cartesian())
 
 # UV
 """
@@ -40,7 +45,9 @@ which will internally call the 2-arguments constructor.
 
 See also: [`PointingVersor`](@ref), [`ThetaPhi`](@ref)
 """
-struct UV <: AbstractPointingType end
+struct UV{CRS <: AbstractCartesianCRS} <: AbstractPointingType{CRS} 
+    parent_crs::CRS
+end
 
 # ThetaPhi
 """
@@ -78,7 +85,9 @@ constructor.
 
 See also: [`PointingVersor`](@ref), [`UV`](@ref)
 """
-struct ThetaPhi <: AbstractPointingType end
+struct ThetaPhi{CRS <: AbstractCartesianCRS} <: AbstractPointingType{CRS} 
+    parent_crs::CRS
+end
 
 ### AzOverEl ###
 """
@@ -103,7 +112,9 @@ Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`,
 !!! note
     The fields of `AzOverEl` objects can also be accessed via `getproperty` using the `azimuth` and `elevation` aliases.
 """
-struct AzOverEl <: AbstractPointingType end
+struct AzOverEl{CRS <: AbstractCartesianCRS} <: AbstractPointingType{CRS} 
+    parent_crs::CRS
+end
 
 ### ElOverAz ###
 """
@@ -130,7 +141,9 @@ Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`,
 
 See also: [`AzOverEl`](@ref), [`ThetaPhi`](@ref), [`PointingVersor`](@ref), [`UV`](@ref)
 """
-struct ElOverAz <: AbstractPointingType end
+struct ElOverAz{CRS <: AbstractCartesianCRS} <: AbstractPointingType{CRS} 
+    parent_crs::CRS
+end
 
 """
     AzEl <: AbstractPointingType
@@ -153,13 +166,9 @@ Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`,
 
 See also: [`ThetaPhi`](@ref), [`PointingVersor`](@ref), [`UV`](@ref), [`ElOverAz`](@ref), [`AzOverEl`](@ref)
 """
-struct AzEl <: AbstractPointingType end
-
-struct PointingCRS{CRS <: AbstractCartesianCRS, PT <: AbstractPointingType} <: AbstractCRS 
+struct AzEl{CRS <: AbstractCartesianCRS} <: AbstractPointingType{CRS} 
     parent_crs::CRS
 end
-PointingCRS(crs::AbstractCartesianCRS = Cartesian()) = PointingCRS{typeof(crs), ThetaPhi}(crs)
-PointingCRS(crs::AbstractCartesianCRS, pt::Type{<:AbstractPointingType}) = PointingCRS{typeof(crs), pt}(crs)
 
 parentcrs(crs::AbstractCRS) = hasfield(typeof(crs), :parent_crs) ? getfield(crs, :parent_crs) : crs
 
@@ -178,11 +187,6 @@ for PT in (:AzOverEl, :ElOverAz, :AzEl)
         az => u"°" => (azimuth,)
         el => u"°" => (elevation,)
     ]
-end
-
-coords_units(::Type{<:PointingCRS{<:Any, PT}}) where PT = coords_units(PT)
-Base.@constprop :aggressive function resolve_property(::Type{<:PointingCRS{<:Any, PT}}, propname::Symbol) where PT
-    resolve_property(PT, propname)
 end
 
 wrap_spherical_angles_rad_normalized(az::T, el::T, ::Type{<:Union{AzOverEl, ElOverAz, AzEl}}) where {T <: AbstractFloat} =
@@ -208,7 +212,7 @@ end
 
 const UV_CONSTRUCTOR_TOLERANCE = Ref{Float64}(1e-5)
 
-function process_pointing_coords(::Type{UV}, coords::NTuple{2, <:AbstractFloat})
+function process_pointing_coords(::Type{<:UV}, coords::NTuple{2, <:AbstractFloat})
     u, v = coords
     n = u^2 + v^2
     tol = UV_CONSTRUCTOR_TOLERANCE[]

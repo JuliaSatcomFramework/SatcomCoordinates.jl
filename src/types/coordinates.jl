@@ -40,7 +40,7 @@ This function take input coordinates and process them by eventually removing uni
 function preprocess_input_coords(CRS::Type{<:AbstractCRS}, T::Type{<:AbstractFloat}, coords::Point{N, Any}) where N
     units = coords_units(CRS)
     refunits = referenceunits(CRS)
-    N == length(units) || throw(DimensionMismatch("The number of coordinates provided ($(N)) does not match the number of coordinates expected by type $C ($(N))"))
+    N == length(units) || throw(DimensionMismatch("The number of coordinates provided ($(N)) does not match the number of coordinates expected by CRS of type $CRS ($(length(units)))"))
     tup = ntuple(length(coords)) do i
         unit = units[i]
         refunit = refunits[i]
@@ -155,10 +155,10 @@ Generic Cartesian CRS, for use in cases that do not require any specific identif
 """
 struct Cartesian <: AbstractCartesianCRS end
 
-struct SphericalCRS{CRS <: PointingCRS} <: AbstractCRS 
+struct SphericalCRS{CRS <: AbstractPointingType} <: AbstractCRS 
     parent_crs::CRS
 end
-SphericalCRS() = SphericalCRS(PointingCRS())
+SphericalCRS() = SphericalCRS(ThetaPhi())
 
 coords_units(S::Type{<:SphericalCRS}) = (coords_units(pointingtype(S))..., r = u"m")
 Base.@constprop :aggressive function resolve_property(S::Type{<:SphericalCRS}, propname::Symbol)
@@ -169,17 +169,17 @@ Base.@constprop :aggressive function resolve_property(S::Type{<:SphericalCRS}, p
     end
 end
 
-pointingtype(::Type{<:PointingCRS{<:Any, P}}) where P = P
-pointingtype(::Type{SphericalCRS{PCRS}}) where PCRS <: PointingCRS = pointingtype(PCRS)
+pointingtype(P::Type{<:AbstractPointingType}) = P
+pointingtype(::Type{SphericalCRS{P}}) where P <: AbstractPointingType = P
 pointingtype(crs::AbstractCRS) = pointingtype(typeof(crs))
 
-struct Pointing{CRS <: PointingCRS, T} <: AbstractSatcomCoordinate{CRS, T, 2}
+struct Pointing{CRS <: AbstractPointingType, T} <: AbstractSatcomCoordinate{CRS, T, 2}
     crs::CRS
     tuplecoords::NTuple{2, T}
 
     BasicTypes.constructor_without_checks(::Type{Pointing{CRS, T}}, crs::CRS, tuplecoords::NTuple{2, T}) where {CRS <: AbstractCRS, T} = new{CRS, T}(crs, tuplecoords)
 end
-function Pointing(crs::CRS, coords::NTuple{2, T}) where {CRS <: PointingCRS, T <: AbstractFloat} 
+function Pointing(crs::CRS, coords::NTuple{2, T}) where {CRS <: AbstractPointingType, T <: AbstractFloat} 
     PT = pointingtype(CRS)
     tup = process_pointing_coords(PT, coords)
     return constructor_without_checks(Pointing{CRS, T}, crs, tup)
@@ -187,7 +187,7 @@ end
 
 defaultcrs(::Type{<:AbstractSatcomCoordinate{CRS}}) where CRS <: AbstractCRS = CRS()
 defaultcrs(::Type{<:AbstractSatcomCoordinate{<:Any}}) = Cartesian()
-defaultcrs(::Type{Pointing}) = PointingCRS()
+defaultcrs(::Type{Pointing}) = ThetaPhi()
 
 @inline Base.@constprop :aggressive function Base.getproperty(obj::FieldOrCoordinate, s::Symbol)
     props = coords(obj)
