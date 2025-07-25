@@ -39,14 +39,31 @@ This function take input coordinates and process them by eventually removing uni
 """
 function preprocess_input_coords(CRS::Type{<:AbstractCRS}, T::Type{<:AbstractFloat}, coords::Point{N, Any}) where N
     units = coords_units(CRS)
+    refunits = referenceunits(CRS)
     N == length(units) || throw(DimensionMismatch("The number of coordinates provided ($(N)) does not match the number of coordinates expected by type $C ($(N))"))
     tup = ntuple(length(coords)) do i
         unit = units[i]
+        refunit = refunits[i]
         val = coords[i]
-        enforce_unitless(unit, val) |> T
+        remove_unit(unit, refunit, val) |> T
     end
     return tup
 end
+
+"""
+    upreferred(CRS::Type, unit::Unitful.Units)
+    
+Allow to customize the preferred unit on different types of CRSs. Defaults to `Unitful.upreferred(unit)`.
+
+!!! note
+    This is not the same function as `Unitful.upreferred` but just shares the same name as they basically have the same end goal. It is nonetheless redefined internally to `SatComCoordinates` to avoid polluting the methods of `Unitful.upreferred`.
+"""
+upreferred(unit::Unitful.Units) = Unitful.upreferred(unit)
+upreferred(::Union{typeof(u"°"), typeof(u"rad")}) = u"rad"
+
+add_unit(propunit::Unitful.Units, refunit::Unitful.Units, val::Real) = enforce_unit(refunit, val) |> propunit
+
+remove_unit(propunit::Unitful.Units, refunit::Unitful.Units, val::Number) = enforce_unit(propunit, val) |> refunit |> ustrip
 
 @inline ncoords(::Type{<:AbstractSatcomCoordinate{<:Any, <:Any, N}}) where N = N
 
@@ -59,6 +76,8 @@ BasicTypes.valuetype(::Type{<:AbstractSatcomCoordinate{<:Any, T}}) where T = T
 BasicTypes.valuetype(::Type{<:AbstractSatcomCoordinate{<:Any}}) = Union{}
 
 coords_units(::CRS) where CRS <: AbstractCRS = coords_units(CRS)
+referenceunits(CRS::Type{<:AbstractCRS}) = map(upreferred, coords_units(CRS))
+
 @define_properties AbstractCartesianCRS [
     x => u"m"
     y => u"m"
@@ -78,9 +97,10 @@ end
 function coords(coord::AbstractSatcomCoordinate)
     CRS = crstype(coord)
     units = coords_units(CRS)
+    refunits = referenceunits(CRS)
     c = tuplecoords(coord)
     vals = ntuple(length(c)) do i
-        enforce_unit(units[i], c[i])
+        add_unit(units[i], refunits[i], c[i])
     end
     return NamedTuple{keys(units)}(vals)
 end
