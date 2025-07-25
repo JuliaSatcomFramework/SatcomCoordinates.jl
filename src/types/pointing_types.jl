@@ -170,8 +170,6 @@ struct AzEl{CRS <: AbstractCartesianCRS} <: AbstractPointingType{CRS}
     parent_crs::CRS
 end
 
-parentcrs(crs::AbstractCRS) = hasfield(typeof(crs), :parent_crs) ? getfield(crs, :parent_crs) : crs
-
 @define_properties ThetaPhi [
     θ => u"°" => (theta, t)
     φ => u"°" => (phi, p, ϕ)

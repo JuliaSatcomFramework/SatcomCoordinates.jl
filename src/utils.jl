@@ -41,18 +41,18 @@ macro define_properties(CRS, props)
     lnn = __source__
     blk = Expr(:block)
     push!(blk.args, resolve_property_expression(CRS; propnames, aliases, lnn))
-    push!(blk.args, coords_units_expression(CRS; propnames, units, lnn))
+    push!(blk.args, units_expression(CRS; propnames, units, lnn))
     return Expr(:let, Expr(:block), blk)
 end
 
-function coords_units_expression(CRS::Symbol; propnames, units, lnn::LineNumberNode)
+function units_expression(CRS::Symbol; propnames, units, lnn::LineNumberNode)
     length(propnames) == length(units) || throw(ArgumentError("The number of property names and units must be the same"))
     kws = Expr(:parameters)
     for i in eachindex(propnames, units)
         push!(kws.args, Expr(:kw, propnames[i], esc(units[i])))
     end
     ntexpr = Expr(:tuple, kws)
-    fdef = Expr(:function, Expr(:call, GlobalRef(@__MODULE__, :coords_units), esc(Expr(:(::), Expr(:curly, :Type, Expr(:(<:), CRS))))), Expr(:block, lnn, ntexpr))
+    fdef = Expr(:function, Expr(:call, GlobalRef(@__MODULE__, :units), esc(Expr(:(::), Expr(:curly, :Type, Expr(:(<:), CRS))))), Expr(:block, lnn, ntexpr))
 end
 
 function resolve_property_expression(CRS::Symbol; propnames, aliases, lnn::LineNumberNode)

@@ -38,11 +38,11 @@ end
 This function take input coordinates and process them by eventually removing units they come with (ensuring consistency with the units expected from a CRS) and converting them to the specific machine precision specified by the type parameter `T`.
 """
 function preprocess_input_coords(CRS::Type{<:AbstractCRS}, T::Type{<:AbstractFloat}, coords::Point{N, Any}) where N
-    units = coords_units(CRS)
+    userunits = units(CRS)
     refunits = referenceunits(CRS)
-    N == length(units) || throw(DimensionMismatch("The number of coordinates provided ($(N)) does not match the number of coordinates expected by CRS of type $CRS ($(length(units)))"))
-    tup = ntuple(length(coords)) do i
-        unit = units[i]
+    N == ncoords(CRS) || throw(DimensionMismatch("The number of coordinates provided ($(N)) does not match the number of coordinates expected by CRS of type $CRS ($(ncoords(CRS)))"))
+    tup = ntuple(N) do i
+        unit = userunits[i]
         refunit = refunits[i]
         val = coords[i]
         remove_unit(unit, refunit, val) |> T
@@ -66,6 +66,8 @@ add_unit(propunit::Unitful.Units, refunit::Unitful.Units, val::Real) = enforce_u
 remove_unit(propunit::Unitful.Units, refunit::Unitful.Units, val::Number) = enforce_unit(propunit, val) |> refunit |> ustrip
 
 @inline ncoords(::Type{<:AbstractSatcomCoordinate{<:Any, <:Any, N}}) where N = N
+@inline ncoords(::Type{CRS}) where CRS <: AbstractCRS = length(units(CRS))
+@inline ncoords(obj::Union{AbstractCRS, FieldOrCoordinate}) = ncoords(typeof(obj))
 
 @inline crstype(::Type{<:AbstractSatcomCoordinate{CRS}}) where CRS <: AbstractCRS = CRS
 @inline crstype(::Type{CRS}) where CRS <: AbstractCRS = CRS
@@ -75,8 +77,8 @@ remove_unit(propunit::Unitful.Units, refunit::Unitful.Units, val::Number) = enfo
 BasicTypes.valuetype(::Type{<:AbstractSatcomCoordinate{<:Any, T}}) where T = T
 BasicTypes.valuetype(::Type{<:AbstractSatcomCoordinate{<:Any}}) = Union{}
 
-coords_units(::CRS) where CRS <: AbstractCRS = coords_units(CRS)
-referenceunits(CRS::Type{<:AbstractCRS}) = map(upreferred, coords_units(CRS))
+units(::CRS) where CRS <: AbstractCRS = units(CRS)
+referenceunits(CRS::Type{<:AbstractCRS}) = map(upreferred, units(CRS))
 
 @define_properties AbstractCartesianCRS [
     x => u"m"
@@ -89,23 +91,46 @@ tuplecoords(coord::AbstractSatcomCoordinate) = getfield(coord, :tuplecoords)
 
 function rawcoords(coord::AbstractSatcomCoordinate)
     CRS = crstype(coord)
-    units = coords_units(CRS)
+    userunits = units(CRS)
     coords = tuplecoords(coord)
-    return NamedTuple{keys(units)}(coords)
+    return NamedTuple{keys(userunits)}(coords)
 end
 
 function coords(coord::AbstractSatcomCoordinate)
     CRS = crstype(coord)
-    units = coords_units(CRS)
+    userunits = units(CRS)
     refunits = referenceunits(CRS)
     c = tuplecoords(coord)
-    vals = ntuple(length(c)) do i
-        add_unit(units[i], refunits[i], c[i])
+    vals = ntuple(ncoords(CRS)) do i
+        add_unit(userunits[i], refunits[i], c[i])
     end
-    return NamedTuple{keys(units)}(vals)
+    return NamedTuple{keys(userunits)}(vals)
 end
 
-@inline Base.propertynames(coord::AbstractSatcomCoordinate) = propertynames(coords_units(crs(coord)))
+"""
+    parentcrs(crs::AbstractCRS)
+
+Return the parent CRS of the provided `crs` if it exists, otherwise return the `crs` itself.
+
+Custom CRSs which wrap a parent CRS (e.g. `SphericalCRS`) will either need to store the parent CRS in a field called `parent_crs`, or define a custom method for `parentcrs` which extracts the wrapped CRS.
+"""
+parentcrs(crs::AbstractCRS) = hasfield(typeof(crs), :parent_crs) ? getfield(crs, :parent_crs) : crs
+
+"""
+    cartesiancrs(crs::AbstractCRS)
+
+Recursively traverse the CRSs wrapped by the provided `crs` until the first cartesian one (i.e. subtyping `AbstractCartesianCRS`) is found, and then return it.
+"""
+function cartesiancrs(crs::AbstractCRS)
+    parent = parentcrs(crs)
+    if parent isa AbstractCartesianCRS
+        return parent
+    else
+        return cartesiancrs(parent)
+    end
+end
+
+@inline Base.propertynames(coord::AbstractSatcomCoordinate) = propertynames(units(crs(coord)))
 
 """
     Raw{C <: FieldOrCoordinate} <: FieldOrCoordinate
@@ -160,7 +185,7 @@ struct SphericalCRS{CRS <: AbstractPointingType} <: AbstractCRS
 end
 SphericalCRS() = SphericalCRS(ThetaPhi())
 
-coords_units(S::Type{<:SphericalCRS}) = (coords_units(pointingtype(S))..., r = u"m")
+units(S::Type{<:SphericalCRS}) = (units(pointingtype(S))..., r = u"m")
 Base.@constprop :aggressive function resolve_property(S::Type{<:SphericalCRS}, propname::Symbol)
     if propname in (:r, :distance, :range)
         return :r
