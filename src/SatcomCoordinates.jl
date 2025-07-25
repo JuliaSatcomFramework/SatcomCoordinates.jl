@@ -1,6 +1,6 @@
 module SatcomCoordinates
 
-using BasicTypes: BasicTypes, constructor_without_checks, to_degrees, to_meters, Met, Deg, Rad, UnitfulAngleQuantity, ValidAngle, Point2D, Point3D, Point, PS, ValidDistance, to_radians, basetype, asdeg, stripdeg, Length, enforce_unit, enforce_unitless, valuetype, change_valuetype, common_valuetype, promote_valuetype
+using BasicTypes: BasicTypes, constructor_without_checks, to_degrees, to_meters, Met, Deg, Rad, UnitfulAngleQuantity, ValidAngle, Point2D, Point3D, Point, PS, ValidDistance, to_radians, asdeg, stripdeg, Length, enforce_unit, enforce_unitless, valuetype, change_valuetype, common_valuetype, promote_valuetype
 using ConstructionBase: ConstructionBase, getproperties, getfields, constructorof
 using StaticArrays: StaticArrays, FieldVector, SVector, @SVector, SA, StaticMatrix, StaticVector
 using LinearAlgebra: LinearAlgebra, normalize, norm
@@ -14,6 +14,8 @@ using Unitful: Unitful, Quantity, ustrip, rad, @u_str, °, km, Units, NoUnits
 export °, km, @u_str # From Unitful
 export to_degrees, to_meters # From BasicTypes
 export Identity # From TransformsBase
+
+basetype(T::Type) = Base.typename(T).wrapper # To be updated in BasicTypes.jl
 
 include("utils.jl")
 public @define_properties

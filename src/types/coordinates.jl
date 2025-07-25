@@ -9,11 +9,6 @@ function Position(crs::CRS, tuplecoords::NTuple{3, T}) where {CRS <: AbstractCRS
 end
 (C::Type{<:AbstractSatcomCoordinate})(args::Vararg{Any, N}) where N = create_coordinate(C, args...)
 
-bypass_bottom(::typeof(Union{}), ::typeof(Union{})) = throw(ArgumentError("You can't have a default type which is Union{}"))
-bypass_bottom(::Type, ::typeof(Union{})) = throw(ArgumentError("You can't have a default type which is Union{}"))
-@inline bypass_bottom(::typeof(Union{}), T::Type) = T
-@inline bypass_bottom(T::Type, ::Type) = T
-
 create_coordinate(C::Type{<:AbstractSatcomCoordinate}, args::Point{M, Number}) where M = create_coordinate(C, args...)
 create_coordinate(C::Type{<:AbstractSatcomCoordinate}, crs::AbstractCRS, args::Point{M, Number}) where M = create_coordinate(C, crs, args...)
 function create_coordinate(C::Type{<:AbstractSatcomCoordinate{<:Any, <:Any, N}}, coords::Vararg{Number, M}) where {N, M}
@@ -27,9 +22,13 @@ function create_coordinate(C::Type{<:AbstractSatcomCoordinate{<:Any, <:Any, N}},
         crstype(C) == CRS || throw(ArgumentError("The provided crs does not match the crs type signature of the coordinate type $C"))
     end
     CT = valuetype(C)
-    T = bypass_bottom(CT, common_valuetype(AbstractFloat, Float64, coords...))
+    T = if CT == Union{}
+        common_valuetype(AbstractFloat, Float64, coords...)
+    else
+        CT
+    end
     tup = preprocess_input_coords(CRS, T, coords)
-    return constructorof(C)(crs, tup)
+    return basetype(C)(crs, tup)
 end
 
 """
@@ -37,7 +36,7 @@ end
 
 This function take input coordinates and process them by eventually removing units they come with (ensuring consistency with the units expected from a CRS) and converting them to the specific machine precision specified by the type parameter `T`.
 """
-function preprocess_input_coords(CRS::Type{<:AbstractCRS}, T::Type{<:AbstractFloat}, coords::Point{N, Any}) where N
+function preprocess_input_coords(CRS::Type{<:AbstractCRS}, T::Type{<:AbstractFloat}, coords::Point{N, Any}) where {N}
     userunits = units(CRS)
     refunits = referenceunits(CRS)
     N == ncoords(CRS) || throw(DimensionMismatch("The number of coordinates provided ($(N)) does not match the number of coordinates expected by CRS of type $CRS ($(ncoords(CRS)))"))
@@ -163,9 +162,10 @@ pkm.x === 1.0u"km" # true
 y === 2000.0 # true
 ```
 """
-struct Raw{C <: FieldOrCoordinate} <: FieldOrCoordinate
+struct Raw{CRS <: AbstractCRS, C <: FieldOrCoordinate{CRS}} <: FieldOrCoordinate{CRS}
     wrapped::C
 end
+Raw(c::FieldOrCoordinate{CRS}) where {CRS} = Raw{CRS, typeof(c)}(c)
 
 @inline wrapped(r::Raw) = getfield(r, :wrapped)
 @inline Base.propertynames(r::Raw) = propertynames(wrapped(r))

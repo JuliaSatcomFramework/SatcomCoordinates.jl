@@ -50,7 +50,7 @@ Abstract type representing either a field or a coordinate.
 
 This is wrap all possible types within this package that are not CRSs themselves. It is used to contraint custom methods we have for `Base` functions.
 """
-abstract type FieldOrCoordinate end
+abstract type FieldOrCoordinate{CRS <: AbstractCRS} end
 
 """
     AbstractSatcomCoordinate{CRS <: AbstractCRS, T, N}
@@ -60,7 +60,7 @@ General abstract type identifying a _coordinate_ with `N` dimension and defined 
 !!! note
     The term _coordinate_ is used here in a loose sense, identifying both position in space as well as pointing directions
 """
-abstract type AbstractSatcomCoordinate{CRS <: AbstractCRS, T, N} <: FieldOrCoordinate end
+abstract type AbstractSatcomCoordinate{CRS <: AbstractCRS, T, N} <: FieldOrCoordinate{CRS} end
 
 """
     AbstractCRSTransform{T}
