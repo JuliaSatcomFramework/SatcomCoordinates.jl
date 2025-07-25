@@ -185,14 +185,10 @@ struct SphericalCRS{CRS <: AbstractPointingType} <: AbstractCRS
 end
 SphericalCRS() = SphericalCRS(ThetaPhi())
 
-units(S::Type{<:SphericalCRS}) = (units(pointingtype(S))..., r = u"m")
-Base.@constprop :aggressive function resolve_property(S::Type{<:SphericalCRS}, propname::Symbol)
-    if propname in (:r, :distance, :range)
-        return :r
-    else
-        return resolve_property(pointingtype(S), propname)
-    end
-end
+@define_properties SphericalCRS [
+    pointingtype(_)... # This is a special synthax for the macro, saying that it should put here all the properties of the the `CRS` obtained by calling `pointingtype(CRS::Type{<:SphericalCRS})`
+    r => u"m" => (:distance, :range) # r as primary property name, u"m" as unit for `r` and `distance` and `range` as aliases for this property
+]
 
 pointingtype(P::Type{<:AbstractPointingType}) = P
 pointingtype(::Type{SphericalCRS{P}}) where P <: AbstractPointingType = P
