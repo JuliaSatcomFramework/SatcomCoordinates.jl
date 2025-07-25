@@ -17,7 +17,7 @@ export Identity # From TransformsBase
 
 basetype(T::Type) = Base.typename(T).wrapper # To be updated in BasicTypes.jl
 
-include("utils.jl")
+include("define_properties.jl")
 public @define_properties
 
 include("types/abstract_types.jl")

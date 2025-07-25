@@ -72,15 +72,6 @@ function parse_properties_expression(ex::Expr)
     return props
 end
 
-macro define_properties(CRS, props)
-    propspecs = parse_properties_expression(props)
-    lnn = __source__
-    blk = Expr(:block)
-    push!(blk.args, resolve_property_expression(CRS; propspecs, lnn))
-    push!(blk.args, units_expression(CRS; propspecs, lnn))
-    return Expr(:let, Expr(:block), blk) |> esc
-end
-
 # This function takes care of automatically generating the `units` function for the provided CRS
 function units_expression(CRSTYPE; propspecs, lnn::LineNumberNode)
     #= This function create something of this form for all provided properties and units: 
@@ -161,4 +152,162 @@ function resolve_property_expression(CRSTYPE; propspecs, lnn::LineNumberNode)
     end
     aex = :(Base.@constprop :aggressive $fdef) # We wrap this with `@constprop :aggressive` to make sure the constant propagation of symbols is forced as much as possible (to allow for optimization of getproperty)
     return aex
+end
+
+"""
+    @define_properties CRS [
+        propname1 => unit1
+        propname2 => unit2[ => (aliases2...)]
+        ...
+    ]
+
+This macro simplifies the definition of properties for a custom `CRS` type and association between each property and its _user-facing_ unit as well as optional property aliases (supported by `Base.getproperty` on coordinates, i.e. instances of `AbstractSatcomCoordinate`).
+
+The arguments expected by the macro are the following: 
+- **1st argument**: The desired custom CRS type to extend
+- **2nd argument**: A vector of pairs (one per property of coordinates of the custom CRS)
+
+The pairs are of the form `propname => unit` (or `propname => unit => (aliases...)` in case aliases are desired for specific properties) where:
+- `propname`: is the name of the property/coordinate of the custom CRS
+- `unit`: is the unit of the property/coordinate. This **MUST** be a `Unit` (and not a `Quantity`) from `Unitful.jl`.
+- `aliases`: **[OPTIONAL]** A tuple of names the corresponding property can be accessed to via `Base.getproperty` on coordinates defined over the custom CRS.
+
+# Example
+
+```jldoctest
+julia> using SatcomCoordinates
+
+julia> struct CustomCartesian <: AbstractCartesianCRS end;
+
+julia> SatcomCoordinates.@define_properties CustomCartesian [
+           x => u"km" # For some reason, we want x to be shown and parsed in km by default
+           y => u"m" => (y2,) # And for some other reason, we want to be able to access y also with the name y2
+           z => u"m"
+       ]
+
+julia> p = Position(CustomCartesian(), 1,2,3);
+
+julia> p.x
+1.0 km
+
+julia> (; y2) = p;
+
+julia> y2
+2.0 m
+```
+
+!!! note "When to use this macro"
+    By default, Cartesian CRSs (i.e. subtypes of `AbstractCartesianCRS`) have the following default properties:
+    - `x`
+    - `y`
+    - `z`
+    which are all associated to the `u"m"` unit and no custom aliases.
+    For all other CRSs (or if one wants to customize either the units or add aliases for custom Cartesian CRSs) this macro must be used on the custom CRS type properly use the other types and function of `SatcomCoordinates.jl`.
+
+See the extended help section below for more details and advanced usage.
+
+See also: [`AbstractSatcomCoordinate`](@ref), [`AbstractCRS`](@ref), [`AbstractCartesianCRS`](@ref), [`Position`](@ref)
+
+# Extended Help
+
+## Generated Code
+This macro automatically adds custom methods for the provided CRS (and following the provided properties and associated units) to the following functions which are internal to `SatcomCoordinates.jl`:
+- [`SatcomCoordinates.units`](@ref)(CRS::Type{<:AbstractCRS})
+- [`SatcomCoordinates.resolve_property`](@ref)(CRS::Type{<:AbstractCRS}, propname::Symbol)
+
+### `SatcomCoordinates.units`
+The `SatcomCoordinates.units` function operates on a CRS type and must returns a `NamedTuple` with the properties as keys and the associated units as values.
+
+In the case of cartesian CRSs, the function method is the following:
+
+```julia
+SatcomCoordinates.units(CRS::Type{<:AbstractCartesianCRS}) = (; x = u"m", y = u"m", z = u"m")
+```
+
+And all additional methods for custom CRSs are expected to be of the same form (i.e. returning a `NamedTuple` with the properties (the baseline ones, not the aliases) as keys and the associated units as values).
+
+
+### `SatcomCoordinates.resolve_property`
+The `SatcomCoordinates.resolve_property` function operates on a CRS type and a property name and must return the name of the property to be used for the `getproperty` call on any coordinate defined over the extended CRS.
+
+Let's consider as an example the the standard (ISO) spherical CRS, which can be mocked up as follows (**this package actually defines and export a more generic `SphericalCRS` which includes the ISO one, the one below is just a simplified mockup**):
+```julia
+using SatcomCoordinates
+
+struct ISOSpherical <: AbstractCRS end
+
+SatcomCoordinates.@define_properties CustomCRS [
+    θ => u"°" => (theta, t)
+    φ => u"°" => (phi, p, ϕ)
+    r => u"m" => (distance, range)
+]
+```
+
+In the above code, we want to be able to access e.g. the polar angle `θ` also with the alternative aliases `theta` or `t`.
+
+The `SatcomCoordinates.resolve_property` function generated by the macro in the snippet above is the following:
+
+```julia
+Base.@constprop :aggressive function SatcomCoordinates.resolve_property(CRS::Type{<:ISOSpherical}, propname::Symbol)
+    if propname in (:θ, :theta, :t)
+        :θ
+    elseif propname in (:φ, :phi, :p, :ϕ)
+        :φ
+    elseif propname in (:r, :distance, :range)
+        :r
+    else
+        :__could_not_resolve_property__
+    end
+end
+```
+
+The `Base.@constprop :aggressive` macro is used to encourage constant propagation of symbols when accessed via `getproperty` resulting in no cost access to the same property via multiple aliases.
+
+## Advanced Usage
+The macro actually supports also a more advance signature for cases of CRSs that *wrap* a parent CRS and simply want to reuse the same properties of the parent CRS.
+
+This is for example the case for the [`SphericalCRS`](@ref) type, which is a wrapper around another CRS specifying the pointing type (e.g. [`ThetaPhi`](@ref) or [`AzEl`](@ref)).
+The [`SphericalCRS`](@ref) needs to _inherit_ the first 2 properties from it's wrapped pointing CRS and just add the third one (`r`).
+
+It is not possible to statically define all the CRS properties in this case, and so the following synthax is used:
+
+```julia
+@define_properties SphericalCRS [
+    pointingtype(_)...
+    r => u"m" => (distance, range)
+]
+```
+
+In this alternative synthax, the macro looks for any occurrence of the `...` at the end of an expression 
+
+This expression (without the `...`, so `pointingtype(_)` above) need to return the wrapped CRS (i.e. the pointing CRS in this example) type.
+
+For convenience, the expression can contain the `_` placeholder to represent the CRS type being extended.
+
+In the specific case above, `pointingtype` is a function of `SatComCoordinates` which returns the underlying pointing CRS type when called with a `SphericalCRS` type as input.
+
+This special synthax currently only supports a single `...` within a `@define_properties` call, and creates the following generated code (in the case of the example above):
+
+```julia
+function SatcomCoordinates.units(CRS::Type{<:SphericalCRS})
+    (; SatcomCoordinates.units(SatcomCoordinates.pointingtype(CRS))..., r = u"m")
+end
+
+Base.@constprop :aggressive function SatcomCoordinates.resolve_property(CRS::Type{<:SphericalCRS}, propname::Symbol)
+    if propname in (:r, :distance, :range)
+        :r
+    else
+        SatcomCoordinates.resolve_property(SatcomCoordinates.pointingtype(CRS), propname)
+    end
+end
+```
+"""
+macro define_properties(CRS, props)
+    propspecs = parse_properties_expression(props)
+    lnn = __source__
+    blk = Expr(:block)
+    push!(blk.args, resolve_property_expression(CRS; propspecs, lnn))
+    push!(blk.args, units_expression(CRS; propspecs, lnn))
+    push!(blk.args, nothing) # This last one is to avoid returning something
+    return Expr(:let, Expr(:block), blk) |> esc
 end
