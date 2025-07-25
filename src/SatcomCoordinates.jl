@@ -21,17 +21,23 @@ include("define_properties.jl")
 public @define_properties
 
 include("types/abstract_types.jl")
-export AbstractCRS, AbstractCartesianCRS, AbstractPointingType, AbstractSphericalCRS, AbstractSatcomCoordinate, AbstractCRSTransform
+export AbstractCRS, AbstractCartesianCRS, AbstractPointingCRS, AbstractSphericalCRS, AbstractSatcomCoordinate, AbstractCRSTransform
 
 # include("types/traits.jl")
 
 export PointingCRS
 
-include("types/pointing_types.jl")
+include("pointing.jl")
 export UV, ThetaPhi, AzEl, AzOverEl, ElOverAz
 
+include("cartesian.jl")
+export Cartesian
+
+include("spherical.jl")
+export SphericalCRS
+
 include("types/coordinates.jl")
-export Cartesian, SphericalCRS, Pointing, Position
+export Pointing, Position
 
 
 # include("types/pointing_offsets.jl") 

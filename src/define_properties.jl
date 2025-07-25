@@ -169,7 +169,7 @@ The arguments expected by the macro are the following:
 
 The pairs are of the form `propname => unit` (or `propname => unit => (aliases...)` in case aliases are desired for specific properties) where:
 - `propname`: is the name of the property/coordinate of the custom CRS
-- `unit`: is the unit of the property/coordinate. This **MUST** be a `Unit` (and not a `Quantity`) from `Unitful.jl`.
+- `unit`: is the unit of the property/coordinate. This **MUST** be a `Unit` (and not a `Quantity`) from `Unitful.jl`. In case of properties without a unit (e.g. the coords for UV pointing), `NoUnits` must be used.
 - `aliases`: **[OPTIONAL]** A tuple of names the corresponding property can be accessed to via `Base.getproperty` on coordinates defined over the custom CRS.
 
 # Example
@@ -273,31 +273,31 @@ It is not possible to statically define all the CRS properties in this case, and
 
 ```julia
 @define_properties SphericalCRS [
-    pointingtype(_)...
+    pointingcrs(_)...
     r => u"m" => (distance, range)
 ]
 ```
 
 In this alternative synthax, the macro looks for any occurrence of the `...` at the end of an expression 
 
-This expression (without the `...`, so `pointingtype(_)` above) need to return the wrapped CRS (i.e. the pointing CRS in this example) type.
+This expression (without the `...`, so `pointingcrs(_)` above) need to return the wrapped CRS (i.e. the pointing CRS in this example) type.
 
 For convenience, the expression can contain the `_` placeholder to represent the CRS type being extended.
 
-In the specific case above, `pointingtype` is a function of `SatComCoordinates` which returns the underlying pointing CRS type when called with a `SphericalCRS` type as input.
+In the specific case above, `pointingcrs` is a function of `SatComCoordinates` which returns the underlying pointing CRS type when called with a `SphericalCRS` type as input.
 
 This special synthax currently only supports a single `...` within a `@define_properties` call, and creates the following generated code (in the case of the example above):
 
 ```julia
 function SatcomCoordinates.units(CRS::Type{<:SphericalCRS})
-    (; SatcomCoordinates.units(SatcomCoordinates.pointingtype(CRS))..., r = u"m")
+    (; SatcomCoordinates.units(SatcomCoordinates.pointingcrs(CRS))..., r = u"m")
 end
 
 Base.@constprop :aggressive function SatcomCoordinates.resolve_property(CRS::Type{<:SphericalCRS}, propname::Symbol)
     if propname in (:r, :distance, :range)
         :r
     else
-        SatcomCoordinates.resolve_property(SatcomCoordinates.pointingtype(CRS), propname)
+        SatcomCoordinates.resolve_property(SatcomCoordinates.pointingcrs(CRS), propname)
     end
 end
 ```

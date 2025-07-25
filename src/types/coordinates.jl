@@ -4,13 +4,10 @@ struct Position{CRS <: AbstractCRS, T} <: AbstractSatcomCoordinate{CRS, T, 3}
 
     BasicTypes.constructor_without_checks(::Type{Position{CRS, T}}, crs::CRS, tuplecoords::NTuple{3, T}) where {CRS <: AbstractCRS, T} = new{CRS, T}(crs, tuplecoords)
 end
-function Position(crs::CRS, tuplecoords::NTuple{3, T}) where {CRS <: AbstractCRS, T <: AbstractFloat} 
-    constructor_without_checks(Position{CRS, T}, crs, tuplecoords)
-end
-(C::Type{<:AbstractSatcomCoordinate})(args::Vararg{Any, N}) where N = create_coordinate(C, args...)
+(C::Type{<:AbstractSatcomCoordinate})(args::Vararg{Any, N}) where {N} = create_coordinate(C, args...)
 
-create_coordinate(C::Type{<:AbstractSatcomCoordinate}, args::Point{M, Number}) where M = create_coordinate(C, args...)
-create_coordinate(C::Type{<:AbstractSatcomCoordinate}, crs::AbstractCRS, args::Point{M, Number}) where M = create_coordinate(C, crs, args...)
+create_coordinate(C::Type{<:AbstractSatcomCoordinate}, args::Point{M, Number}) where {M} = create_coordinate(C, args...)
+create_coordinate(C::Type{<:AbstractSatcomCoordinate}, crs::AbstractCRS, args::Point{M, Number}) where {M} = create_coordinate(C, crs, args...)
 function create_coordinate(C::Type{<:AbstractSatcomCoordinate{<:Any, <:Any, N}}, coords::Vararg{Number, M}) where {N, M}
     return create_coordinate(C, defaultcrs(C), coords...)
 end
@@ -28,7 +25,7 @@ function create_coordinate(C::Type{<:AbstractSatcomCoordinate{<:Any, <:Any, N}},
         CT
     end
     tup = preprocess_input_coords(CRS, T, coords)
-    return basetype(C)(crs, tup)
+    return process_unitless_coords(C, crs, tup)
 end
 
 """
@@ -79,12 +76,6 @@ BasicTypes.valuetype(::Type{<:AbstractSatcomCoordinate{<:Any}}) = Union{}
 units(::CRS) where CRS <: AbstractCRS = units(CRS)
 referenceunits(CRS::Type{<:AbstractCRS}) = map(upreferred, units(CRS))
 
-@define_properties AbstractCartesianCRS [
-    x => u"m"
-    y => u"m"
-    z => u"m"
-]
-
 crs(coord::AbstractSatcomCoordinate) = getfield(coord, :crs)
 tuplecoords(coord::AbstractSatcomCoordinate) = getfield(coord, :tuplecoords)
 
@@ -107,13 +98,29 @@ function coords(coord::AbstractSatcomCoordinate)
 end
 
 """
-    parentcrs(crs::AbstractCRS)
+    process_unitless_coords(::Type{C}, crs::AbstractCRS, coords::NTuple{<:Any, T}) where {C <: FieldOrCoordinate, T}
 
-Return the parent CRS of the provided `crs` if it exists, otherwise return the `crs` itself.
+This function is the last step in the pipeline for creating a coordinate as part of the `create_coordinate` function.
+    
+By default it simply calls the constructor of the coordinate type with the provided CRS and coordinates without checks.
 
-Custom CRSs which wrap a parent CRS (e.g. `SphericalCRS`) will either need to store the parent CRS in a field called `parent_crs`, or define a custom method for `parentcrs` which extracts the wrapped CRS.
+When specific processing on the unitless values is required for a particular Coordinate type `C` or crs type, a method to this function should be added, and it should generated a coordinate of type `C` with a CRS of type `typeof(crs)` and machine precision `T`.
 """
-parentcrs(crs::AbstractCRS) = hasfield(typeof(crs), :parent_crs) ? getfield(crs, :parent_crs) : crs
+function process_unitless_coords(::Type{C}, crs::AbstractCRS, coords::NTuple{<:Any, T}) where {C <: FieldOrCoordinate, T}
+    CT = basetype(C){typeof(crs), T}
+    constructor_without_checks(CT, crs, coords)
+end
+
+"""
+    wrappedcrs(crs::AbstractCRS)
+
+Return the wrapped CRS from the provided `crs` if it exists, otherwise return the `crs` itself.
+
+Custom CRSs which wrap a parent CRS (e.g. `SphericalCRS`) will either need to store the parent CRS in a field called `wrapped_crs`, or define a custom method for `wrappedcrs` which extracts the wrapped CRS.
+"""
+wrappedcrs(crs::AbstractCRS) = hasfield(typeof(crs), :wrapped_crs) ? getfield(crs, :wrapped_crs) : crs
+
+default_wrappedcrs(::Type{<:AbstractCRS}) = Cartesian()
 
 """
     cartesiancrs(crs::AbstractCRS)
@@ -121,7 +128,7 @@ parentcrs(crs::AbstractCRS) = hasfield(typeof(crs), :parent_crs) ? getfield(crs,
 Recursively traverse the CRSs wrapped by the provided `crs` until the first cartesian one (i.e. subtyping `AbstractCartesianCRS`) is found, and then return it.
 """
 function cartesiancrs(crs::AbstractCRS)
-    parent = parentcrs(crs)
+    parent = wrappedcrs(crs)
     if parent isa AbstractCartesianCRS
         return parent
     else
@@ -173,37 +180,12 @@ Raw(c::FieldOrCoordinate{CRS}) where {CRS} = Raw{CRS, typeof(c)}(c)
 @inline crs(r::Raw) = crs(wrapped(r))
 
 
-"""
-    Cartesian <: AbstractCartesianCRS
 
-Generic Cartesian CRS, for use in cases that do not require any specific identification of a CRS/Position
-"""
-struct Cartesian <: AbstractCartesianCRS end
-
-struct SphericalCRS{CRS <: AbstractPointingType} <: AbstractCRS 
-    parent_crs::CRS
-end
-SphericalCRS() = SphericalCRS(ThetaPhi())
-
-@define_properties SphericalCRS [
-    pointingtype(_)... # This is a special synthax for the macro, saying that it should put here all the properties of the the `CRS` obtained by calling `pointingtype(CRS::Type{<:SphericalCRS})`
-    r => u"m" => (:distance, :range) # r as primary property name, u"m" as unit for `r` and `distance` and `range` as aliases for this property
-]
-
-pointingtype(P::Type{<:AbstractPointingType}) = P
-pointingtype(::Type{SphericalCRS{P}}) where P <: AbstractPointingType = P
-pointingtype(crs::AbstractCRS) = pointingtype(typeof(crs))
-
-struct Pointing{CRS <: AbstractPointingType, T} <: AbstractSatcomCoordinate{CRS, T, 2}
+struct Pointing{CRS <: AbstractPointingCRS, T} <: AbstractSatcomCoordinate{CRS, T, 2}
     crs::CRS
     tuplecoords::NTuple{2, T}
 
     BasicTypes.constructor_without_checks(::Type{Pointing{CRS, T}}, crs::CRS, tuplecoords::NTuple{2, T}) where {CRS <: AbstractCRS, T} = new{CRS, T}(crs, tuplecoords)
-end
-function Pointing(crs::CRS, coords::NTuple{2, T}) where {CRS <: AbstractPointingType, T <: AbstractFloat} 
-    PT = pointingtype(CRS)
-    tup = process_pointing_coords(PT, coords)
-    return constructor_without_checks(Pointing{CRS, T}, crs, tup)
 end
 
 defaultcrs(::Type{<:AbstractSatcomCoordinate{CRS}}) where CRS <: AbstractCRS = CRS()
