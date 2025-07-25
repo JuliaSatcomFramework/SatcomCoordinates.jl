@@ -108,6 +108,47 @@ end
 @inline Base.propertynames(coord::AbstractSatcomCoordinate) = propertynames(coords_units(crs(coord)))
 
 """
+    Raw{C <: FieldOrCoordinate} <: FieldOrCoordinate
+
+Structure that is only used to wrap a `FieldOrCoordinate` object and allow to access its raw values (i.e. normalized and without units) directly via `Base.getproperty`.
+
+# Example
+```julia
+using SatcomCoordinates
+
+# Define our custom Cartesian CRS
+struct CustomKM <: AbstractCartesianCRS end
+
+# We specify that this has x,y,z properties which have default unit of km (i.e. plain numbers are interpreted as km). The raw coordinates (i.e. how they are stored internally in the coordinate instances) are actually floating point values represented in meters (as that is the SI unit for length)
+@define_properties CustomKM [
+    x => u"km"
+    y => u"km"
+    z => u"km"
+]
+
+# Create a position in the custom CRS at x = 1km, y = 2km, z = 3km
+pkm = Position(CartesianKM(), 1,2,3)
+
+# Normal property access 
+pkm.x === 1.0u"km" # true
+
+# If you want to directly access the raw unitless data (e.g. inside of hot loops), you can wrap the coordinate in `Raw`
+(; y) = Raw(pkm) # This uses the julia desctructuring synthax that relies on `Base.getproperty`
+
+y === 2000.0 # true
+```
+"""
+struct Raw{C <: FieldOrCoordinate} <: FieldOrCoordinate
+    wrapped::C
+end
+
+@inline wrapped(r::Raw) = getfield(r, :wrapped)
+@inline Base.propertynames(r::Raw) = propertynames(wrapped(r))
+@inline coords(r::Raw) = rawcoords(wrapped(r))
+@inline crs(r::Raw) = crs(wrapped(r))
+
+
+"""
     Cartesian <: AbstractCartesianCRS
 
 Generic Cartesian CRS, for use in cases that do not require any specific identification of a CRS/Position
@@ -148,10 +189,20 @@ defaultcrs(::Type{<:AbstractSatcomCoordinate{CRS}}) where CRS <: AbstractCRS = C
 defaultcrs(::Type{<:AbstractSatcomCoordinate{<:Any}}) = Cartesian()
 defaultcrs(::Type{Pointing}) = PointingCRS()
 
-@inline Base.@constprop :aggressive function Base.getproperty(coord::AbstractSatcomCoordinate, s::Symbol)
-    props = coords(coord)
-    CRS = crs(coord) |> typeof
+@inline Base.@constprop :aggressive function Base.getproperty(obj::FieldOrCoordinate, s::Symbol)
+    props = coords(obj)
+    CRS = crs(obj) |> typeof
     nm = resolve_property(CRS, s)::Symbol
     nm === :__could_not_resolve_property__ && throw(ArgumentError("The requested property name `:$(s)` is not a valid property for a coordinate over a CRS of type `$CRS`"))
     getproperty(props, nm)
+end
+
+
+function change_crs(crsₒ::AbstractCRS, coord::AbstractSatcomCoordinate)
+    return change_crs(crsₒ, crs(coord), tuplecoords(coord))
+end
+change_crs(::CRS, coord::AbstractSatcomCoordinate{CRS}) where CRS = coord
+
+function change_crs(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, tup)
+    throw(ArgumentError("No conversion is defined to go from an input CRS of type `$(typeof(crsᵢ))` to an output CRS of type `$(typeof(crsₒ))`"))
 end

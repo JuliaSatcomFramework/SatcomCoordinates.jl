@@ -44,6 +44,15 @@ An example of such a CRS is the ECI CRS.
 abstract type AbstractEllipsoidIntertialCRS <: AbstractEllipsoidCentricCRS end
 
 """
+    abstract type FieldOrCoordinate end
+
+Abstract type representing either a field or a coordinate.
+
+This is wrap all possible types within this package that are not CRSs themselves. It is used to contraint custom methods we have for `Base` functions.
+"""
+abstract type FieldOrCoordinate end
+
+"""
     AbstractSatcomCoordinate{CRS <: AbstractCRS, T, N}
 
 General abstract type identifying a _coordinate_ with `N` dimension and defined with respect to a specific Coordinate Reference System `CRS`. The parameter `T` represent the underlying numeric type (e.g. machine precision) of the coordinate components.
@@ -51,7 +60,7 @@ General abstract type identifying a _coordinate_ with `N` dimension and defined 
 !!! note
     The term _coordinate_ is used here in a loose sense, identifying both position in space as well as pointing directions
 """
-abstract type AbstractSatcomCoordinate{CRS <: AbstractCRS, T, N} end
+abstract type AbstractSatcomCoordinate{CRS <: AbstractCRS, T, N} <: FieldOrCoordinate end
 
 """
     AbstractCRSTransform{T}
