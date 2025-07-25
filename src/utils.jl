@@ -22,40 +22,41 @@ function parse_properties_expression(ex::Expr)
     Meta.isexpr(ex, :vcat) || throw(ArgumentError("The macro only supports inputs of the form"))
     props = ex.args
     propnames = Symbol[]
-    units = []
+    userunits = []
     aliases = Vector{Symbol}[]
     for ex in props
-        propname, unit, _aliases = parse_property_expression(ex)
+        propname, userunit, _aliases = parse_property_expression(ex)
         push!(propnames, propname)
-        push!(units, unit)
+        push!(userunits, userunit)
         push!(aliases, _aliases)
     end
     allnames = vcat(propnames, aliases...)
     allunique(allnames) || throw(ArgumentError("The provided property names (with their aliases) are not unique"))
-    return propnames, units, aliases
+    return propnames, userunits, aliases
 end
 
 macro define_properties(CRS, props)
-    CRS isa Symbol || throw(ArgumentError("The first argument should be the name of the target CRS type"))
-    propnames, units, aliases = parse_properties_expression(props)
+    propnames, userunits, aliases = parse_properties_expression(props)
     lnn = __source__
     blk = Expr(:block)
     push!(blk.args, resolve_property_expression(CRS; propnames, aliases, lnn))
-    push!(blk.args, units_expression(CRS; propnames, units, lnn))
-    return Expr(:let, Expr(:block), blk)
+    push!(blk.args, units_expression(CRS; propnames, userunits, lnn))
+    return Expr(:let, Expr(:block), blk) |> esc
 end
 
-function units_expression(CRS::Symbol; propnames, units, lnn::LineNumberNode)
-    length(propnames) == length(units) || throw(ArgumentError("The number of property names and units must be the same"))
+# This function takes care of automatically generating the `units` function for the provided CRS
+function units_expression(CRS; propnames, userunits, lnn::LineNumberNode)
+    length(propnames) == length(userunits) || throw(ArgumentError("The number of property names and units must be the same"))
     kws = Expr(:parameters)
-    for i in eachindex(propnames, units)
-        push!(kws.args, Expr(:kw, propnames[i], esc(units[i])))
+    for i in eachindex(propnames, userunits)
+        push!(kws.args, Expr(:kw, propnames[i], userunits[i]))
     end
     ntexpr = Expr(:tuple, kws)
-    fdef = Expr(:function, Expr(:call, GlobalRef(@__MODULE__, :units), esc(Expr(:(::), Expr(:curly, :Type, Expr(:(<:), CRS))))), Expr(:block, lnn, ntexpr))
+    fdef = Expr(:function, Expr(:call, GlobalRef(@__MODULE__, :units), Expr(:(::), Expr(:curly, :Type, Expr(:(<:), CRS)))), Expr(:block, lnn, ntexpr))
 end
 
-function resolve_property_expression(CRS::Symbol; propnames, aliases, lnn::LineNumberNode)
+# This function takes care of automatically generating the `resolve_property` function for the provided CRS
+function resolve_property_expression(CRS; propnames, aliases, lnn::LineNumberNode)
     length(propnames) == length(aliases) || throw(ArgumentError("The number of property names and alternates must be the same"))
     allnames = vcat(propnames, aliases...)
     allunique(allnames) || throw(ArgumentError("The provided property names (with their aliases) are not unique"))
@@ -63,13 +64,13 @@ function resolve_property_expression(CRS::Symbol; propnames, aliases, lnn::LineN
     # Here we build the if-else block. We start from the error
     ifex = QuoteNode(:__could_not_resolve_property__)
     midargs(i) = [
-        :($(esc(:propname)) in $((propnames[i], aliases[i]...))),
+        :(propname in $((propnames[i], aliases[i]...))),
         :(return $(QuoteNode(propnames[i])))
     ]
     for i in reverse(2:nprops)
         ifex = Expr(:elseif, midargs(i)..., ifex)
     end
     ifex = Expr(:if, midargs(1)..., ifex)
-    fdef = Expr(:function, Expr(:call, GlobalRef(@__MODULE__, :resolve_property), esc(Expr(:(::), :crs, Expr(:curly, :Type, Expr(:(<:), CRS)))), esc(Expr(:(::), :propname, Symbol))), Expr(:block, lnn, ifex))
+    fdef = Expr(:function, Expr(:call, GlobalRef(@__MODULE__, :resolve_property), Expr(:(::), :crs, Expr(:curly, :Type, Expr(:(<:), CRS))), Expr(:(::), :propname, Symbol)), Expr(:block, lnn, ifex))
     aex = :(Base.@constprop :aggressive $fdef)
 end
