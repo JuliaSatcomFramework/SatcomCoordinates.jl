@@ -3,9 +3,11 @@
 
 Abstract type representing an arbitrary coordinate reference system. This is intended to be used as type parameter for all coordinate types to allow consistency check between operation among coordinates and in some cases simplify conversion of a given coordinate to different CRSs.
 
-All concrete subtypes of `AbstractCRS` are expected to either by directly a 3-dimensional cartesian CRS (i.e. a subtype of `AbstractCartesianCRS`) or be based on a 3-dimensional cartesian CRS.
+All concrete subtypes of `AbstractCRS` are expected to either by directly a 3-dimensional cartesian CRS (i.e. CRS whose units are all lengths) or be based on a 3-dimensional cartesian CRS.
 
-The reference 3-dimensional cartesian CRS should always be accessible from any custom subtype of `AbstractCRS` via the [`cartesian_crs`](@ref) function.
+The reference 3-dimensional cartesian CRS should always be accessible from any custom subtype of `AbstractCRS` via the [`cartesiancrs`](@ref) function.
+
+By default, a CRS is considered cartesian if all its properties have units of length. Specific customization of whether a custom CRS is considered or not cartesian can be done by adding a custom method to the `iscartesiancrs` function (which must return either `true` or `false`).
 
 !!! note "No-Argument Constructor"
     Each concrete subtype of `AbstractCRS` is expected to define a no-argument constructor without any type parameter (i.e. `CRS()`) which returns the default instance of said CRS.
@@ -13,16 +15,7 @@ The reference 3-dimensional cartesian CRS should always be accessible from any c
 abstract type AbstractCRS end
 
 """
-    AbstractCartesianCRS <: AbstractCRS
-
-Abstract type representing a Cartesian CRS. A 3-dimensional cartesian CRS is expected to be the basis of any other custom CRS and is used internally to check whether coordinates refer to compatible CRSs.
-
-See also: [`AbstractCRS`](@ref)
-"""
-abstract type AbstractCartesianCRS <: AbstractCRS end
-
-"""
-    AbstractPointingCRS{CRS <: AbstractCartesianCRS} <: AbstractCRS
+    AbstractPointingCRS{CRS <: AbstractCRS} <: AbstractCRS
 
 Abstract type representing any pointing type defined over a 3D Cartesian CRS.
 Different pointing types identify different ways of identifying a position on the unitary sphere (over the specified CRS) with two coordinates (e.g. theta/phi, azimuth/elevation, etc.)
@@ -31,16 +24,16 @@ Although these are not strictly speaking CRSs themselves, they are considered a 
 
 See also: [`AbstractCRS`](@ref), [`UV`](@ref), [`ThetaPhi`](@ref), [`AzOverEl`](@ref), [`ElOverAz`](@ref), [`AzEl`](@ref)
 """
-abstract type AbstractPointingCRS{CRS <: AbstractCartesianCRS} <: AbstractCRS end
+abstract type AbstractPointingCRS{CRS <: AbstractCRS} <: AbstractCRS end
 
 """
-    AbstractEllipsoidCentricCRS <: AbstractCartesianCRS
+    AbstractEllipsoidCentricCRS <: AbstractCRS
 
 Abstract type representing a 3D Cartesian CRS whose origin is at the center of a reference ellipsoid.
 
 Examples of such a CRS are the ECEF and ECI CRSs.
 """
-abstract type AbstractEllipsoidCentricCRS <: AbstractCartesianCRS end
+abstract type AbstractEllipsoidCentricCRS <: AbstractCRS end
 
 """
     AbstractEllipsoidFixedCRS <: AbstractEllipsoidCentricCRS

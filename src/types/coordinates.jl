@@ -25,7 +25,8 @@ function create_coordinate(C::Type{<:AbstractSatcomCoordinate{<:Any, <:Any, N}},
         CT
     end
     tup = preprocess_input_coords(CRS, T, coords)
-    return process_unitless_coords(C, crs, tup)
+    raw = process_unitless_coords(C, crs, tup)
+    return constructor_without_checks(basetype(C){CRS, T}, crs, raw)
 end
 
 """
@@ -46,95 +47,21 @@ function preprocess_input_coords(CRS::Type{<:AbstractCRS}, T::Type{<:AbstractFlo
     return tup
 end
 
-"""
-    upreferred(CRS::Type, unit::Unitful.Units)
-    
-Allow to customize the preferred unit on different types of CRSs. Defaults to `Unitful.upreferred(unit)`.
-
-!!! note
-    This is not the same function as `Unitful.upreferred` but just shares the same name as they basically have the same end goal. It is nonetheless redefined internally to `SatComCoordinates` to avoid polluting the methods of `Unitful.upreferred`.
-"""
-upreferred(unit::Unitful.Units) = Unitful.upreferred(unit)
-upreferred(::Union{typeof(u"°"), typeof(u"rad")}) = u"rad"
-
-add_unit(propunit::Unitful.Units, refunit::Unitful.Units, val::Real) = enforce_unit(refunit, val) |> propunit
-
-remove_unit(propunit::Unitful.Units, refunit::Unitful.Units, val::Number) = enforce_unit(propunit, val) |> refunit |> ustrip
-
-@inline ncoords(::Type{<:AbstractSatcomCoordinate{<:Any, <:Any, N}}) where N = N
-@inline ncoords(::Type{CRS}) where CRS <: AbstractCRS = length(units(CRS))
-@inline ncoords(obj::Union{AbstractCRS, FieldOrCoordinate}) = ncoords(typeof(obj))
-
-@inline crstype(::Type{<:AbstractSatcomCoordinate{CRS}}) where CRS <: AbstractCRS = CRS
-@inline crstype(::Type{CRS}) where CRS <: AbstractCRS = CRS
-@inline crstype(::Type) = Union{}
-@inline crstype(x::Union{AbstractCRS, AbstractSatcomCoordinate}) = crstype(typeof(x))
-
-BasicTypes.valuetype(::Type{<:AbstractSatcomCoordinate{<:Any, T}}) where T = T
-BasicTypes.valuetype(::Type{<:AbstractSatcomCoordinate{<:Any}}) = Union{}
-
-units(::CRS) where CRS <: AbstractCRS = units(CRS)
-referenceunits(CRS::Type{<:AbstractCRS}) = map(upreferred, units(CRS))
-
-crs(coord::AbstractSatcomCoordinate) = getfield(coord, :crs)
-tuplecoords(coord::AbstractSatcomCoordinate) = getfield(coord, :tuplecoords)
-
-function rawcoords(coord::AbstractSatcomCoordinate)
-    CRS = crstype(coord)
-    userunits = units(CRS)
-    coords = tuplecoords(coord)
-    return NamedTuple{keys(userunits)}(coords)
-end
-
-function coords(coord::AbstractSatcomCoordinate)
-    CRS = crstype(coord)
-    userunits = units(CRS)
-    refunits = referenceunits(CRS)
-    c = tuplecoords(coord)
-    vals = ntuple(ncoords(CRS)) do i
-        add_unit(userunits[i], refunits[i], c[i])
-    end
-    return NamedTuple{keys(userunits)}(vals)
-end
 
 """
     process_unitless_coords(::Type{C}, crs::AbstractCRS, coords::NTuple{<:Any, T}) where {C <: FieldOrCoordinate, T}
 
 This function is the last step in the pipeline for creating a coordinate as part of the `create_coordinate` function.
-    
-By default it simply calls the constructor of the coordinate type with the provided CRS and coordinates without checks.
 
-When specific processing on the unitless values is required for a particular Coordinate type `C` or crs type, a method to this function should be added, and it should generated a coordinate of type `C` with a CRS of type `typeof(crs)` and machine precision `T`.
+It takes as input the `NTuple` already stripped of eventual units and should just do final checks on the inputs and return an eventualy modified NTuple (e.g. wrap angles in radians if beyond [-π, π]), which will be then used to create the coordinate instance via the `constructor_without_checks` function.
+    
+The default method for this function simply returns the input `NTuple` as is. Custom CRSs that require specific checks or modification of the unitless inputs should add a method to this function.
 """
 function process_unitless_coords(::Type{C}, crs::AbstractCRS, coords::NTuple{<:Any, T}) where {C <: FieldOrCoordinate, T}
-    CT = basetype(C){typeof(crs), T}
-    constructor_without_checks(CT, crs, coords)
+    return coords
 end
-
-"""
-    wrappedcrs(crs::AbstractCRS)
-
-Return the wrapped CRS from the provided `crs` if it exists, otherwise return the `crs` itself.
-
-Custom CRSs which wrap a parent CRS (e.g. `SphericalCRS`) will either need to store the parent CRS in a field called `wrapped_crs`, or define a custom method for `wrappedcrs` which extracts the wrapped CRS.
-"""
-wrappedcrs(crs::AbstractCRS) = hasfield(typeof(crs), :wrapped_crs) ? getfield(crs, :wrapped_crs) : crs
 
 default_wrappedcrs(::Type{<:AbstractCRS}) = Cartesian()
-
-"""
-    cartesiancrs(crs::AbstractCRS)
-
-Recursively traverse the CRSs wrapped by the provided `crs` until the first cartesian one (i.e. subtyping `AbstractCartesianCRS`) is found, and then return it.
-"""
-function cartesiancrs(crs::AbstractCRS)
-    parent = wrappedcrs(crs)
-    if parent isa AbstractCartesianCRS
-        return parent
-    else
-        return cartesiancrs(parent)
-    end
-end
 
 @inline Base.propertynames(coord::AbstractSatcomCoordinate) = propertynames(units(crs(coord)))
 
@@ -148,7 +75,7 @@ Structure that is only used to wrap a `FieldOrCoordinate` object and allow to ac
 using SatcomCoordinates
 
 # Define our custom Cartesian CRS
-struct CustomKM <: AbstractCartesianCRS end
+struct CustomKM <: AbstractCRS end
 
 # We specify that this has x,y,z properties which have default unit of km (i.e. plain numbers are interpreted as km). The raw coordinates (i.e. how they are stored internally in the coordinate instances) are actually floating point values represented in meters (as that is the SI unit for length)
 @define_properties CustomKM [
@@ -209,3 +136,18 @@ change_crs(::CRS, coord::AbstractSatcomCoordinate{CRS}) where CRS = coord
 function change_crs(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, tup)
     throw(ArgumentError("No conversion is defined to go from an input CRS of type `$(typeof(crsᵢ))` to an output CRS of type `$(typeof(crsₒ))`"))
 end
+
+
+"""
+    isderivedcrs(C::Type{<:AbstractCRS})
+    isderivedcrs(crs::AbstractCRS)
+
+Checks whether a given `crs` (or `CRS` type) is derived from another CRS type or no.
+
+!!! note
+    The default implementation simply checks if the CRS type has a field which subtypes `AbstractCRS`.
+"""
+function isderivedcrs(C::Type{<:AbstractCRS})
+    return any(p -> p <: AbstractCRS, fieldtypes(C))
+end
+isderivedcrs(crs::AbstractCRS) = isderivedcrs(typeof(crs))

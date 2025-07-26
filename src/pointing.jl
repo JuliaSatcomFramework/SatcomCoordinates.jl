@@ -4,9 +4,9 @@
 
 # UV
 """
-    UV{CRS <: AbstractCartesianCRS} <: AbstractPointingCRS{CRS}
+    UV{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS}
 
-Specify a pointing direction in UV coordinates over the cartesian CRS `CRS`. 
+Specify a pointing direction in UV coordinates over the cartesian CRS `CRS` (which must be a Cartesian CRS). 
 U,V Coordinates are equivalent to the direction cosines with respect to the `X` and `Y` axis of the reference frame `CRS`. They can also be related to the spherical coordinates (ISO/Physics) [spherical coordinates
 representation](https://en.wikipedia.org/wiki/Spherical_coordinate_system) by the following equations:
 - `u = sin(θ) * cos(φ)`
@@ -25,15 +25,20 @@ representation](https://en.wikipedia.org/wiki/Spherical_coordinate_system) by th
 
 See also: [`AbstractPointingCRS`](@ref), [`ThetaPhi`](@ref)
 """
-struct UV{CRS <: AbstractCartesianCRS} <: AbstractPointingCRS{CRS} 
+struct UV{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS} 
     wrapped_crs::CRS
+    function UV{CRS}(wrapped_crs::CRS) where CRS <: AbstractCRS
+        check_cartesian_wrapped(UV, wrapped_crs)
+        return new{CRS}(wrapped_crs)
+    end
 end
+UV(wrapped_crs::AbstractCRS) = UV{typeof(wrapped_crs)}(wrapped_crs)
 
 # ThetaPhi
 """
-    ThetaPhi{CRS <: AbstractCartesianCRS} <: AbstractPointingCRS{CRS}
+    ThetaPhi{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS}
 
-An object specifying a pointing direction in ThetaPhi coordinates over the spherical CRS `CRS`, defined as the θ and φ in
+An object specifying a pointing direction in ThetaPhi coordinates over the Cartesian CRS `CRS`, defined as the θ and φ in
 the (ISO/Physics definition) [spherical coordinates
 representation](https://en.wikipedia.org/wiki/Spherical_coordinate_system) 
 
@@ -53,12 +58,17 @@ While the field name use the greek letters, the specific fields of an arbitrary
 
 See also: [`PointingVersor`](@ref), [`UV`](@ref)
 """
-struct ThetaPhi{CRS <: AbstractCartesianCRS} <: AbstractPointingCRS{CRS} 
+struct ThetaPhi{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS} 
     wrapped_crs::CRS
+    function ThetaPhi{CRS}(wrapped_crs::CRS) where CRS <: AbstractCRS
+        check_cartesian_wrapped(ThetaPhi, wrapped_crs)
+        return new{CRS}(wrapped_crs)
+    end
 end 
+ThetaPhi(wrapped_crs::AbstractCRS) = ThetaPhi{typeof(wrapped_crs)}(wrapped_crs)
 
 """
-    AzOverEl{CRS <: AbstractCartesianCRS} <: AbstractPointingCRS{CRS}
+    AzOverEl{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS}
 
 Object specifying a pointing direction in "Azimuth over Elevation" coordinates, which specify the elevation and azimuth angles that needs to be fed to an azimuth-over-elevation positioner for pointing to a target towards the pointing direction ̂p.
 
@@ -79,12 +89,17 @@ Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`,
 !!! note
     The fields of `AzOverEl` objects can also be accessed via `getproperty` using the `azimuth` and `elevation` aliases.
 """
-struct AzOverEl{CRS <: AbstractCartesianCRS} <: AbstractPointingCRS{CRS} 
+struct AzOverEl{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS} 
     wrapped_crs::CRS
+    function AzOverEl{CRS}(wrapped_crs::CRS) where CRS <: AbstractCRS
+        check_cartesian_wrapped(AzOverEl, wrapped_crs)
+        return new{CRS}(wrapped_crs)
+    end
 end
+AzOverEl(wrapped_crs::AbstractCRS) = AzOverEl{typeof(wrapped_crs)}(wrapped_crs)
 
 """
-    ElOverAz{CRS <: AbstractCartesianCRS} <: AbstractPointingCRS{CRS}
+    ElOverAz{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS}
 
 Object specifying a pointing direction in "Elevation over Azimuth" coordinates, which specify the azimuth and elevation angles that needs to be fed to an elevation-over-azimuth positioner for pointing to a target towards the pointing direction ̂p.
 
@@ -104,12 +119,17 @@ Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`,
 
 See also: [`AzOverEl`](@ref), [`ThetaPhi`](@ref), [`UV`](@ref)
 """
-struct ElOverAz{CRS <: AbstractCartesianCRS} <: AbstractPointingCRS{CRS} 
+struct ElOverAz{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS} 
     wrapped_crs::CRS
+    function ElOverAz{CRS}(wrapped_crs::CRS) where CRS <: AbstractCRS
+        check_cartesian_wrapped(ElOverAz, wrapped_crs)
+        return new{CRS}(wrapped_crs)
+    end
 end
+ElOverAz(wrapped_crs::AbstractCRS) = ElOverAz{typeof(wrapped_crs)}(wrapped_crs)
 
 """
-    AzEl{CRS <: AbstractCartesianCRS} <: AbstractPointingCRS{CRS}
+    AzEl{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS}
 
 Object specifying a pointing direction in "Elevation/Azimuth" coordinates, defined following the convention used for Azimuth-Elevation-Range ([`AER`](@ref)) coordinates used by MATLAB and by this package.
 
@@ -126,9 +146,14 @@ Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`,
 
 See also: [`ThetaPhi`](@ref), [`UV`](@ref), [`ElOverAz`](@ref), [`AzOverEl`](@ref)
 """
-struct AzEl{CRS <: AbstractCartesianCRS} <: AbstractPointingCRS{CRS} 
+struct AzEl{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS} 
     wrapped_crs::CRS
+    function AzEl{CRS}(wrapped_crs::CRS) where CRS <: AbstractCRS
+        check_cartesian_wrapped(AzEl, wrapped_crs)
+        return new{CRS}(wrapped_crs)
+    end
 end
+AzEl(wrapped_crs::AbstractCRS) = AzEl{typeof(wrapped_crs)}(wrapped_crs)
 
 ##################################################################
 ########                  CRS Properties                  ########
@@ -175,52 +200,11 @@ process_unitless_coords(::Type{<:FieldOrCoordinate}, crs::AbstractPointingCRS, c
 
 const UV_CONSTRUCTOR_TOLERANCE = Ref{Float64}(1e-5)
 
-function process_unitless_coords(::Type{P}, crs::AbstractPointingCRS, coords::NTuple{<:Any, T}) where {P <: Pointing, T}
-    PT = typeof(crs)
-    tup = map(coords) do val
-        rem2pi(deg2rad(val), RoundNearest)
-    end
-    raw = if PT <: UV
-        u, v = coords
-        n = u^2 + v^2
-        tol = UV_CONSTRUCTOR_TOLERANCE[]
-        lim = 1 + tol
-        if (n > 1 && n <= lim)
-            c = 1 / sqrt(n)
-            u *= c
-            v *= c
-        end
-        if (n > lim) 
-            error("The provided inputs do not satisfy u^2 + v^2 <= 1 + tolerance
-        u = $u 
-        v = $v 
-        u^2 + v^2 = $n
-        tolerance = $(tol)")
-        end
-        (u, v)
-    else
-        wrap_spherical_angles_rad_normalized(tup..., PT)
-    end
-    return constructor_without_checks(Pointing{PT, T}, crs, raw)
-end
-
 # This is the default no-arg constructor for any pointing CRS. It falls back to use the `default_wrappedcrs` function to get the default wrapped CRS for the specific CRS type.
 function (CRS::Type{<:AbstractPointingCRS})()
     # This is the no-arg constructor, it creates a pointing CRS with the default wrapped CRS
     return CRS(default_wrappedcrs(CRS))
 end
-for T in (Vararg{Number, 2}, Point{2, Number})
-    @eval function (CRS::Type{<:AbstractPointingCRS})(coords::$T)
-        # This is the constructor with coordinates, it creates a pointing CRS with the default wrapped CRS and the provided coordinates
-        return CRS(default_wrappedcrs(CRS), coords...)
-    end
-
-    @eval function (CRS::Type{<:AbstractPointingCRS})(wrapped_crs::AbstractCartesianCRS, coords::$T)
-        crs = CRS(wrapped_crs)
-        return Pointing(crs, coords)
-    end
-end
-
 
 ###################################################################
 ########                  Other Helpers                    ########
@@ -230,5 +214,8 @@ end
 pointingcrs(P::Type{<:AbstractPointingCRS}) = P
 pointingcrs(crs::AbstractCRS) = pointingcrs(typeof(crs))
 
-default_wrappedcrs(::Type{<:AbstractPointingCRS{CRS}}) where CRS <: AbstractCartesianCRS = CRS()
+function default_wrappedcrs(D::Type{<:AbstractPointingCRS{CRS}}) where CRS <: AbstractCRS
+    check_cartesian_wrapped(D, CRS)
+    return CRS()
+end
 default_wrappedcrs(::Type{<:AbstractPointingCRS{<:Any}}) = Cartesian()

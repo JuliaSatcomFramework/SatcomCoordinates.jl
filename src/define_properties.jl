@@ -177,7 +177,7 @@ The pairs are of the form `propname => unit` (or `propname => unit => (aliases..
 ```jldoctest
 julia> using SatcomCoordinates
 
-julia> struct CustomCartesian <: AbstractCartesianCRS end;
+julia> struct CustomCartesian <: AbstractCRS end;
 
 julia> SatcomCoordinates.@define_properties CustomCartesian [
            x => u"km" # For some reason, we want x to be shown and parsed in km by default
@@ -197,16 +197,16 @@ julia> y2
 ```
 
 !!! note "When to use this macro"
-    By default, Cartesian CRSs (i.e. subtypes of `AbstractCartesianCRS`) have the following default properties:
+    By default, CRSs (i.e. subtypes of `AbstractCRS`) are cartesian CRSs and have the following default properties:
     - `x`
     - `y`
     - `z`
     which are all associated to the `u"m"` unit and no custom aliases.
-    For all other CRSs (or if one wants to customize either the units or add aliases for custom Cartesian CRSs) this macro must be used on the custom CRS type properly use the other types and function of `SatcomCoordinates.jl`.
+    For all other CRSs (or if one wants to customize either the units or add aliases for custom CRSs) this macro must be used on the custom CRS type properly use the other types and function of `SatcomCoordinates.jl`.
 
 See the extended help section below for more details and advanced usage.
 
-See also: [`AbstractSatcomCoordinate`](@ref), [`AbstractCRS`](@ref), [`AbstractCartesianCRS`](@ref), [`Position`](@ref)
+See also: [`AbstractSatcomCoordinate`](@ref), [`AbstractCRS`](@ref), [`Position`](@ref)
 
 # Extended Help
 
@@ -218,10 +218,10 @@ This macro automatically adds custom methods for the provided CRS (and following
 ### `SatcomCoordinates.units`
 The `SatcomCoordinates.units` function operates on a CRS type and must returns a `NamedTuple` with the properties as keys and the associated units as values.
 
-In the case of cartesian CRSs, the function method is the following:
+In the default case for custom CRSs, the function method is the following:
 
 ```julia
-SatcomCoordinates.units(CRS::Type{<:AbstractCartesianCRS}) = (; x = u"m", y = u"m", z = u"m")
+SatcomCoordinates.units(CRS::Type{<:AbstractCRS}) = (; x = u"m", y = u"m", z = u"m")
 ```
 
 And all additional methods for custom CRSs are expected to be of the same form (i.e. returning a `NamedTuple` with the properties (the baseline ones, not the aliases) as keys and the associated units as values).

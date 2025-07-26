@@ -1,6 +1,6 @@
 module SatcomCoordinates
 
-using BasicTypes: BasicTypes, constructor_without_checks, to_degrees, to_meters, Met, Deg, Rad, UnitfulAngleQuantity, ValidAngle, Point2D, Point3D, Point, PS, ValidDistance, to_radians, asdeg, stripdeg, Length, enforce_unit, enforce_unitless, valuetype, change_valuetype, common_valuetype, promote_valuetype
+using BasicTypes: BasicTypes, constructor_without_checks, to_degrees, to_meters, Met, Deg, Rad, UnitfulAngleQuantity, ValidAngle, Point2D, Point3D, Point, PS, ValidDistance, to_radians, asdeg, stripdeg, Length, enforce_unit, enforce_unitless, valuetype, change_valuetype, common_valuetype, promote_valuetype, getproperty_oftype
 using ConstructionBase: ConstructionBase, getproperties, getfields, constructorof
 using StaticArrays: StaticArrays, FieldVector, SVector, @SVector, SA, StaticMatrix, StaticVector
 using LinearAlgebra: LinearAlgebra, normalize, norm
@@ -21,7 +21,7 @@ include("define_properties.jl")
 public @define_properties
 
 include("types/abstract_types.jl")
-export AbstractCRS, AbstractCartesianCRS, AbstractPointingCRS, AbstractSphericalCRS, AbstractSatcomCoordinate, AbstractCRSTransform
+export AbstractCRS, AbstractPointingCRS, AbstractSphericalCRS, AbstractSatcomCoordinate, AbstractCRSTransform
 
 # include("types/traits.jl")
 
@@ -38,6 +38,11 @@ export SphericalCRS
 
 include("types/coordinates.jl")
 export Pointing, Position
+
+include("constructors_funcs.jl")
+
+include("helpers.jl")
+export iscartesiancrs, cartesiancrs, pointingcrs, default_wrappedcrs, rootcrs
 
 
 # include("types/pointing_offsets.jl") 
