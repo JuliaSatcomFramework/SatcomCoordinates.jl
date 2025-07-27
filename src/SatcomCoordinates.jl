@@ -23,6 +23,8 @@ public @define_properties
 include("types/abstract_types.jl")
 export AbstractCRS, AbstractPointingCRS, AbstractSphericalCRS, AbstractSatcomCoordinate, AbstractCRSTransform
 
+include("raw.jl")
+
 # include("types/traits.jl")
 
 export PointingCRS
@@ -43,6 +45,8 @@ include("constructors_funcs.jl")
 
 include("helpers.jl")
 export iscartesiancrs, cartesiancrs, pointingcrs, default_wrappedcrs, rootcrs
+
+include("deps_interface.jl")
 
 
 # include("types/pointing_offsets.jl") 

@@ -219,3 +219,23 @@ function default_wrappedcrs(D::Type{<:AbstractPointingCRS{CRS}}) where CRS <: Ab
     return CRS()
 end
 default_wrappedcrs(::Type{<:AbstractPointingCRS{<:Any}}) = Cartesian()
+
+function transform_tuplecoords(::CRS, ::UV{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
+    u, v = tup
+    w = sqrt(1 - u^2 - v^2)
+    return (u, v, w)
+end
+
+# ThetaPhi <-> UV (Specific implementation for slightly faster conversion)
+function transform_tuplecoords(::UV{CRS}, ::ThetaPhi{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
+    θ, φ = tup
+	 θ <= π/2 || throw(ArgumentError("The provided ThetaPhi coordinate has θ > 90° so it lies in the half-hemisphere containing the -Z axis and can not be represented in UV"))
+	v, u = sin(θ) .* sincos(φ)
+    return (u, v)
+end
+function transform_tuplecoords(::ThetaPhi{CRS}, ::UV{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
+    u, v = tup
+    θ = asin(sqrt(u^2 + v^2))
+    φ = atan(v,u)
+    return (θ, φ)
+end

@@ -1,7 +1,7 @@
 function process_unitless_coords(::Type{P}, crs::AbstractPointingCRS, coords::NTuple{<:Any, T}) where {P <: Pointing, T}
     PT = typeof(crs)
     tup = map(coords) do val
-        rem2pi(deg2rad(val), RoundNearest)
+        rem2pi(val, RoundNearest)
     end
     raw = if PT <: UV
         u, v = coords

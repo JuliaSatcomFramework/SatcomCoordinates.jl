@@ -11,6 +11,16 @@ By default, a CRS is considered cartesian if all its properties have units of le
 
 !!! note "No-Argument Constructor"
     Each concrete subtype of `AbstractCRS` is expected to define a no-argument constructor without any type parameter (i.e. `CRS()`) which returns the default instance of said CRS.
+
+# Extended Help
+
+A subtype of an `AbstractCRS` shall satisfy the following conditions:
+- It can be cartesian or not cartesian (and should have a valid method for [`iscartesiancrs`](@ref) representing this)
+- It can be a root crs, or a derived crs. In the latter case, it should have the wrapped CRS type as it's first type parameter, and contain the specific instance of the wrapped CRS as a field within it.
+  - Derived CRSs should only depend on a single wrapped CRS. Complex derivations shall be implemented by nesting CRSs rather than by having multiple different wrapped CRSs as fields.
+  - Derived CRSs should be wrapping a Cartesian CRS. Any kind of -non-cartesian CRS shall only be the last level of nesting.
+- Derived CRSs shall have a valid method for the `to_wrappedcrs` function, which should return a transformation to express a coordinate in the derived CRS to the equivalent ones expressed in the wrapped CRS.
+.
 """
 abstract type AbstractCRS end
 
