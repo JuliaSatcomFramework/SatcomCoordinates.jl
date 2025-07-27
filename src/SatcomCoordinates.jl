@@ -39,7 +39,7 @@ include("spherical.jl")
 export SphericalCRS
 
 include("types/coordinates.jl")
-export Pointing, Coordinate
+export Pointing, Coordinate, change_crs
 
 include("constructors_funcs.jl")
 

@@ -235,10 +235,17 @@ function default_wrappedcrs(D::Type{<:AbstractPointingCRS{CRS}}) where CRS <: Ab
 end
 default_wrappedcrs(::Type{<:AbstractPointingCRS{<:Any}}) = Cartesian()
 
+##### Conversions #####
+# UV <-> DirectionCosines
 function transform_tuplecoords(::DirectionCosines{CRS}, ::UV{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
     u, v = tup
     w = sqrt(1 - u^2 - v^2)
     return (u, v, w)
+end
+function transform_tuplecoords(::UV{CRS}, ::DirectionCosines{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
+    u, v, w = tup
+    w >= 0 || throw(ArgumentError("The provided values in the `DirectionCosines` CRS are not valid as they are located in the half-hemisphere containing the cartesian -Z axis and can not be converted to UV coordinates"))
+    return (u, v)
 end
 
 # ThetaPhi <-> UV (Specific implementation for slightly faster conversion)
@@ -253,4 +260,102 @@ function transform_tuplecoords(::ThetaPhi{CRS}, ::UV{CRS}, tup::NTuple{2, <:Abst
     θ = asin(sqrt(u^2 + v^2))
     φ = atan(v,u)
     return (θ, φ)
+end
+
+# ThetaPhi <-> DirectionCosines
+function transform_tuplecoords(::DirectionCosines{CRS}, ::ThetaPhi{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
+    θ, φ = tup
+	sθ,cθ = sincos(θ)
+	sφ,cφ = sincos(φ)
+	u = sθ * cφ
+	v = sθ * sφ 
+	w = cθ
+    (u, v, w)
+end
+function transform_tuplecoords(::ThetaPhi{CRS}, ::DirectionCosines{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
+    (u, v, w) = tup
+	θ = acos(w)
+	φ = atan(v,u)
+    (θ, φ)
+end
+
+# ThetaPhi <-> AzEl
+# We can have a much simpler direct conversion between the two without passing by the PointingVersor
+function transform_tuplecoords(::AzEl{CRS}, ::ThetaPhi{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
+    θ, φ = tup
+    az = rem2pi(π/2 - φ, RoundNearest)
+    el = π/2 - θ # Already in the [-90°, 90°] range
+    (az, el)
+end
+function transform_tuplecoords(::ThetaPhi{CRS}, ::AzEl{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
+    az, el = tup
+    θ = π/2 - el
+    φ = rem2pi(π/2 - az, RoundNearest)
+    (θ, φ)
+end
+
+# AzEl <-> DirectionCosines
+#= Conversion from https://gssc.esa.int/navipedia/index.php/Transformations_between_ECEF_and_ENU_coordinates knowing that:
+- p̂ ⋅ ê = u
+- p̂ ⋅ n̂ = v
+- p̂ ⋅ û = w
+=#
+function transform_tuplecoords(::AzEl{CRS}, ::DirectionCosines{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
+    u,v,w = tup
+    az = atan(u, v) # Already in the [-180°, 180°] range
+    el = asin(w) # Already in the [-90°, 90°] range
+    (az, el)
+end
+function transform_tuplecoords(::DirectionCosines{CRS}, ::AzEl{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
+    az, el = tup
+    saz,caz = sincos(az)
+    sel,cel = sincos(el)
+    u = saz * cel
+    v = caz * cel
+    w = sel
+    (u, v, w)
+end
+
+# ElOverAz <-> DirectionCosines
+function transform_tuplecoords(::ElOverAz{CRS}, ::DirectionCosines{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
+    u,v,w = tup
+    az = atan(-u,w) # Already in the [-180°, 180°] range
+    el = asin(v) # Already in the [-90°, 90°] range
+    (az, el)
+end
+function transform_tuplecoords(::DirectionCosines{CRS}, ::ElOverAz{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
+    az, el = tup
+    saz,caz = sincos(az)
+    sel,cel = sincos(el)
+    u = -saz * cel
+    v = sel
+    w = caz * cel
+    (u, v, w)
+end
+
+# AzOverEl <-> DirectionCosines
+function transform_tuplecoords(::AzOverEl{CRS}, ::DirectionCosines{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
+    u, v, w = tup
+    el = atan(v/w) # Already returns a value in the range [-90°, 90°]
+    az = asin(-u) # This only returns the value in the [-90°, 90°] range
+    # Make the angle compatible with our ranges of azimuth and elevation
+    az = ifelse(w >= 0, az, copysign(180°, az) - az)
+    (az, el)
+end
+function transform_tuplecoords(::DirectionCosines{CRS}, ::AzOverEl{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
+    az, el = tup
+    sel,cel = sincos(el)
+    saz,caz = sincos(az)
+    u = -saz
+    v = caz * sel
+    w = caz * cel
+    (u, v, w)
+end
+
+# Conversion fallbacks
+# Conversion between non DirectionCosines pointing types, passing through DirectionCosines
+function transform_tuplecoords(crsₒ::AbstractPointingCRS{CRS}, crsᵢ::AbstractPointingCRS{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
+    dc = DirectionCosines(wrappedcrs(crsₒ))
+    uvw = transform_tuplecoords(dc, crsᵢ, tup)
+    return transform_tuplecoords(crsₒ, dc, uvw)
 end
