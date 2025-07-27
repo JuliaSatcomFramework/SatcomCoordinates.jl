@@ -1,18 +1,19 @@
-struct Position{CRS <: AbstractCRS, T} <: AbstractSatcomCoordinate{CRS, T, 3}
+struct Coordinate{CRS <: AbstractCRS, T, N} <: AbstractSatcomCoordinate{CRS, T, N}
     crs::CRS
-    tuplecoords::NTuple{3, T}
+    tuplecoords::NTuple{N, T}
 
-    BasicTypes.constructor_without_checks(::Type{Position{CRS, T}}, crs::CRS, tuplecoords::NTuple{3, T}) where {CRS <: AbstractCRS, T} = new{CRS, T}(crs, tuplecoords)
+    BasicTypes.constructor_without_checks(::Type{Coordinate}, crs::CRS, tuplecoords::NTuple{N, T}) where {CRS <: AbstractCRS, T, N} = new{CRS, T, N}(crs, tuplecoords)
 end
 (C::Type{<:AbstractSatcomCoordinate})(args::Vararg{Any, N}) where {N} = create_coordinate(C, args...)
 
 create_coordinate(C::Type{<:AbstractSatcomCoordinate}, args::Point{M, Number}) where {M} = create_coordinate(C, args...)
 create_coordinate(C::Type{<:AbstractSatcomCoordinate}, crs::AbstractCRS, args::Point{M, Number}) where {M} = create_coordinate(C, crs, args...)
-function create_coordinate(C::Type{<:AbstractSatcomCoordinate{<:Any, <:Any, N}}, coords::Vararg{Number, M}) where {N, M}
+function create_coordinate(C::Type{<:AbstractSatcomCoordinate}, coords::Vararg{Number, M}) where {M}
     return create_coordinate(C, defaultcrs(C), coords...)
 end
-function create_coordinate(C::Type{<:AbstractSatcomCoordinate{<:Any, <:Any, N}}, crs::AbstractCRS, coords::Vararg{Number, M}) where {N, M}
-    N == M || throw(DimensionMismatch("The number of coordinates provided ($(M)) does not match the number of coordinates expected by the coordinate type $C ($(N))"))
+function create_coordinate(C::Type{<:AbstractSatcomCoordinate}, crs::AbstractCRS, coords::Vararg{Number, M}) where {M}
+    N = ncoords(crs)
+    N == M || throw(DimensionMismatch("The number of coordinates provided ($(M)) does not match the number of coordinates expected by the provided CRS ($(N))"))
     # We check that if a crs was provided in the coordinate type signature, that it matches the provided crs instance
     CRS = typeof(crs)
     if crstype(C) !== Union{}
@@ -26,7 +27,7 @@ function create_coordinate(C::Type{<:AbstractSatcomCoordinate{<:Any, <:Any, N}},
     end
     tup = preprocess_input_coords(CRS, T, coords)
     raw = process_unitless_coords(C, crs, tup)
-    return constructor_without_checks(basetype(C){CRS, T}, crs, raw)
+    return constructor_without_checks(basetype(C), crs, raw)
 end
 
 """
@@ -65,13 +66,7 @@ default_wrappedcrs(::Type{<:AbstractCRS}) = Cartesian()
 
 @inline Base.propertynames(coord::AbstractSatcomCoordinate) = propertynames(units(crs(coord)))
 
-
-struct Pointing{CRS <: AbstractPointingCRS, T} <: AbstractSatcomCoordinate{CRS, T, 2}
-    crs::CRS
-    tuplecoords::NTuple{2, T}
-
-    BasicTypes.constructor_without_checks(::Type{Pointing{CRS, T}}, crs::CRS, tuplecoords::NTuple{2, T}) where {CRS <: AbstractCRS, T} = new{CRS, T}(crs, tuplecoords)
-end
+const Pointing{CRS <: AbstractPointingCRS, T, N} = Coordinate{CRS, T, N}
 
 defaultcrs(::Type{<:AbstractSatcomCoordinate{CRS}}) where CRS <: AbstractCRS = CRS()
 defaultcrs(::Type{<:AbstractSatcomCoordinate{<:Any}}) = Cartesian()
@@ -88,7 +83,7 @@ end
 
 function change_crs(crsₒ::AbstractCRS, coord::AbstractSatcomCoordinate)
     tup = transform_tuplecoords(crsₒ, crs(coord), tuplecoords(coord))
-    return constructor_without_checks(basetype(typeof(coord)){typeof(crsₒ), valuetype(typeof(coord))}, crsₒ, tup)
+    return constructor_without_checks(basetype(typeof(coord)), crsₒ, tup)
 end
 change_crs(::CRS, coord::AbstractSatcomCoordinate{CRS}) where CRS = coord
 

@@ -30,7 +30,7 @@ include("raw.jl")
 export PointingCRS
 
 include("pointing.jl")
-export UV, ThetaPhi, AzEl, AzOverEl, ElOverAz
+export UV, ThetaPhi, AzEl, AzOverEl, ElOverAz, DirectionCosines
 
 include("cartesian.jl")
 export Cartesian
@@ -39,7 +39,7 @@ include("spherical.jl")
 export SphericalCRS
 
 include("types/coordinates.jl")
-export Pointing, Position
+export Pointing, Coordinate
 
 include("constructors_funcs.jl")
 

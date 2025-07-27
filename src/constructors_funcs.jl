@@ -1,4 +1,4 @@
-function process_unitless_coords(::Type{P}, crs::AbstractPointingCRS, coords::NTuple{<:Any, T}) where {P <: Pointing, T}
+function process_unitless_coords(::Type{P}, crs::AbstractPointingCRS, coords::NTuple{2, T}) where {P <: Pointing, T}
     PT = typeof(crs)
     tup = map(coords) do val
         rem2pi(val, RoundNearest)
@@ -34,6 +34,21 @@ for T in (Vararg{Number, 2}, Point{2, Number})
     end
 
     @eval function (CRS::Type{<:AbstractPointingCRS})(wrapped_crs::AbstractCRS, coords::$T)
+        crs = CRS(wrapped_crs)
+        return Pointing(crs, coords)
+    end
+end
+
+function process_unitless_coords(::Type{P}, crs::PointingVersor, coords::NTuple{3, T}) where {P <: Pointing, T}
+    return coords ./ hypot(coords...)
+end
+for T in (Vararg{Number, 3}, Point{3, Number})
+    @eval function (CRS::Type{<:PointingVersor})(coords::$T)
+        # This is the constructor with coordinates, it creates a pointing CRS with the default wrapped CRS and the provided coordinates
+        return CRS(default_wrappedcrs(CRS), coords...)
+    end
+
+    @eval function (CRS::Type{<:PointingVersor})(wrapped_crs::AbstractCRS, coords::$T)
         crs = CRS(wrapped_crs)
         return Pointing(crs, coords)
     end

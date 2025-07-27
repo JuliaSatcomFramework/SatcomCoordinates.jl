@@ -56,7 +56,7 @@ While the field name use the greek letters, the specific fields of an arbitrary
 - `tp.θ`, `tp.theta` and `tp.t` can be used to access the `θ` field
 - `tp.φ`, `tp.ϕ`, `tp.phi` and `tp.p` can be used to access the `φ` field
 
-See also: [`PointingVersor`](@ref), [`UV`](@ref)
+See also: [`DirectionCosines`](@ref), [`UV`](@ref)
 """
 struct ThetaPhi{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS} 
     wrapped_crs::CRS
@@ -155,6 +155,15 @@ struct AzEl{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS}
 end
 AzEl(wrapped_crs::AbstractCRS) = AzEl{typeof(wrapped_crs)}(wrapped_crs)
 
+struct DirectionCosines{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS} 
+    wrapped_crs::CRS
+    function DirectionCosines{CRS}(wrapped_crs::CRS) where CRS <: AbstractCRS
+        check_cartesian_wrapped(DirectionCosines, wrapped_crs)
+        return new{CRS}(wrapped_crs)
+    end
+end
+DirectionCosines(wrapped_crs::AbstractCRS) = DirectionCosines{typeof(wrapped_crs)}(wrapped_crs)
+
 ##################################################################
 ########                  CRS Properties                  ########
 ##################################################################
@@ -175,7 +184,13 @@ for PT in (:AzOverEl, :ElOverAz, :AzEl)
         az => u"°" => (azimuth,)
         el => u"°" => (elevation,)
     ]
-end
+end 
+
+@define_properties DirectionCosines [
+    u => NoUnits
+    v => NoUnits
+    w => NoUnits
+]
 
 ###################################################################
 ########               Constructors/Helpers                ########
@@ -220,7 +235,7 @@ function default_wrappedcrs(D::Type{<:AbstractPointingCRS{CRS}}) where CRS <: Ab
 end
 default_wrappedcrs(::Type{<:AbstractPointingCRS{<:Any}}) = Cartesian()
 
-function transform_tuplecoords(::CRS, ::UV{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
+function transform_tuplecoords(::DirectionCosines{CRS}, ::UV{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
     u, v = tup
     w = sqrt(1 - u^2 - v^2)
     return (u, v, w)
@@ -229,7 +244,7 @@ end
 # ThetaPhi <-> UV (Specific implementation for slightly faster conversion)
 function transform_tuplecoords(::UV{CRS}, ::ThetaPhi{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
     θ, φ = tup
-	 θ <= π/2 || throw(ArgumentError("The provided ThetaPhi coordinate has θ > 90° so it lies in the half-hemisphere containing the -Z axis and can not be represented in UV"))
+	θ <= π/2 || throw(ArgumentError("The provided ThetaPhi coordinate has θ > 90° so it lies in the half-hemisphere containing the -Z axis and can not be represented in UV"))
 	v, u = sin(θ) .* sincos(φ)
     return (u, v)
 end
