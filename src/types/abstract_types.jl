@@ -83,15 +83,15 @@ General abstract type identifying a _coordinate_ with `N` dimension and defined 
 abstract type AbstractSatcomCoordinate{CRS <: AbstractCRS, T, N} <: FieldOrCoordinate{CRS} end
 
 """
-    AbstractCRSTransform{T}
+    AbstractCRSTransform
 
 Abstract type representing a coordinate transform between two CRSs with numbertype `T`.
 """
-abstract type AbstractCRSTransform{T} <: Transform end
+abstract type AbstractCRSTransform{CRSₒ <: AbstractCRS, CRSᵢ <: AbstractCRS} <: Transform end
 
 """
     AbstractAffineCRSTransform{T}
 
 Abstract type representing an affine transform between two CRSs with numbertype `T`.
 """
-abstract type AbstractAffineCRSTransform{T} <: AbstractCRSTransform{T} end
+abstract type AbstractAffineCRSTransform{CRSₒ <: AbstractCRS, CRSᵢ <: AbstractCRS, T} <: AbstractCRSTransform{CRSₒ, CRSᵢ} end
