@@ -24,6 +24,7 @@ include("types/abstract_types.jl")
 export AbstractCRS, AbstractPointingCRS, AbstractSphericalCRS, AbstractSatcomCoordinate, AbstractCRSTransform
 
 include("raw.jl")
+export Raw
 
 # include("types/traits.jl")
 
@@ -37,6 +38,9 @@ export Cartesian
 
 include("spherical.jl")
 export SphericalCRS
+
+include("ecef.jl")
+export ECEF
 
 include("types/coordinates.jl")
 export Pointing, Coordinate, change_crs

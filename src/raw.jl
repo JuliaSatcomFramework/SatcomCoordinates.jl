@@ -38,3 +38,5 @@ Raw(c::FieldOrCoordinate{CRS}) where {CRS} = Raw{CRS, typeof(c)}(c)
 @inline Base.propertynames(r::Raw) = propertynames(wrapped(r))
 @inline coords(r::Raw) = rawcoords(wrapped(r))
 @inline crs(r::Raw) = crs(wrapped(r))
+
+StaticArrays.SVector(r::Raw) = SVector(tuplecoords(wrapped(r)))

@@ -8,20 +8,24 @@ A generic spherical CRS, which wraps a pointing CRS
 """
 struct SphericalCRS{CRS <: AbstractPointingCRS} <: AbstractCRS 
     wrapped_crs::CRS
+    function SphericalCRS(wrapped_crs::AbstractPointingCRS) 
+        wrapped_crs isa DirectionCosines && throw(ArgumentError("The `DirectionCosines` CRS is not a supported PointingCRS for the `SphericalCRS` type"))
+        new{typeof(wrapped_crs)}(wrapped_crs)
+    end
 end
 function (CRS::Type{<:SphericalCRS})()
     # This is the no-arg constructor, it creates a pointing CRS with the default wrapped CRS
-    return CRS(default_wrappedcrs(CRS))
+    return SphericalCRS(default_wrappedcrs(CRS))
 end
 for T in (Vararg{Number, 3}, Point{3, Number})
     @eval function (CRS::Type{<:SphericalCRS})(coords::$T)
         # This is the constructor with coordinates, it creates a pointing CRS with the default wrapped CRS and the provided coordinates
-        return CRS(default_wrappedcrs(CRS), coords...)
+        return SphericalCRS(default_wrappedcrs(CRS), coords...)
     end
 
     @eval function (CRS::Type{<:SphericalCRS})(wrapped_crs::AbstractPointingCRS, coords::$T)
-        crs = CRS(wrapped_crs)
-        return Position(crs, coords)
+        crs = SphericalCRS(wrapped_crs)
+        return Coordinate(crs, coords)
     end
 end
 
