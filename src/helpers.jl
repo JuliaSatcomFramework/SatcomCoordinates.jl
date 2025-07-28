@@ -9,9 +9,23 @@ Allow to customize the preferred unit on different types of CRSs. Defaults to `U
 upreferred(unit::Unitful.Units) = Unitful.upreferred(unit)
 upreferred(::Union{typeof(u"°"), typeof(u"rad")}) = u"rad"
 
-add_unit(propunit::Unitful.Units, refunit::Unitful.Units, val::Real) = enforce_unit(refunit, val) |> propunit
+"""
+    add_unit(userunit::Unitful.Units, refunit::Unitful.Units, val::Real)
 
-remove_unit(propunit::Unitful.Units, refunit::Unitful.Units, val::Number) = enforce_unit(propunit, val) |> refunit |> ustrip
+Take a real value, add the `refunit` to it and then convert it to `userunit` using `Unitful.uconvert`.
+
+This is used internally in the `coords` function to transform the raw coordinates stored in a `Coordinate` type into unitful values according to the units of the specific CRS.
+"""
+add_unit(userunit::Unitful.Units, refunit::Unitful.Units, val::Real) = enforce_unit(refunit, val) |> userunit
+
+"""
+    remove_unit(userunit::Unitful.Units, refunit::Unitful.Units, val::Number)
+
+Take a number (with or without unit), convert or interpret it (depending on whether it has or not a unit) to the `usernit`, convert again to `refunit` and then strip the unit.
+
+This is used internally in the constructor of `Coordinate`s to convert user inputs into the raw coordinate for the specific CRS.
+"""
+remove_unit(userunit::Unitful.Units, refunit::Unitful.Units, val::Number) = enforce_unit(userunit, val) |> refunit |> ustrip
 
 """
     iscartesiancrs(C::Type{<:AbstractCRS})
@@ -84,6 +98,7 @@ function wrappedcrs(crs::AbstractCRS)
         return crs
     end
 end
+wrappedcrs(coord::FieldOrCoordinate) = wrappedcrs(crs(coord))
 
 """
     cartesiancrs(crs::AbstractCRS)
@@ -102,9 +117,11 @@ end
 cartesiancrs(coord::FieldOrCoordinate) = crs(coord) |> cartesiancrs
 
 
-check_cartesian_wrapped(derived::Type{<:AbstractCRS}, wrapped::Type{<:AbstractCRS}) = iscartesiancrs(wrapped) || throw(ArgumentError("CRSs of type $(basetype(derived)) must be defined over a Cartesian CRS, while the provided CRS ($(basetype(wrapped))) is not a Cartesian one."))
-check_cartesian_wrapped(derived::Type{<:AbstractCRS}, wrapped::AbstractCRS) = check_cartesian_wrapped(derived, typeof(wrapped))
+function check_cartesian_wrapped(derived::Type{<:AbstractCRS}, wrapped::Type{<:AbstractCRS}) 
+    apply_crs_predicate(wrapped, iscartesiancrs) || throw(ArgumentError("CRSs of type $(basetype(derived)) must be defined over a Cartesian CRS, while the provided CRS ($(basetype(wrapped))) is not a Cartesian one."))
+end
 
+check_cartesian_wrapped(derived::Type{<:AbstractCRS}, wrapped::AbstractCRS) = check_cartesian_wrapped(derived, typeof(wrapped))
 
 
 defaultcrs(::Type{<:AbstractSatcomCoordinate{CRS}}) where CRS <: AbstractCRS = CRS()
@@ -138,3 +155,20 @@ function isderivedcrs(C::Type{<:AbstractCRS})
     return any(p -> p <: AbstractCRS, fieldtypes(C))
 end
 isderivedcrs(crs::AbstractCRS) = isderivedcrs(typeof(crs))
+
+"""
+    apply_crs_predicate(crs::AbstractCRS, predicate::F) where F <: Function
+
+Apply a predicate to the provided `crs` and returns its value.
+This is mostly useful for properly dealing with more complex CRSs which should customize how to forward the predicate to the base CRS.
+"""
+function apply_crs_predicate(crs::AbstractCRS, predicate::F) where F <: Function
+    return predicate(crs)
+end
+function apply_crs_predicate(CRS::Type{<:AbstractCRS}, predicate::F) where F <: Function
+    return predicate(CRS)
+end
+
+isecefcrs(::Type{<:AbstractCRS}) = false
+isecefcrs(::Type{<:ECEF}) = true
+isecefcrs(crs::AbstractCRS) = isecefcrs(typeof(crs))

@@ -19,6 +19,21 @@ function _ellipsoidparams(semimajor::Real, flattening::Real)
     return nt
 end
 
+# Ellipsoid parameters of the WGS84 ellipsoid
+const WGS84_PARAMS = _ellipsoidparams(6378137.0, 1/298.257223563)
+# Ellipsoid parameters of the GRS80 ellipsoid
+const GRS80_PARAMS = _ellipsoidparams(6378137.0, 1/298.257222101)
+
+"""
+    ellipsoidparams(ecef_id)
+
+Function that shall have a valid method for all valid `id` and shall return a NamedTuple with the following fields representing the useful ellipsoid parameters:
+- `a`: Semimajor axis
+- `f`: Flattening
+- `b`: Semiminor axis
+- `e²`: First eccentricity squared
+- `el²`: Second eccentricity squared
+"""
 ellipsoidparams(crs::ECEF) = ellipsoidparams(crs.id)
 
-ellipsoidparams(::Val{:ITRF}) = _ellipsoidparams(6378137.0, 1/298.257223563)
+ellipsoidparams(::Val{:ITRF}) = GRS80_PARAMS

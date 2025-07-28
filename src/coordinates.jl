@@ -146,3 +146,12 @@ PlutoShowHelpers.shortname(x::AbstractSatcomCoordinate) = _coordstring(x) * "{" 
 PlutoShowHelpers.repl_summary(p::AbstractSatcomCoordinate) = _coordstring(p) * "{" * PlutoShowHelpers.repl_summary(crs(p)) * "}"
 
 PlutoShowHelpers.show_namedtuple(c::AbstractSatcomCoordinate) = getproperties(c)
+
+#### Random.rand #####
+function Random.rand(rng::AbstractRNG, ::Random.SamplerType{C}) where C <: AbstractSatcomCoordinate 
+    T = common_valuetype(AbstractFloat, Float64, C)
+    CRS = crstype(C)
+    crs = CRS()
+    coords = crs_rand(rng, crs, T)
+    return constructor_without_checks(basetype(C), crs, coords)
+end

@@ -265,7 +265,6 @@ function default_wrappedcrs(D::Type{<:AbstractPointingCRS{CRS}}) where CRS <: Ab
     check_cartesian_wrapped(D, CRS)
     return CRS()
 end
-default_wrappedcrs(::Type{<:AbstractPointingCRS{<:Any}}) = Cartesian()
 
 ##### Conversions #####
 # UV <-> DirectionCosines
