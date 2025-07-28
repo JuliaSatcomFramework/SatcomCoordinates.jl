@@ -172,3 +172,22 @@ end
 isecefcrs(::Type{<:AbstractCRS}) = false
 isecefcrs(::Type{<:ECEF}) = true
 isecefcrs(crs::AbstractCRS) = isecefcrs(typeof(crs))
+
+"""
+    rand_tuplecoords(rng::AbstractRNG, crs::AbstractCRS, T::Type{<:AbstractFloat})
+
+This is the internal function that new custom CRSs should implement to support random generation of Coordinates in the CRS
+
+New methods for this should generate a tuple of valid coordinates for the provided `crs` and use the provided `T` as machine precision.
+
+It is called automatically when doing `rand(crs)` where `crs` is an instance of `AbstractCRS`.
+
+!!! note "Default implementation"
+    All Cartesian CRSs have a default implementation (if not overridden) that simply generates a tuple of 3 random values via `rand(rng, T)`.
+"""
+rand_tuplecoords(crs::AbstractCRS, T::Type{<:AbstractFloat} = Float64) = rand_tuplecoords(Random.default_rng(), crs, T)
+
+function rand_tuplecoords(rng::AbstractRNG, crs::AbstractCRS, T::Type{<:AbstractFloat})
+    apply_crs_predicate(crs, iscartesiancrs) || throw(ArgumentError("The default method for generating random coordinates works only for Cartesian CRSs.\nAdd a custom method to `SatcomCoordinates.rand_tuplecoords` to support random generation of coordinates in the CRS $(basetype(crs))."))
+    return ntuple(i -> rand(rng, T), ncoords(crs))
+end

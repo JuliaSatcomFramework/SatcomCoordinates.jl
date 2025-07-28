@@ -24,7 +24,7 @@ function process_unitless_coords(::Type{<:Coordinate}, crs::LLA, coords::NTuple{
 end
 
 #### Random.rand #####
-function crs_rand(rng::AbstractRNG, ::LLA, T::Type{<:AbstractFloat})
+function rand_tuplecoords(rng::AbstractRNG, ::LLA, T::Type{<:AbstractFloat})
     lat = rand(rng, T) * π - π/2
     lon = rand(rng, T) * 2π - π
     alt = zero(T)

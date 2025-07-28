@@ -33,3 +33,10 @@ pointingcrs(::Type{SphericalCRS{P}}) where P <: AbstractPointingCRS = P
 
 default_wrappedcrs(::Type{<:SphericalCRS{P}}) where P <: AbstractPointingCRS = P()
 default_wrappedcrs(::Type{<:SphericalCRS{<:Any}}) = ThetaPhi()
+
+#### Random.rand #####
+function rand_tuplecoords(rng::AbstractRNG, crs::SphericalCRS, T::Type{<:AbstractFloat})
+    pt = rand_tuplecoords(rng, wrappedcrs(crs), T)
+    r = rand(rng, T)
+    return (pt..., r)
+end

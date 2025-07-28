@@ -390,3 +390,27 @@ function transform_tuplecoords(crsₒ::AbstractPointingCRS{CRS}, crsᵢ::Abstrac
     uvw = transform_tuplecoords(dc, crsᵢ, tup)
     return transform_tuplecoords(crsₒ, dc, uvw)
 end
+
+#### Random.rand #####
+function rand_tuplecoords(rng::AbstractRNG, ::DirectionCosines, T::Type{<:AbstractFloat})
+    tup = ntuple(i -> rand(rng) - .5, 3)
+    return map(T, tup ./ hypot(tup...))
+end
+
+function rand_tuplecoords(rng::AbstractRNG, crs::UV, T::Type{<:AbstractFloat})
+    dc = DirectionCosines(wrappedcrs(crs))
+    u, v, w = rand_tuplecoords(rng, dc, T)
+    return map(T, (u, v))
+end
+
+function rand_tuplecoords(rng::AbstractRNG, ::ThetaPhi, T::Type{<:AbstractFloat})
+    θ = rand(rng) * π
+    φ = rand(rng) * 2π - π
+    return map(T, (θ, φ))
+end
+
+function rand_tuplecoords(rng::AbstractRNG, ::Union{AzOverEl, ElOverAz, AzEl}, T::Type{<:AbstractFloat})
+    az = rand(rng) * 2π - π
+    el = rand(rng) * π - π/2
+    return map(T, (az, el))
+end
