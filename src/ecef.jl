@@ -37,3 +37,13 @@ Function that shall have a valid method for all valid `id` and shall return a Na
 ellipsoidparams(crs::ECEF) = ellipsoidparams(crs.id)
 
 ellipsoidparams(::Val{:ITRF}) = GRS80_PARAMS
+
+
+#### Random.rand #####
+function rand_tuplecoords(rng::AbstractRNG, crs::ECEF, T::Type{<:AbstractFloat})
+    # We create a point outside of the ellipsoid surface
+    (; a) = ellipsoidparams(crs)
+    coeff = T(a)
+    dc = rand_tuplecoords(rng, DirectionCosines(), T)
+    return dc .* coeff
+end

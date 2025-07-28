@@ -16,6 +16,8 @@ LLA() = LLA(ECEF())
 
 default_wrappedcrs(::Type{<:LLA{<:Any}}) = ECEF()
 
+ellipsoidparams(crs::LLA) = ellipsoidparams(wrappedcrs(crs))
+
 function process_unitless_coords(::Type{<:Coordinate}, crs::LLA, coords::NTuple{3,<:AbstractFloat})
     lat, lon, alt = coords
     lon = rem2pi(lon, RoundNearest)
@@ -29,4 +31,22 @@ function rand_tuplecoords(rng::AbstractRNG, ::LLA, T::Type{<:AbstractFloat})
     lon = rand(rng, T) * 2π - π
     alt = zero(T)
     lat, lon, alt
+end
+
+
+##### Conversion with ECEF #####
+# From ECEF to LLA
+function transform_tuplecoords(::LLA{CRS}, crsᵢ::CRS, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
+    ellparams = ellipsoidparams(crsᵢ)
+    ellipsoid = Ellipsoid(NamedTuple{(:a, :f, :b, :e², :el²)}(ellparams)...)
+    lat, lon, alt = ecef_to_geodetic(SVector(tup); ellipsoid)
+    return (lat, lon, alt)
+end
+# From LLA to ECEF
+function transform_tuplecoords(::CRS, crsᵢ::LLA{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
+    ellparams = ellipsoidparams(crsᵢ)
+    ellipsoid = Ellipsoid(NamedTuple{(:a, :f, :b, :e², :el²)}(ellparams)...)
+    lat, lon, h = tup
+    x, y, z = geodetic_to_ecef(lat, lon, h; ellipsoid)
+    return (x, y, z)
 end

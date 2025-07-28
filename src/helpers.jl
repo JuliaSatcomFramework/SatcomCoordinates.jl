@@ -169,9 +169,25 @@ function apply_crs_predicate(CRS::Type{<:AbstractCRS}, predicate::F) where F <: 
     return predicate(CRS)
 end
 
+"""
+    isecefcrs(CRS::Type{<:AbstractCRS})
+    isecefcrs(crs::AbstractCRS)
+
+Return `true` if the provided CRS `crs` (or CRS type `CRS`) is an Ellipsoide-Centered-Ellipsoid-Fixed (ECEF) one.
+""" 
 isecefcrs(::Type{<:AbstractCRS}) = false
 isecefcrs(::Type{<:ECEF}) = true
 isecefcrs(crs::AbstractCRS) = isecefcrs(typeof(crs))
+
+"""
+    istopocentriccrs(CRS::Type{<:AbstractCRS})
+    istopocentriccrs(crs::AbstractCRS)
+
+Return `true` if the provided CRS `crs` (or CRS type `CRS`) is a topocentric CRS.
+"""
+istopocentriccrs(::Type{<:AbstractCRS}) = false
+istopocentriccrs(::Type{<:AbstractTopocentricCRS}) = true
+istopocentriccrs(crs::AbstractCRS) = istopocentriccrs(typeof(crs))
 
 """
     rand_tuplecoords(rng::AbstractRNG, crs::AbstractCRS, T::Type{<:AbstractFloat})

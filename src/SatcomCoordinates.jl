@@ -10,6 +10,10 @@ using Rotations: Rotations, Rotation, nearest_rotation, RotMatrix3
 using TransformsBase: TransformsBase, Transform, Identity, isinvertible, isrevertible, inverse, apply
 using Unitful: Unitful, Quantity, ustrip, rad, @u_str, °, km, Units, NoUnits
 
+# To move to extension
+using SatelliteToolboxTransformations: SatelliteToolboxTransformations, ecef_to_geodetic, geodetic_to_ecef
+using SatelliteToolboxBase: SatelliteToolboxBase, Ellipsoid
+
 # From deps
 export °, km, @u_str # From Unitful
 export to_degrees, to_meters # From BasicTypes
@@ -26,6 +30,9 @@ export Pointing, Coordinate, change_crs
 
 include("raw.jl")
 export Raw
+
+include("transforms.jl")
+export InverseTransform, CRSRotation
 
 # include("types/traits.jl")
 
@@ -45,6 +52,9 @@ export ECEF
 
 include("lla.jl")
 export LLA
+
+include("topocentric.jl")
+export NED
 
 include("helpers.jl")
 export iscartesiancrs, cartesiancrs, pointingcrs, default_wrappedcrs, rootcrs
