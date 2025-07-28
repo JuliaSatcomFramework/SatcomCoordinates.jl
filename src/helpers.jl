@@ -35,6 +35,7 @@ function rootcrs(crs::AbstractCRS)
         return wrapped
     end
 end
+rootcrs(coord::FieldOrCoordinate) = rootcrs(crs(coord))
 
 @inline ncoords(::Type{<:AbstractSatcomCoordinate{<:Any, <:Any, N}}) where N = N
 @inline ncoords(::Type{CRS}) where CRS <: AbstractCRS = length(units(CRS))
@@ -98,7 +99,42 @@ function cartesiancrs(crs::AbstractCRS)
         return cartesiancrs(wrapped)
     end
 end
+cartesiancrs(coord::FieldOrCoordinate) = crs(coord) |> cartesiancrs
 
 
 check_cartesian_wrapped(derived::Type{<:AbstractCRS}, wrapped::Type{<:AbstractCRS}) = iscartesiancrs(wrapped) || throw(ArgumentError("CRSs of type $(basetype(derived)) must be defined over a Cartesian CRS, while the provided CRS ($(basetype(wrapped))) is not a Cartesian one."))
 check_cartesian_wrapped(derived::Type{<:AbstractCRS}, wrapped::AbstractCRS) = check_cartesian_wrapped(derived, typeof(wrapped))
+
+
+
+defaultcrs(::Type{<:AbstractSatcomCoordinate{CRS}}) where CRS <: AbstractCRS = CRS()
+defaultcrs(::Type{<:AbstractSatcomCoordinate{<:Any}}) = Cartesian()
+defaultcrs(::Type{Pointing}) = ThetaPhi()
+
+default_wrappedcrs(::Type{<:AbstractCRS}) = Cartesian()
+
+
+function change_crs(crsₒ::AbstractCRS, coord::AbstractSatcomCoordinate)
+    tup = transform_tuplecoords(crsₒ, crs(coord), tuplecoords(coord))
+    return constructor_without_checks(basetype(typeof(coord)), crsₒ, tup)
+end
+change_crs(::CRS, coord::AbstractSatcomCoordinate{CRS}) where CRS = coord
+
+function transform_tuplecoords(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, ::Any)
+    throw(ArgumentError("No conversion is defined to go from an input CRS of type `$(typeof(crsᵢ))` to an output CRS of type `$(typeof(crsₒ))`"))
+end
+
+
+"""
+    isderivedcrs(C::Type{<:AbstractCRS})
+    isderivedcrs(crs::AbstractCRS)
+
+Checks whether a given `crs` (or `CRS` type) is derived from another CRS type or no.
+
+!!! note
+    The default implementation simply checks if the CRS type has a field which subtypes `AbstractCRS`.
+"""
+function isderivedcrs(C::Type{<:AbstractCRS})
+    return any(p -> p <: AbstractCRS, fieldtypes(C))
+end
+isderivedcrs(crs::AbstractCRS) = isderivedcrs(typeof(crs))

@@ -1,10 +1,32 @@
+"""
+    Coordinate{CRS <: AbstractCRS, T, N} <: AbstractSatcomCoordinate{CRS, T, N}
+
+A generic coordinate type, which wraps a CRS and a tuple of coordinates.
+
+The interpretation of the coordinate depends on the specific CRS it is defined on (e.g. a Coordinate over a PointingCRS can be considered a Pointing direction)
+
+The type parameter `CRS` is the CRS type, `T` is the type of the coordinates, and `N` is the number of coordinates.
+
+The type parameter `CRS` is a subtype of `AbstractCRS`, and the type parameter `T` is a subtype of `AbstractFloat`.
+
+The constructor internally calls the `create_coordinate` function, which is the main entry point for creating a coordinate instance.
+
+This in turn relies on the `preprocess_input_coords` and `process_unitless_coords` functions, which are the main entry points for processing the input coordinates and unitless coordinates respectively.
+Custom CRSs can add more specific methods to either of these functions, but it is usually only necessary (and not even always) to add a custom method to `process_unitless_coords` to achieve the desired behavior.
+
+The coordinates over the specific CRS are stored internally as a plain `NTuple{N, T}` (where `T <: AbstractFloat` is currently enforced during construction) which holds the raw coordinates (i.e. without unit and transformed to the preferred, usually SI, unit. This means that for example if a specific CRS has the unit of `u"km"`, the raw values stored internally are the numerical value in meters)
+
+"""
 struct Coordinate{CRS <: AbstractCRS, T, N} <: AbstractSatcomCoordinate{CRS, T, N}
     crs::CRS
     tuplecoords::NTuple{N, T}
 
     BasicTypes.constructor_without_checks(::Type{Coordinate}, crs::CRS, tuplecoords::NTuple{N, T}) where {CRS <: AbstractCRS, T, N} = new{CRS, T, N}(crs, tuplecoords)
 end
+
 (C::Type{<:AbstractSatcomCoordinate})(args::Vararg{Any, N}) where {N} = create_coordinate(C, args...)
+
+const Pointing{CRS <: AbstractPointingCRS, T, N} = Coordinate{CRS, T, N}
 
 create_coordinate(C::Type{<:AbstractSatcomCoordinate}, args::Point{M, Number}) where {M} = create_coordinate(C, args...)
 create_coordinate(C::Type{<:AbstractSatcomCoordinate}, crs::AbstractCRS, args::Point{M, Number}) where {M} = create_coordinate(C, crs, args...)
@@ -62,15 +84,8 @@ function process_unitless_coords(::Type{C}, crs::AbstractCRS, coords::NTuple{<:A
     return coords
 end
 
-default_wrappedcrs(::Type{<:AbstractCRS}) = Cartesian()
 
 @inline Base.propertynames(coord::AbstractSatcomCoordinate) = propertynames(units(crs(coord)))
-
-const Pointing{CRS <: AbstractPointingCRS, T, N} = Coordinate{CRS, T, N}
-
-defaultcrs(::Type{<:AbstractSatcomCoordinate{CRS}}) where CRS <: AbstractCRS = CRS()
-defaultcrs(::Type{<:AbstractSatcomCoordinate{<:Any}}) = Cartesian()
-defaultcrs(::Type{Pointing}) = ThetaPhi()
 
 @inline Base.@constprop :aggressive function Base.getproperty(obj::FieldOrCoordinate, s::Symbol)
     props = coords(obj)
@@ -80,28 +95,54 @@ defaultcrs(::Type{Pointing}) = ThetaPhi()
     getproperty(props, nm)
 end
 
+# This is to automatically construct a coordinate instance when trying to feed coords to a CRS constructor
 
-function change_crs(crsₒ::AbstractCRS, coord::AbstractSatcomCoordinate)
-    tup = transform_tuplecoords(crsₒ, crs(coord), tuplecoords(coord))
-    return constructor_without_checks(basetype(typeof(coord)), crsₒ, tup)
+for T in (Vararg{Number}, Point{N, Number} where N)
+    @eval function (CRS::Type{<:AbstractCRS})(coords::$T{N}) where {N}
+        N == ncoords(CRS) || throw(DimensionMismatch("The number of coordinates provided ($(N)) does not match the number of coordinates expected by CRS of type $CRS ($(ncoords(CRS)))"))
+        if isderivedcrs(CRS)
+            # This simply calls the next method below, which takes both the wrapped CRS and the coords as input
+            return basetype(CRS)(default_wrappedcrs(CRS), coords)
+        else
+            return Coordinate(CRS(), coords)
+        end
+    end
+
+    @eval function (CRS::Type{<:AbstractCRS})(wrapped_crs::AbstractCRS, coords::$T{N}) where {N}
+        N == ncoords(CRS) || throw(DimensionMismatch("The number of coordinates provided ($(N)) does not match the number of coordinates expected by CRS of type $CRS ($(ncoords(CRS)))"))
+        isderivedcrs(CRS) || throw(ArgumentError("The provided CRS is not derived from another CRS, so it cannot be instantiated with another CRS as first argument"))
+        crs = basetype(CRS)(wrapped_crs)
+        return Coordinate(crs, coords)
+    end
 end
-change_crs(::CRS, coord::AbstractSatcomCoordinate{CRS}) where CRS = coord
 
-function transform_tuplecoords(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, ::Any)
-    throw(ArgumentError("No conversion is defined to go from an input CRS of type `$(typeof(crsᵢ))` to an output CRS of type `$(typeof(crsₒ))`"))
+#### Show Methods ####
+const SHOW_TYPES = Union{AbstractCRS, FieldOrCoordinate, AbstractCRSTransform}
+
+# Basic overloads
+Base.show(io::IO, mime::MIME"text/plain", x::SHOW_TYPES) = show(io, mime, DefaultShowOverload(x))
+Base.show(io::IO, mime::MIME"text/html", x::SHOW_TYPES) = show(io, mime, DefaultShowOverload(x))
+Base.show(io::IO, x::SHOW_TYPES) = show(io, DefaultShowOverload(x))
+
+function _coordstring(c::AbstractSatcomCoordinate)
+    if crs(c) isa AbstractPointingCRS
+        "Pointing"
+    else
+        "Coordinate"
+    end
 end
 
-
-"""
-    isderivedcrs(C::Type{<:AbstractCRS})
-    isderivedcrs(crs::AbstractCRS)
-
-Checks whether a given `crs` (or `CRS` type) is derived from another CRS type or no.
-
-!!! note
-    The default implementation simply checks if the CRS type has a field which subtypes `AbstractCRS`.
-"""
-function isderivedcrs(C::Type{<:AbstractCRS})
-    return any(p -> p <: AbstractCRS, fieldtypes(C))
+PlutoShowHelpers.shortname(c::AbstractCRS) = string(basetype(c |> typeof))
+function PlutoShowHelpers.repl_summary(c::AbstractCRS) 
+    if isderivedcrs(c)
+        return PlutoShowHelpers.shortname(c) * "{" * PlutoShowHelpers.shortname(wrappedcrs(c)) * "}"
+    else
+        return Base.summary(c)
+    end
 end
-isderivedcrs(crs::AbstractCRS) = isderivedcrs(typeof(crs))
+
+PlutoShowHelpers.shortname(x::AbstractSatcomCoordinate) = _coordstring(x) * "{" * PlutoShowHelpers.shortname(crs(x)) * "}"
+
+PlutoShowHelpers.repl_summary(p::AbstractSatcomCoordinate) = _coordstring(p) * "{" * PlutoShowHelpers.repl_summary(crs(p)) * "}"
+
+PlutoShowHelpers.show_namedtuple(c::AbstractSatcomCoordinate) = getproperties(c)

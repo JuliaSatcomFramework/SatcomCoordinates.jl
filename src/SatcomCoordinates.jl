@@ -23,6 +23,9 @@ public @define_properties
 include("types/abstract_types.jl")
 export AbstractCRS, AbstractPointingCRS, AbstractSphericalCRS, AbstractSatcomCoordinate, AbstractCRSTransform
 
+include("coordinates.jl")
+export Pointing, Coordinate, change_crs
+
 include("raw.jl")
 export Raw
 
@@ -41,9 +44,6 @@ export SphericalCRS
 
 include("ecef.jl")
 export ECEF
-
-include("types/coordinates.jl")
-export Pointing, Coordinate, change_crs
 
 include("constructors_funcs.jl")
 

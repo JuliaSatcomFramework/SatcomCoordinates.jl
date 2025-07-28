@@ -213,7 +213,39 @@ wrap_spherical_angles_rad_normalized(θ::T, φ::T, ::Type{<:ThetaPhi}) where {T 
 
 process_unitless_coords(::Type{<:FieldOrCoordinate}, crs::AbstractPointingCRS, coords::NTuple{<:Any, <:Any}) = throw(ArgumentError("It is currently not possible to create coordinates other than `Pointing` with a reference CRS which is a subtype of `AbstractPointingCRS`"))
 
+function process_unitless_coords(::Type{<:Coordinate}, crs::AbstractPointingCRS, coords::NTuple{2,T}) where {T}
+    PT = typeof(crs)
+    tup = map(coords) do val
+        rem2pi(val, RoundNearest)
+    end
+    return wrap_spherical_angles_rad_normalized(tup..., PT)
+end
+
 const UV_CONSTRUCTOR_TOLERANCE = Ref{Float64}(1e-5)
+
+function process_unitless_coords(::Type{<:Coordinate}, crs::UV, coords::NTuple{2,T}) where {T}
+    u, v = coords
+    n = u^2 + v^2
+    tol = UV_CONSTRUCTOR_TOLERANCE[]
+    lim = 1 + tol
+    if (n > 1 && n <= lim)
+        c = 1 / sqrt(n)
+        u *= c
+        v *= c
+    end
+    if (n > lim)
+        error("The provided inputs do not satisfy u^2 + v^2 <= 1 + tolerance
+    u = $u 
+    v = $v 
+    u^2 + v^2 = $n
+    tolerance = $(tol)")
+    end
+    return (u, v)
+end
+
+function process_unitless_coords(::Type{P}, crs::DirectionCosines, coords::NTuple{3,T}) where {P<:Pointing,T}
+    return coords ./ hypot(coords...)
+end
 
 # This is the default no-arg constructor for any pointing CRS. It falls back to use the `default_wrappedcrs` function to get the default wrapped CRS for the specific CRS type.
 function (CRS::Type{<:AbstractPointingCRS})()
