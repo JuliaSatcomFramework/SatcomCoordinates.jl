@@ -17,7 +17,7 @@ TransformsBase = "28dd2a49-a57a-4bfb-84ca-1a49db9b96b8"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
-BasicTypes = "1.3"
+BasicTypes = "1.15"
 ConstructionBase = "1.5.8"
 LinearAlgebra = "1"
 PlutoShowHelpers = "0.3.1"

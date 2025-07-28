@@ -42,11 +42,7 @@ function create_coordinate(C::Type{<:AbstractSatcomCoordinate}, crs::AbstractCRS
         crstype(C) == CRS || throw(ArgumentError("The provided crs does not match the crs type signature of the coordinate type $C"))
     end
     CT = valuetype(C)
-    T = if CT == Union{}
-        common_valuetype(AbstractFloat, Float64, coords...)
-    else
-        CT
-    end
+    T = bypass_bottom(CT, common_valuetype(AbstractFloat, Float64, coords...))
     tup = preprocess_input_coords(CRS, T, coords)
     raw = process_unitless_coords(C, crs, tup)
     return constructor_without_checks(basetype(C), crs, raw)
