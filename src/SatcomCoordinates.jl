@@ -45,8 +45,6 @@ export SphericalCRS
 include("ecef.jl")
 export ECEF
 
-include("constructors_funcs.jl")
-
 include("helpers.jl")
 export iscartesiancrs, cartesiancrs, pointingcrs, default_wrappedcrs, rootcrs
 
