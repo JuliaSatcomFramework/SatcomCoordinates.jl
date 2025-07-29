@@ -74,9 +74,9 @@ end
 
 function transform_tuplecoords(sph::SphericalCRS{CRS}, ::CRS, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
     t = raw_linkedcrs_transform(sph)
-    return t(tup)
+    return inverse(t)(tup)
 end
 function transform_tuplecoords(::CRS, sph::SphericalCRS{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
     t = raw_linkedcrs_transform(sph)
-    return inverse(t)(tup)
+    return t(tup)
 end
