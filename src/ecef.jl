@@ -1,3 +1,7 @@
+struct WGS84 end
+
+ellipsoidparams(::WGS84) = WGS84_PARAMS
+
 struct ECEF{ID} <: AbstractCRS
     id::ID
     function ECEF(id)
@@ -7,7 +11,7 @@ struct ECEF{ID} <: AbstractCRS
         new{typeof(id)}(id)
     end
 end
-ECEF() = ECEF(:ITRF)
+ECEF() = ECEF(WGS84())
 
 function _ellipsoidparams(semimajor::Real, flattening::Real)
     @inline

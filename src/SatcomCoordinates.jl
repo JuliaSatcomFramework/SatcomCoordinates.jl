@@ -48,7 +48,7 @@ include("spherical.jl")
 export SphericalCRS
 
 include("ecef.jl")
-export ECEF
+export ECEF, WGS84
 
 include("lla.jl")
 export LLA
