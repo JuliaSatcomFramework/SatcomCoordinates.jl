@@ -27,29 +27,6 @@ This is used internally in the constructor of `Coordinate`s to convert user inpu
 """
 remove_unit(userunit::Unitful.Units, refunit::Unitful.Units, val::Number) = enforce_unit(userunit, val) |> refunit |> ustrip
 
-"""
-    iscartesiancrs(C::Type{<:AbstractCRS})
-
-Return `true` if the CRS `C` is a Cartesian CRS, `false` otherwise.
-
-The default implementation assumes a CRS is cartesian if it has 3 properties and all of them have units of length.
-"""
-iscartesiancrs(C::Type{<:AbstractCRS}) = ncoords(C) == 3 && all(u -> u isa Unitful.LengthUnits, units(C))
-iscartesiancrs(crs::AbstractCRS) = iscartesiancrs(typeof(crs))
-
-isrootcrs(C::Type{<:AbstractCRS}) = !isderivedcrs(C)
-isrootcrs(crs::AbstractCRS) = isrootcrs(typeof(crs))
-
-function rootcrs(crs::AbstractCRS)
-    isderivedcrs(crs) || return crs
-    wrapped = wrappedcrs(crs)
-    if isderivedcrs(wrapped)
-        return rootcrs(wrapped)
-    else
-        return wrapped
-    end
-end
-rootcrs(coord::FieldOrCoordinate) = rootcrs(crs(coord))
 
 @inline ncoords(::Type{<:AbstractSatcomCoordinate{<:Any, <:Any, N}}) where N = N
 @inline ncoords(::Type{CRS}) where CRS <: AbstractCRS = length(units(CRS))
@@ -84,45 +61,11 @@ function coords(coord::AbstractSatcomCoordinate)
     return NamedTuple{keys(userunits)}(vals)
 end
 
-"""
-    wrappedcrs(crs::AbstractCRS)
 
-Return the wrapped CRS from the provided `crs` if it exists, otherwise return the `crs` itself.
 
-Custom CRSs which wrap a parent CRS (e.g. `SphericalCRS`) will either need to store the parent CRS in a field called `wrapped_crs`, or define a custom method for `wrappedcrs` which extracts the wrapped CRS.
-"""
-function wrappedcrs(crs::AbstractCRS)
-    if isderivedcrs(crs)
-        return getproperty_oftype(crs, AbstractCRS)
-    else
-        return crs
-    end
+function check_cartesian_wrapped(CRS::Type{<:AbstractCRS}, wrapped::AbstractCRS) 
+    iscartesiancrs(basecrs(wrapped)) || throw(ArgumentError("CRSs of type $(basetype(CRS)) must be defined over a Cartesian CRS, while the provided CRS ($(typeof(wrapped))) is not a Cartesian one."))
 end
-wrappedcrs(coord::FieldOrCoordinate) = wrappedcrs(crs(coord))
-
-"""
-    cartesiancrs(crs::AbstractCRS)
-
-Recursively traverse the CRSs wrapped by the provided `crs` until the first cartesian one (i.e. the first for which [`iscartesiancrs`](@ref) returns `true`) is found, and then return it.
-"""
-function cartesiancrs(crs::AbstractCRS)
-    iscartesiancrs(crs) && return crs
-    wrapped = wrappedcrs(crs)
-    if iscartesiancrs(wrapped)
-        return wrapped
-    else
-        return cartesiancrs(wrapped)
-    end
-end
-cartesiancrs(coord::FieldOrCoordinate) = crs(coord) |> cartesiancrs
-
-
-function check_cartesian_wrapped(derived::Type{<:AbstractCRS}, wrapped::Type{<:AbstractCRS}) 
-    apply_crs_predicate(wrapped, iscartesiancrs) || throw(ArgumentError("CRSs of type $(basetype(derived)) must be defined over a Cartesian CRS, while the provided CRS ($(basetype(wrapped))) is not a Cartesian one."))
-end
-
-check_cartesian_wrapped(derived::Type{<:AbstractCRS}, wrapped::AbstractCRS) = check_cartesian_wrapped(derived, typeof(wrapped))
-
 
 defaultcrs(::Type{<:AbstractSatcomCoordinate{CRS}}) where CRS <: AbstractCRS = CRS()
 defaultcrs(::Type{<:AbstractSatcomCoordinate{<:Any}}) = Cartesian()
@@ -141,54 +84,6 @@ function transform_tuplecoords(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, ::Any)
     throw(ArgumentError("No conversion is defined to go from an input CRS of type `$(typeof(crsᵢ))` to an output CRS of type `$(typeof(crsₒ))`"))
 end
 
-
-"""
-    isderivedcrs(C::Type{<:AbstractCRS})
-    isderivedcrs(crs::AbstractCRS)
-
-Checks whether a given `crs` (or `CRS` type) is derived from another CRS type or no.
-
-!!! note
-    The default implementation simply checks if the CRS type has a field which subtypes `AbstractCRS`.
-"""
-function isderivedcrs(C::Type{<:AbstractCRS})
-    return any(p -> p <: AbstractCRS, fieldtypes(C))
-end
-isderivedcrs(crs::AbstractCRS) = isderivedcrs(typeof(crs))
-
-"""
-    apply_crs_predicate(crs::AbstractCRS, predicate::F) where F <: Function
-
-Apply a predicate to the provided `crs` and returns its value.
-This is mostly useful for properly dealing with more complex CRSs which should customize how to forward the predicate to the base CRS.
-"""
-function apply_crs_predicate(crs::AbstractCRS, predicate::F) where F <: Function
-    return predicate(crs)
-end
-function apply_crs_predicate(CRS::Type{<:AbstractCRS}, predicate::F) where F <: Function
-    return predicate(CRS)
-end
-
-"""
-    isecefcrs(CRS::Type{<:AbstractCRS})
-    isecefcrs(crs::AbstractCRS)
-
-Return `true` if the provided CRS `crs` (or CRS type `CRS`) is an Ellipsoide-Centered-Ellipsoid-Fixed (ECEF) one.
-""" 
-isecefcrs(::Type{<:AbstractCRS}) = false
-isecefcrs(::Type{<:ECEF}) = true
-isecefcrs(crs::AbstractCRS) = isecefcrs(typeof(crs))
-
-"""
-    istopocentriccrs(CRS::Type{<:AbstractCRS})
-    istopocentriccrs(crs::AbstractCRS)
-
-Return `true` if the provided CRS `crs` (or CRS type `CRS`) is a topocentric CRS.
-"""
-istopocentriccrs(::Type{<:AbstractCRS}) = false
-istopocentriccrs(::Type{<:AbstractTopocentricCRS}) = true
-istopocentriccrs(crs::AbstractCRS) = istopocentriccrs(typeof(crs))
-
 """
     rand_tuplecoords(rng::AbstractRNG, crs::AbstractCRS, T::Type{<:AbstractFloat})
 
@@ -204,6 +99,34 @@ It is called automatically when doing `rand(crs)` where `crs` is an instance of 
 rand_tuplecoords(crs::AbstractCRS, T::Type{<:AbstractFloat} = Float64) = rand_tuplecoords(Random.default_rng(), crs, T)
 
 function rand_tuplecoords(rng::AbstractRNG, crs::AbstractCRS, T::Type{<:AbstractFloat})
-    apply_crs_predicate(crs, iscartesiancrs) || throw(ArgumentError("The default method for generating random coordinates works only for Cartesian CRSs.\nAdd a custom method to `SatcomCoordinates.rand_tuplecoords` to support random generation of coordinates in the CRS $(basetype(crs))."))
+    iscartesiancrs(basecrs(crs)) || throw(ArgumentError("The default method for generating random coordinates works only for Cartesian CRSs.\nAdd a custom method to `SatcomCoordinates.rand_tuplecoords` to support random generation of coordinates in the CRS $(basetype(crs))."))
     return ntuple(i -> rand(rng, T), ncoords(crs))
 end
+
+"""
+    linkedcrs_transform(crs::AbstractCRS)
+
+Returns the CRSTransform that goes from the provided `crs` to its linked one (It simply returns the Identity transform in case the linked CRS is the same as the provided one).
+
+This function relies internally on the `raw_linkedcrs_transform` function to return the raw transform. And custom CRSs shall add a method to [`raw_linkedcrs_transform`](@ref) directly.
+"""
+function linkedcrs_transform(crs::AbstractCRS)
+    linked = linkedcrs(crs)
+    if linked === crs
+        return Identity()
+    else
+        raw = raw_linkedcrs_transform(crs)
+        return CRSTransform(linked, crs, raw)
+    end
+end
+
+"""
+    raw_linkedcrs_transform(crs::AbstractCRS)
+
+Returns the raw transform that goes from the provided `crs` to its linked one.
+
+This function should return a **raw** transformation (i.e. a transformation operating directly the output of `tuplecoords(coordinate)` rather than on the coordinate itself).
+
+A **raw** transformation shall expects a NTuple{N, <:AbstractFloat} as input (where `N` is the number of dimensions of the CRS) and return a NTuple{N, <:AbstractFloat} as output.
+"""
+function raw_linkedcrs_transform end

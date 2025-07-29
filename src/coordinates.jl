@@ -131,7 +131,7 @@ end
 PlutoShowHelpers.shortname(c::AbstractCRS) = string(basetype(c |> typeof))
 function PlutoShowHelpers.repl_summary(c::AbstractCRS) 
     if isderivedcrs(c)
-        return PlutoShowHelpers.shortname(c) * "{" * PlutoShowHelpers.shortname(wrappedcrs(c)) * "}"
+        return PlutoShowHelpers.shortname(c) * "{" * PlutoShowHelpers.shortname(linkedcrs(c)) * "}"
     else
         return Base.summary(c)
     end

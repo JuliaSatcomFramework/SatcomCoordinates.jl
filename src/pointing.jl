@@ -262,8 +262,9 @@ pointingcrs(P::Type{<:AbstractPointingCRS}) = P
 pointingcrs(crs::AbstractCRS) = pointingcrs(typeof(crs))
 
 function default_wrappedcrs(D::Type{<:AbstractPointingCRS{CRS}}) where CRS <: AbstractCRS
-    check_cartesian_wrapped(D, CRS)
-    return CRS()
+    wrapped = CRS()
+    check_cartesian_wrapped(D, wrapped)
+    return wrapped
 end
 
 ##### Conversions #####
@@ -386,7 +387,7 @@ end
 # Conversion fallbacks
 # Conversion between non DirectionCosines pointing types, passing through DirectionCosines
 function transform_tuplecoords(crsₒ::AbstractPointingCRS{CRS}, crsᵢ::AbstractPointingCRS{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
-    dc = DirectionCosines(wrappedcrs(crsₒ))
+    dc = DirectionCosines(linkedcrs(crsₒ))
     uvw = transform_tuplecoords(dc, crsᵢ, tup)
     return transform_tuplecoords(crsₒ, dc, uvw)
 end
@@ -398,7 +399,7 @@ function rand_tuplecoords(rng::AbstractRNG, ::DirectionCosines, T::Type{<:Abstra
 end
 
 function rand_tuplecoords(rng::AbstractRNG, crs::UV, T::Type{<:AbstractFloat})
-    dc = DirectionCosines(wrappedcrs(crs))
+    dc = DirectionCosines(linkedcrs(crs))
     u, v, w = rand_tuplecoords(rng, dc, T)
     return map(T, (u, v))
 end

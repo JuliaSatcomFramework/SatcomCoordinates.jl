@@ -25,11 +25,11 @@ public @define_properties
 include("types/abstract_types.jl")
 export AbstractCRS, AbstractPointingCRS, AbstractSphericalCRS, AbstractSatcomCoordinate, AbstractCRSTransform
 
-include("transforms.jl")
-export RawAffineTransform, RawTranslation, RawRotation, CRSTransform, AffineCRSTransform
-
 include("coordinates.jl")
 export Pointing, Coordinate, change_crs
+
+include("transforms.jl")
+export RawAffineTransform, RawTranslation, RawRotation, CRSTransform, AffineCRSTransform
 
 include("raw.jl")
 export Raw
@@ -57,10 +57,12 @@ include("topocentric.jl")
 export NED
 
 include("helpers.jl")
-export iscartesiancrs, cartesiancrs, pointingcrs, default_wrappedcrs, rootcrs
+export pointingcrs, default_wrappedcrs, linkedcrs_transform
 
 include("deps_interface.jl")
 
+include("traits.jl")
+export iscartesiancrs, cartesiancrs, isecefcrs, istopocentriccrs, isllacrs, rootcrs
 
 # include("types/pointing_offsets.jl") 
 # public PointingOffset

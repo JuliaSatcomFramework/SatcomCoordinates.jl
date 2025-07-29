@@ -13,6 +13,18 @@ struct ECEF{ID} <: AbstractCRS
 end
 ECEF() = ECEF(WGS84())
 
+"""
+    ecefid(crs::ECEF)
+
+    Extracts the ECEF identifier from an ECEF CRS
+"""
+ecefid(crs::ECEF) = crs.id
+function ecefid(crs::AbstractCRS)
+    base = basecrs(crs)
+    base === crs && throw(ArgumentError("The provided CRS is not an ECEF CRS, so it cannot be used to extract the ECEF identifier."))
+    return ecefid(base)
+end
+
 function _ellipsoidparams(semimajor::Real, flattening::Real)
     @inline
     a, f = promote_valuetype(AbstractFloat, Float64, semimajor, flattening)
@@ -38,7 +50,7 @@ Function that shall have a valid method for all valid `id` and shall return a Na
 - `e²`: First eccentricity squared
 - `el²`: Second eccentricity squared
 """
-ellipsoidparams(crs::ECEF) = ellipsoidparams(crs.id)
+ellipsoidparams(crs::ECEF) = ellipsoidparams(ecefid(crs))
 
 ellipsoidparams(::Val{:ITRF}) = GRS80_PARAMS
 

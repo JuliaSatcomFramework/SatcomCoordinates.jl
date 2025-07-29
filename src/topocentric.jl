@@ -6,7 +6,7 @@ struct NED{CRS <: AbstractCRS, T} <: AbstractTopocentricCRS{CRS, T}
     lla::Coordinate{LLA{CRS}, T, 3}
     rot::RotMatrix3{T}
     function NED(crs::CRS, ecef::Coordinate{CRS, T, 3}, lla::Coordinate{LLA{CRS}, T, 3}, rot::RotMatrix3{T}) where {CRS <: AbstractCRS, T}
-        apply_crs_predicate(crs, isecefcrs) || throw(ArgumentError("The NED CRS must be associated with an ECEF CRS. The provided CRS is $(basetype(crs)) which is not an ECEF one."))
+        isecefcrs(basecrs(crs)) || throw(ArgumentError("The NED CRS must be associated with an ECEF CRS. The provided CRS is $(basetype(crs)) which is not an ECEF one."))
         return new{CRS, T}(crs, ecef, lla, rot)
     end
 end
@@ -31,13 +31,14 @@ function NED(crs::CRS, ecef::Coordinate{CRS, T, 3}, lla::Coordinate{LLA{CRS}, T,
 end
 function NED(origin::Coordinate)
     _crs = crs(origin)
-    if apply_crs_predicate(_crs, isecefcrs)
+    base = basecrs(_crs)
+    if isecefcrs(base)
         ecefcrs = _crs
         ecef = origin
         lla = change_crs(LLA(ecefcrs), ecef)
         return NED(ecefcrs, ecef, lla)
-    elseif apply_crs_predicate(_crs, c -> c isa LLA)
-        ecefcrs = wrappedcrs(_crs)
+    elseif isllacrs(base)
+        ecefcrs = linkedcrs(_crs)
         lla = origin
         ecef = change_crs(ecefcrs, lla)
         return NED(ecefcrs, ecef, lla)
