@@ -28,13 +28,22 @@ abstract type AbstractCRS end
     AbstractPointingCRS{CRS <: AbstractCRS} <: AbstractCRS
 
 Abstract type representing any pointing type defined over a 3D Cartesian CRS.
-Different pointing types identify different ways of identifying a position on the unitary sphere (over the specified CRS) with two coordinates (e.g. theta/phi, azimuth/elevation, etc.)
+Different pointing types identify different ways of identifying a position on the unitary sphere (over the specified CRS)
 
 Although these are not strictly speaking CRSs themselves, they are considered a subtype of `AbstractCRS` to better fit within the package interface.
 
-See also: [`AbstractCRS`](@ref), [`UV`](@ref), [`ThetaPhi`](@ref), [`AzOverEl`](@ref), [`ElOverAz`](@ref), [`AzEl`](@ref)
+See also: [`AbstractCRS`](@ref), [`AngularPointingCRS`](@ref)
 """
 abstract type AbstractPointingCRS{CRS <: AbstractCRS} <: AbstractCRS end
+
+"""
+    Abstract2DPointingCRS{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS}
+
+Abstract type representing any pointing type defined over a 3D Cartesian CRS that is defined by two coordinates (e.g. theta/phi, azimuth/elevation, etc.).
+
+See also: [`AbstractPointingCRS`](@ref), [`UV`](@ref), [`ThetaPhi`](@ref), [`AzOverEl`](@ref), [`ElOverAz`](@ref), [`AzEl`](@ref)
+"""
+abstract type Abstract2DPointingCRS{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS} end
 
 """
     AbstractEllipsoidCentricCRS <: AbstractCRS

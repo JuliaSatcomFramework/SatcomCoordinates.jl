@@ -4,7 +4,7 @@
 
 # UV
 """
-    UV{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS}
+    UV{CRS <: AbstractCRS} <: Abstract2DPointingCRS{CRS}
 
 Specify a pointing direction in UV coordinates over the cartesian CRS `CRS` (which must be a Cartesian CRS). 
 U,V Coordinates are equivalent to the direction cosines with respect to the `X` and `Y` axis of the reference frame `CRS`. They can also be related to the spherical coordinates (ISO/Physics) [spherical coordinates
@@ -25,7 +25,7 @@ representation](https://en.wikipedia.org/wiki/Spherical_coordinate_system) by th
 
 See also: [`AbstractPointingCRS`](@ref), [`ThetaPhi`](@ref)
 """
-struct UV{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS} 
+struct UV{CRS <: AbstractCRS} <: Abstract2DPointingCRS{CRS} 
     wrapped_crs::CRS
     function UV{CRS}(wrapped_crs::CRS) where CRS <: AbstractCRS
         check_cartesian_wrapped(UV, wrapped_crs)
@@ -36,7 +36,7 @@ UV(wrapped_crs::AbstractCRS) = UV{typeof(wrapped_crs)}(wrapped_crs)
 
 # ThetaPhi
 """
-    ThetaPhi{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS}
+    ThetaPhi{CRS <: AbstractCRS} <: Abstract2DPointingCRS{CRS}
 
 An object specifying a pointing direction in ThetaPhi coordinates over the Cartesian CRS `CRS`, defined as the θ and φ in
 the (ISO/Physics definition) [spherical coordinates
@@ -58,7 +58,7 @@ While the field name use the greek letters, the specific fields of an arbitrary
 
 See also: [`DirectionCosines`](@ref), [`UV`](@ref)
 """
-struct ThetaPhi{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS} 
+struct ThetaPhi{CRS <: AbstractCRS} <: Abstract2DPointingCRS{CRS} 
     wrapped_crs::CRS
     function ThetaPhi{CRS}(wrapped_crs::CRS) where CRS <: AbstractCRS
         check_cartesian_wrapped(ThetaPhi, wrapped_crs)
@@ -68,7 +68,7 @@ end
 ThetaPhi(wrapped_crs::AbstractCRS) = ThetaPhi{typeof(wrapped_crs)}(wrapped_crs)
 
 """
-    AzOverEl{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS}
+    AzOverEl{CRS <: AbstractCRS} <: Abstract2DPointingCRS{CRS}
 
 Object specifying a pointing direction in "Azimuth over Elevation" coordinates, which specify the elevation and azimuth angles that needs to be fed to an azimuth-over-elevation positioner for pointing to a target towards the pointing direction ̂p.
 
@@ -89,7 +89,7 @@ Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`,
 !!! note
     The fields of `AzOverEl` objects can also be accessed via `getproperty` using the `azimuth` and `elevation` aliases.
 """
-struct AzOverEl{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS} 
+struct AzOverEl{CRS <: AbstractCRS} <: Abstract2DPointingCRS{CRS} 
     wrapped_crs::CRS
     function AzOverEl{CRS}(wrapped_crs::CRS) where CRS <: AbstractCRS
         check_cartesian_wrapped(AzOverEl, wrapped_crs)
@@ -99,7 +99,7 @@ end
 AzOverEl(wrapped_crs::AbstractCRS) = AzOverEl{typeof(wrapped_crs)}(wrapped_crs)
 
 """
-    ElOverAz{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS}
+    ElOverAz{CRS <: AbstractCRS} <: Abstract2DPointingCRS{CRS}
 
 Object specifying a pointing direction in "Elevation over Azimuth" coordinates, which specify the azimuth and elevation angles that needs to be fed to an elevation-over-azimuth positioner for pointing to a target towards the pointing direction ̂p.
 
@@ -119,7 +119,7 @@ Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`,
 
 See also: [`AzOverEl`](@ref), [`ThetaPhi`](@ref), [`UV`](@ref)
 """
-struct ElOverAz{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS} 
+struct ElOverAz{CRS <: AbstractCRS} <: Abstract2DPointingCRS{CRS} 
     wrapped_crs::CRS
     function ElOverAz{CRS}(wrapped_crs::CRS) where CRS <: AbstractCRS
         check_cartesian_wrapped(ElOverAz, wrapped_crs)
@@ -129,7 +129,7 @@ end
 ElOverAz(wrapped_crs::AbstractCRS) = ElOverAz{typeof(wrapped_crs)}(wrapped_crs)
 
 """
-    AzEl{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS}
+    AzEl{CRS <: AbstractCRS} <: Abstract2DPointingCRS{CRS}
 
 Object specifying a pointing direction in "Elevation/Azimuth" coordinates, defined following the convention used for Azimuth-Elevation-Range ([`AER`](@ref)) coordinates used by MATLAB and by this package.
 
@@ -146,7 +146,7 @@ Assuming `u`, `v`, and `w` to be direction cosines of the pointing versor `̂p`,
 
 See also: [`ThetaPhi`](@ref), [`UV`](@ref), [`ElOverAz`](@ref), [`AzOverEl`](@ref)
 """
-struct AzEl{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS} 
+struct AzEl{CRS <: AbstractCRS} <: Abstract2DPointingCRS{CRS} 
     wrapped_crs::CRS
     function AzEl{CRS}(wrapped_crs::CRS) where CRS <: AbstractCRS
         check_cartesian_wrapped(AzEl, wrapped_crs)
@@ -268,16 +268,42 @@ function default_wrappedcrs(D::Type{<:AbstractPointingCRS{CRS}}) where CRS <: Ab
 end
 
 ##### Conversions #####
+"""
+    abstract type PointingTransform <: Transform end
+
+Abstract type for all transformations that used to convert between a 2D pointing CRS to the DirectionCosines one (and vice-versa).
+
+These are **raw** transforms and are also used to go to map to the 
+"""
+abstract type PointingTransform <: Transform end
+
+struct AngularPointingToDirectionCosines{PT <: Abstract2DPointingCRS} <: PointingTransform end
+struct DirectionCosinesToAngularPointing{PT <: Abstract2DPointingCRS} <: PointingTransform end
+
+ncoords_in(::Type{<:AngularPointingToDirectionCosines{PT}}) where PT = 2
+ncoords_out(::Type{<:AngularPointingToDirectionCosines{PT}}) where PT = 3
+ncoords_in(::Type{<:DirectionCosinesToAngularPointing{PT}}) where PT = 3
+ncoords_out(::Type{<:DirectionCosinesToAngularPointing{PT}}) where PT = 2
+
+TransformsBase.isinvertible(::Type{<:PointingTransform}) = true
+TransformsBase.isrevertible(::Type{<:PointingTransform}) = true
+
+function raw_linkedcrs_transform(::AbstractPointingCRS)
+    throw(ArgumentError("It is not possible to go from a Pointing CRS to its linked Cartesian CRS as the information about the distance from the origin is lost"))
+end
+
+# Generic implementation for the transform_tuplecoords
+
 # UV <-> DirectionCosines
-function transform_tuplecoords(::DirectionCosines{CRS}, ::UV{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
+function TransformsBase.apply(::AngularPointingToDirectionCosines{<:UV}, tup::NTuple{2, <:AbstractFloat})
     u, v = tup
     w = sqrt(1 - u^2 - v^2)
-    return (u, v, w)
+    return (u, v, w), nothing
 end
-function transform_tuplecoords(::UV{CRS}, ::DirectionCosines{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
+function TransformsBase.apply(::DirectionCosinesToAngularPointing{<:UV}, tup::NTuple{3, <:AbstractFloat})
     u, v, w = tup
     w >= 0 || throw(ArgumentError("The provided values in the `DirectionCosines` CRS are not valid as they are located in the half-hemisphere containing the cartesian -Z axis and can not be converted to UV coordinates"))
-    return (u, v)
+    return (u, v), nothing
 end
 
 # ThetaPhi <-> UV (Specific implementation for slightly faster conversion)
@@ -295,20 +321,20 @@ function transform_tuplecoords(::ThetaPhi{CRS}, ::UV{CRS}, tup::NTuple{2, <:Abst
 end
 
 # ThetaPhi <-> DirectionCosines
-function transform_tuplecoords(::DirectionCosines{CRS}, ::ThetaPhi{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
+function TransformsBase.apply(::AngularPointingToDirectionCosines{<:ThetaPhi}, tup::NTuple{2, <:AbstractFloat})
     θ, φ = tup
 	sθ,cθ = sincos(θ)
 	sφ,cφ = sincos(φ)
 	u = sθ * cφ
 	v = sθ * sφ 
 	w = cθ
-    (u, v, w)
+    return (u, v, w), nothing
 end
-function transform_tuplecoords(::ThetaPhi{CRS}, ::DirectionCosines{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
+function TransformsBase.apply(::DirectionCosinesToAngularPointing{<:ThetaPhi}, tup::NTuple{3, <:AbstractFloat})
     (u, v, w) = tup
 	θ = acos(w)
 	φ = atan(v,u)
-    (θ, φ)
+    return (θ, φ), nothing
 end
 
 # ThetaPhi <-> AzEl
@@ -332,60 +358,68 @@ end
 - p̂ ⋅ n̂ = v
 - p̂ ⋅ û = w
 =#
-function transform_tuplecoords(::AzEl{CRS}, ::DirectionCosines{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
+function TransformsBase.apply(::DirectionCosinesToAngularPointing{<:AzEl}, tup::NTuple{3, <:AbstractFloat})
     u,v,w = tup
     az = atan(u, v) # Already in the [-180°, 180°] range
     el = asin(w) # Already in the [-90°, 90°] range
-    (az, el)
+    return (az, el), nothing
 end
-function transform_tuplecoords(::DirectionCosines{CRS}, ::AzEl{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
+function TransformsBase.apply(::AngularPointingToDirectionCosines{<:AzEl}, tup::NTuple{2, <:AbstractFloat})
     az, el = tup
     saz,caz = sincos(az)
     sel,cel = sincos(el)
     u = saz * cel
     v = caz * cel
     w = sel
-    (u, v, w)
+    return (u, v, w), nothing
 end
 
 # ElOverAz <-> DirectionCosines
-function transform_tuplecoords(::ElOverAz{CRS}, ::DirectionCosines{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
+function TransformsBase.apply(::DirectionCosinesToAngularPointing{<:ElOverAz}, tup::NTuple{3, <:AbstractFloat})
     u,v,w = tup
     az = atan(-u,w) # Already in the [-180°, 180°] range
     el = asin(v) # Already in the [-90°, 90°] range
-    (az, el)
+    return (az, el), nothing
 end
-function transform_tuplecoords(::DirectionCosines{CRS}, ::ElOverAz{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
+function TransformsBase.apply(::AngularPointingToDirectionCosines{<:ElOverAz}, tup::NTuple{2, <:AbstractFloat})
     az, el = tup
     saz,caz = sincos(az)
     sel,cel = sincos(el)
     u = -saz * cel
     v = sel
     w = caz * cel
-    (u, v, w)
+    return (u, v, w), nothing
 end
 
 # AzOverEl <-> DirectionCosines
-function transform_tuplecoords(::AzOverEl{CRS}, ::DirectionCosines{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
+function TransformsBase.apply(::DirectionCosinesToAngularPointing{<:AzOverEl}, tup::NTuple{3, <:AbstractFloat})
     u, v, w = tup
     el = atan(v/w) # Already returns a value in the range [-90°, 90°]
     az = asin(-u) # This only returns the value in the [-90°, 90°] range
     # Make the angle compatible with our ranges of azimuth and elevation
     az = ifelse(w >= 0, az, copysign(180°, az) - az)
-    (az, el)
+    return (az, el), nothing
 end
-function transform_tuplecoords(::DirectionCosines{CRS}, ::AzOverEl{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
+function TransformsBase.apply(::AngularPointingToDirectionCosines{<:AzOverEl}, tup::NTuple{2, <:AbstractFloat})
     az, el = tup
     sel,cel = sincos(el)
     saz,caz = sincos(az)
     u = -saz
     v = caz * sel
     w = caz * cel
-    (u, v, w)
+    return (u, v, w), nothing
 end
 
 # Conversion fallbacks
 # Conversion between non DirectionCosines pointing types, passing through DirectionCosines
+function transform_tuplecoords(::DirectionCosines{CRS}, ::PT, tup::NTuple{2, <:AbstractFloat}) where {CRS <: AbstractCRS, PT <: Abstract2DPointingCRS{CRS}}
+    pt2dc = AngularPointingToDirectionCosines{PT}()
+    pt2dc(tup)
+end
+function transform_tuplecoords(::PT, ::DirectionCosines{CRS}, tup::NTuple{3, <:AbstractFloat}) where {CRS <: AbstractCRS, PT <: Abstract2DPointingCRS{CRS}}
+    dc2pt = DirectionCosinesToAngularPointing{PT}()
+    dc2pt(tup)
+end
 function transform_tuplecoords(crsₒ::AbstractPointingCRS{CRS}, crsᵢ::AbstractPointingCRS{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
     dc = DirectionCosines(linkedcrs(crsₒ))
     uvw = transform_tuplecoords(dc, crsᵢ, tup)
