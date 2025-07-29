@@ -6,13 +6,11 @@
 
 A generic spherical CRS, which wraps a pointing CRS 
 """
-struct SphericalCRS{CRS <: AbstractCRS, PT <: AbstractPointingCRS{CRS}} <: AbstractCRS 
+struct SphericalCRS{CRS <: AbstractCRS, PT <: Abstract2DPointingCRS{CRS}} <: AbstractCRS 
     cartesian::CRS
     pointing::PT
-    function SphericalCRS(pointing_crs::AbstractPointingCRS) 
-        pointing_crs isa DirectionCosines && throw(ArgumentError("The `DirectionCosines` CRS is not a supported PointingCRS for the `SphericalCRS` type"))
+    function SphericalCRS(pointing_crs::Abstract2DPointingCRS) 
         cartesian_crs = cartesiancrs(pointing_crs)
-
         new{typeof(cartesian_crs), typeof(pointing_crs)}(cartesian_crs, pointing_crs)
     end
 end
@@ -47,3 +45,38 @@ function rand_tuplecoords(rng::AbstractRNG, crs::SphericalCRS, T::Type{<:Abstrac
 end
 
 #### Conversion ####
+abstract type SphericalTransform <: Transform end
+
+TransformsBase.isinvertible(::SphericalTransform) = true
+TransformsBase.isrevertible(::SphericalTransform) = true
+
+ncoords(::Type{<:SphericalTransform}) = 3
+
+struct SphericalToCartesian{PT <: Abstract2DPointingCRS} <: SphericalTransform end
+struct CartesianToSpherical{PT <: Abstract2DPointingCRS} <: SphericalTransform end
+
+TransformsBase.inverse(::SphericalToCartesian{PT}) where PT <: Abstract2DPointingCRS = CartesianToSpherical{PT}()
+TransformsBase.inverse(::CartesianToSpherical{PT}) where PT <: Abstract2DPointingCRS = SphericalToCartesian{PT}()
+
+function TransformsBase.apply(::SphericalToCartesian{PT}, tup::NTuple{3, <:AbstractFloat}) where PT <: Abstract2DPointingCRS
+    dctup = AngularPointingToDirectionCosines{PT}()(tup[1:2])
+    return dctup .* tup[3], nothing
+end
+function TransformsBase.apply(::CartesianToSpherical{PT}, tup::NTuple{3, <:AbstractFloat}) where PT <: Abstract2DPointingCRS
+    r = hypot(tup...)
+    pt = DirectionCosinesToAngularPointing{PT}()(tup ./ r)
+    return (pt..., r), nothing
+end
+
+function raw_linkedcrs_transform(::SphericalCRS{<:Any, PT}) where {PT <: Abstract2DPointingCRS}
+    return SphericalToCartesian{PT}()
+end
+
+function transform_tuplecoords(sph::SphericalCRS{CRS}, ::CRS, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
+    t = raw_linkedcrs_transform(sph)
+    return t(tup)
+end
+function transform_tuplecoords(::CRS, sph::SphericalCRS{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
+    t = raw_linkedcrs_transform(sph)
+    return inverse(t)(tup)
+end
