@@ -30,7 +30,29 @@ remove_unit(userunit::Unitful.Units, refunit::Unitful.Units, val::Number) = enfo
 
 @inline ncoords(::Type{<:AbstractSatcomCoordinate{<:Any, <:Any, N}}) where N = N
 @inline ncoords(::Type{CRS}) where CRS <: AbstractCRS = length(units(CRS))
-@inline ncoords(obj::Union{AbstractCRS, FieldOrCoordinate}) = ncoords(typeof(obj))
+@inline ncoords(obj::Union{AbstractCRS, FieldOrCoordinate, Transform}) = ncoords(typeof(obj))
+# NCoords for the transformations, which have an input and output dimension
+for f in (:ncoords_out, :ncoords_in)
+    @eval $f(T::Type{<:Transform}) = ncoords(T)
+    @eval $f(t::Transform) = $f(typeof(t))
+end
+ncoords_out(::Type{<:AbstractCRSTransform{CRSₒ}}) where CRSₒ = ncoords(CRSₒ)
+ncoords_in(::Type{<:AbstractCRSTransform{<:Any, CRSᵢ}}) where CRSᵢ = ncoords(CRSᵢ)
+
+"""
+    struct AnyN end
+
+Singletone structure just used to match any integer number
+"""
+struct AnyN end
+Base.:(==)(::AnyN, ::Integer) = true
+Base.:(==)(::Integer, ::AnyN) = true
+ncoords(::Type{Identity}) = AnyN()
+
+# Inner ncoords helpers
+ncoords(::Type{<:Rotation{N}}) where {N} = N
+ncoords(::Type{<:SVector{N}}) where {N} = N
+ncoords(v::Union{SVector, NTuple}) = length(v)
 
 @inline crstype(::Type{<:AbstractSatcomCoordinate{CRS}}) where CRS <: AbstractCRS = CRS
 @inline crstype(::Type{CRS}) where CRS <: AbstractCRS = CRS
@@ -107,6 +129,8 @@ end
     linkedcrs_transform(crs::AbstractCRS)
 
 Returns the CRSTransform that goes from the provided `crs` to its linked one (It simply returns the Identity transform in case the linked CRS is the same as the provided one).
+
+As an example, for a `LLA` CRS, the output of `linkedcrs_transform` should be a `CRSTransform` that accepts a `LLA` coordinate and returns an `ECEF` coordinate as output (in the ECEF CRS linked to the provided LLA CRS).
 
 This function relies internally on the `raw_linkedcrs_transform` function to return the raw transform. And custom CRSs shall add a method to [`raw_linkedcrs_transform`](@ref) directly.
 """

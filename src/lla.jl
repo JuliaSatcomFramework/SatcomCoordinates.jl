@@ -63,6 +63,8 @@ function TransformsBase.apply(t::LLAtoECEF, tup::NTuple{3, <:AbstractFloat})
     return (x, y, z), nothing
 end
 
+ncoords(::Type{<:Union{ECEFtoLLA, LLAtoECEF}}) = 3
+
 TransformsBase.inverse(t::ECEFtoLLA) = LLAtoECEF(t.id)
 TransformsBase.inverse(t::LLAtoECEF) = ECEFtoLLA(t.id)
 
