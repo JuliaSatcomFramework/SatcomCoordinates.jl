@@ -88,10 +88,3 @@ abstract type AbstractSatcomCoordinate{CRS <: AbstractCRS, T, N} <: FieldOrCoord
 Abstract type representing a coordinate transform between two CRSs with numbertype `T`.
 """
 abstract type AbstractCRSTransform{CRSₒ <: AbstractCRS, CRSᵢ <: AbstractCRS} <: Transform end
-
-"""
-    AbstractAffineCRSTransform{T}
-
-Abstract type representing an affine transform between two CRSs with numbertype `T`.
-"""
-abstract type AbstractAffineCRSTransform{CRSₒ <: AbstractCRS, CRSᵢ <: AbstractCRS, T} <: AbstractCRSTransform{CRSₒ, CRSᵢ} end

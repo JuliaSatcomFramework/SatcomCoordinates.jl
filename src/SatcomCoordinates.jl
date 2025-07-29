@@ -26,7 +26,7 @@ include("types/abstract_types.jl")
 export AbstractCRS, AbstractPointingCRS, AbstractSphericalCRS, AbstractSatcomCoordinate, AbstractCRSTransform
 
 include("transforms.jl")
-export RawAffineTransform, RawTranslation, RawRotation
+export RawAffineTransform, RawTranslation, RawRotation, CRSTransform, AffineCRSTransform
 
 include("coordinates.jl")
 export Pointing, Coordinate, change_crs

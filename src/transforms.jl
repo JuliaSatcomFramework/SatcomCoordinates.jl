@@ -34,11 +34,13 @@ end
 
 ncoords(::Type{<:Rotation{N}}) where {N} = N
 ncoords(::Type{<:SVector{N}}) where {N} = N
-ncoords(::Type{RawAffineTransform{R, T}}) where {R, T} = T <: Identity ? ncoords(R) : ncoords(T)
-ncoords(t::RawAffineTransform) = ncoords(typeof(t))
 ncoords(v::Union{SVector, NTuple}) = length(v)
+ncoords(::Type{RawAffineTransform{R, T}}) where {R, T} = R <: Identity ? ncoords(R) : ncoords(T)
 
-
+for f in (:ncoords_out, :ncoords_in)
+    @eval $f(T::Type{<:RawAffineTransform}) = ncoords(T)
+    @eval $f(t::RawAffineTransform) = ncoords(typeof(t))
+end
 
 const RawTranslation{T} = RawAffineTransform{Identity, T}
 const RawRotation{R} = RawAffineTransform{R, Identity}
@@ -46,11 +48,11 @@ const RawRotation{R} = RawAffineTransform{R, Identity}
 RawTranslation(translation) = RawAffineTransform(Identity(), translation)
 RawRotation(rotation) = RawAffineTransform(rotation, Identity())
 
-TransformsBase.isinvertible(::RawAffineTransform) = true
-TransformsBase.isrevertible(::RawAffineTransform) = true
+TransformsBase.isinvertible(::Type{<:RawAffineTransform}) = true
+TransformsBase.isrevertible(::Type{<:RawAffineTransform}) = true
 
-function TransformsBase.apply(t::RawAffineTransform, v::Union{SVector, NTuple})
-    ncoords(v) === ncoords(t) || throw(DimensionMismatch("The dimension of the input vector ($(ncoords(v))) does not match the dimension of the transform ($(ncoords(t)))"))
+function TransformsBase.apply(t::RawAffineTransform, v::NTuple{N, <:AbstractFloat}) where {N}
+    N === ncoords(t) || throw(DimensionMismatch("The dimension of the input vector ($(N)) does not match the dimension of the transform ($(ncoords(t)))"))
     T = valuetype(t)
     v = SVector(map(T, v))
     trans = t.translation
@@ -62,7 +64,7 @@ function TransformsBase.apply(t::RawAffineTransform, v::Union{SVector, NTuple})
     else
         rot * v + trans
     end
-    return Tuple(newv), nothing
+    return Tuple(map(T, newv)), nothing
 end
 
 function TransformsBase.inverse(t::RawAffineTransform) 
@@ -111,4 +113,59 @@ function _compose(t1::RawAffineTransform, t2::RawAffineTransform)
         t2rot * t1trans + t2trans
     end
     return RawAffineTransform(rot, trans)
+end
+
+isaffinetransform(::Type{<:RawAffineTransform}) = true
+isaffinetransform(::Type{<:Transform}) = false
+isaffinetransform(t::Transform) = isaffinetransform(typeof(t))
+
+"""
+    israwtransform(t::Transform)
+    israwtransform(t::Type{<:Transform})
+
+Function that returns true if the transform is considered **raw**, meaning that it directy operates and returns raw vectors or NTuples without units and is not specifically tied to input and output CRSs.
+
+Raw transforms are supposed to be internally used as fields to build concrete subtypes of `AbstractCRSTransform`.
+
+See [`CRSTransform`](@ref) for an example of the only concrete subtype implemented in this package.
+"""
+israwtransform(::Type{<:Transform}) = true
+israwtransform(t::Transform) = israwtransform(typeof(t))
+israwtransform(::Type{<:AbstractCRSTransform}) = false
+
+
+#### ComposedRawTransform ####
+struct ComposedRawTransform{T1, T2} <: Transform
+    t1::T1
+    t2::T2
+end
+
+#### AffineCRSTransform ####
+struct CRSTransform{CRSₒ <: AbstractCRS, CRSᵢ <: AbstractCRS, T <: Transform} <: AbstractCRSTransform{CRSₒ, CRSᵢ}
+    crsₒ::CRSₒ
+    crsᵢ::CRSᵢ
+    raw::T
+    function CRSTransform(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, raw::Transform)
+        israwtransform(raw) || throw(ArgumentError("The input transform used to construct an object of type `CRSTransform` must be raw, which is not the case for the provided transform $(typeof(raw))."))
+        ncoords(crsₒ) == ncoords_out(raw) || throw(DimensionMismatch("The dimension of the output CRS ($(ncoords(crsₒ))) does not match the output dimension of the raw transform ($(ncoords_out(raw)))."))
+        ncoords(crsᵢ) == ncoords_in(raw) || throw(DimensionMismatch("The dimension of the input CRS ($(ncoords(crsᵢ))) does not match the input dimension of the raw transform ($(ncoords_in(raw)))."))
+        return new{typeof(crsₒ), typeof(crsᵢ), typeof(raw)}(crsₒ, crsᵢ, raw)
+    end
+end
+
+input_crs(t::CRSTransform) = t.crsᵢ
+output_crs(t::CRSTransform) = t.crsₒ
+raw_transform(t::CRSTransform) = t.raw
+
+TransformsBase.isinvertible(::Type{CRSTransform{<:Any, <:Any, T}}) where T = TransformsBase.isinvertible(T)
+TransformsBase.isrevertible(::Type{CRSTransform{<:Any, <:Any, T}}) where T = TransformsBase.isrevertible(T)
+
+TransformsBase.parameters(t::AbstractCRSTransform) = getproperties(t)
+
+function TransformsBase.apply(t::CRSTransform{<:Any, CRSᵢ}, c::Coordinate{CRSᵢ}) where {CRSᵢ}
+    crs(c) == input_crs(t) || throw(ArgumentError("The CRS of the provided coordinate ($(crs(c))) does not match the input CRS of the transform ($(input_crs(t)))."))
+    # Apply the transformation at the raw level
+    tup = raw(t)(tuplecoords(c))
+    # We now construct the output coordinate without additional checks
+    return constructor_without_checks(Coordinate, output_crs(t), tup), nothing
 end
