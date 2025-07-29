@@ -6,11 +6,14 @@
 
 A generic spherical CRS, which wraps a pointing CRS 
 """
-struct SphericalCRS{CRS <: AbstractPointingCRS} <: AbstractCRS 
-    wrapped_crs::CRS
-    function SphericalCRS(wrapped_crs::AbstractPointingCRS) 
-        wrapped_crs isa DirectionCosines && throw(ArgumentError("The `DirectionCosines` CRS is not a supported PointingCRS for the `SphericalCRS` type"))
-        new{typeof(wrapped_crs)}(wrapped_crs)
+struct SphericalCRS{CRS <: AbstractCRS, PT <: AbstractPointingCRS{CRS}} <: AbstractCRS 
+    cartesian::CRS
+    pointing::PT
+    function SphericalCRS(pointing_crs::AbstractPointingCRS) 
+        pointing_crs isa DirectionCosines && throw(ArgumentError("The `DirectionCosines` CRS is not a supported PointingCRS for the `SphericalCRS` type"))
+        cartesian_crs = cartesiancrs(pointing_crs)
+
+        new{typeof(cartesian_crs), typeof(pointing_crs)}(cartesian_crs, pointing_crs)
     end
 end
 function (CRS::Type{<:SphericalCRS})()
@@ -29,14 +32,18 @@ end
 ]
 ncoords(::Type{SphericalCRS}) = 3 # This is needed to avoid errors in the simplified coordinate constructor when not specifying the CRS
 
-pointingcrs(::Type{SphericalCRS{P}}) where P <: AbstractPointingCRS = P
+pointingcrs(::Type{<:SphericalCRS{<:Any, P}}) where P <: AbstractPointingCRS = P
+pointingcrs(s::SphericalCRS) = s.pointing
 
-default_wrappedcrs(::Type{<:SphericalCRS{P}}) where P <: AbstractPointingCRS = P()
-default_wrappedcrs(::Type{<:SphericalCRS{<:Any}}) = ThetaPhi()
+default_wrappedcrs(::Type{<:SphericalCRS{<:Any, P}}) where P <: AbstractPointingCRS = P()
+default_wrappedcrs(::Type{<:SphericalCRS{C}}) where C = ThetaPhi(C())
+default_wrappedcrs(::Type{SphericalCRS}) = ThetaPhi()
 
 #### Random.rand #####
 function rand_tuplecoords(rng::AbstractRNG, crs::SphericalCRS, T::Type{<:AbstractFloat})
-    pt = rand_tuplecoords(rng, linkedcrs(crs), T)
+    pt = rand_tuplecoords(rng, pointingcrs(crs), T)
     r = rand(rng, T)
     return (pt..., r)
 end
+
+#### Conversion ####
