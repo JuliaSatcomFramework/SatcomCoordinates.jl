@@ -6,8 +6,8 @@ using StaticArrays: StaticArrays, FieldVector, SVector, @SVector, SA, StaticMatr
 using LinearAlgebra: LinearAlgebra, normalize, norm
 using PlutoShowHelpers: PlutoShowHelpers, DefaultShowOverload, HideWhenCompact, DualDisplayAngle, DisplayLength, InsidePluto, OutsidePluto, HideWhenFull, Ellipsis, repl_summary, shortname, longname, show_namedtuple
 using Random: Random, SamplerType, AbstractRNG
-using Rotations: Rotations, Rotation, nearest_rotation, RotMatrix3
-using TransformsBase: TransformsBase, Transform, Identity, isinvertible, isrevertible, inverse, apply
+using Rotations: Rotations, Rotation, nearest_rotation, RotMatrix, RotMatrix3
+using TransformsBase: TransformsBase, Transform, Identity, isinvertible, isrevertible, inverse, apply, →
 using Unitful: Unitful, Quantity, ustrip, rad, @u_str, °, km, Units, NoUnits
 
 # To move to extension
@@ -25,14 +25,14 @@ public @define_properties
 include("types/abstract_types.jl")
 export AbstractCRS, AbstractPointingCRS, AbstractSphericalCRS, AbstractSatcomCoordinate, AbstractCRSTransform
 
+include("transforms.jl")
+export RawAffineTransform, RawTranslation, RawRotation
+
 include("coordinates.jl")
 export Pointing, Coordinate, change_crs
 
 include("raw.jl")
 export Raw
-
-include("transforms.jl")
-export InverseTransform, CRSRotation
 
 # include("types/traits.jl")
 
