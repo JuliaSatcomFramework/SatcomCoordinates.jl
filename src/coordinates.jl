@@ -30,7 +30,7 @@ const Pointing{CRS <: AbstractPointingCRS, T, N} = Coordinate{CRS, T, N}
 
 create_coordinate(C::Type{<:AbstractSatcomCoordinate}, args::Point{M, Number}) where {M} = create_coordinate(C, args...)
 create_coordinate(C::Type{<:AbstractSatcomCoordinate}, crs::AbstractCRS, args::Point{M, Number}) where {M} = create_coordinate(C, crs, args...)
-function create_coordinate(C::Type{<:AbstractSatcomCoordinate}, coords::Vararg{Number, M}) where {M}
+function create_coordinate(C::Type{<:AbstractSatcomCoordinate}, coords::Vararg{Any, M}) where {M}
     return create_coordinate(C, defaultcrs(C), coords...)
 end
 function create_coordinate(C::Type{<:AbstractSatcomCoordinate}, crs::AbstractCRS, coords::Vararg{Number, M}) where {M}
@@ -46,6 +46,9 @@ function create_coordinate(C::Type{<:AbstractSatcomCoordinate}, crs::AbstractCRS
     tup = preprocess_input_coords(CRS, T, coords)
     raw = process_unitless_coords(C, crs, tup)
     return constructor_without_checks(basetype(C), crs, raw)
+end
+function create_coordinate(::Type{C}, crs::AbstractCRS, ::Val{NaN}) where {C <: AbstractSatcomCoordinate}
+    return constructor_without_checks(C, crs, ntuple(i -> NaN, ncoords(crs)))
 end
 
 """
@@ -109,6 +112,19 @@ for T in (Vararg{Number}, Point{N, Number} where N)
         isderivedcrs(CRS) || throw(ArgumentError("The provided CRS is not derived from another CRS, so it cannot be instantiated with another CRS as first argument"))
         crs = basetype(CRS)(wrapped_crs)
         return Coordinate(crs, coords)
+    end
+
+    @eval function (CRS::Type{<:AbstractCRS})(wrapped_crs::AbstractCRS, v::Val{NaN})
+        return Coordinate(wrapped_crs, v)
+    end
+
+    @eval function (CRS::Type{<:AbstractCRS})(v::Val{NaN})
+        if isderivedcrs(CRS)
+            # This simply calls the next method below, which takes both the wrapped CRS and the coords as input
+            return basetype(CRS)(default_wrappedcrs(CRS), v)
+        else
+            return Coordinate(CRS(), v)
+        end
     end
 end
 
