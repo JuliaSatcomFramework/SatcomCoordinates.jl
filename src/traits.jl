@@ -13,7 +13,7 @@ All root CRSs should also be cartesian CRSs
 
 See also: [`rootcrs`](@ref), [`iscartesiancrs`](@ref), [`isderivedcrs`](@ref), []
 """
-function isrootcrs(C::Type{<:AbstractCRS})
+function isrootcrs(::Type{C}) where {C<:AbstractCRS}
     return nlinked_crs(C) == 0
 end
 isrootcrs(crs::AbstractCRS) = isrootcrs(typeof(crs))
@@ -52,7 +52,7 @@ By default, this function returns `true` if the CRS has at least one field which
 
 See also: [`linkedcrs`](@ref), [`isrootcrs`](@ref)
 """
-islinkedcrs(CRS::Type{<:AbstractCRS}) = nlinked_crs(CRS) > 0
+islinkedcrs(::Type{C}) where {C<:AbstractCRS} = nlinked_crs(C) > 0
 islinkedcrs(crs::AbstractCRS) = islinkedcrs(typeof(crs))
 
 
@@ -88,7 +88,7 @@ By default, this function returns `true` if the CRS has exactly one field which 
 
 See also: [`linkedcrs`](@ref), [`islinkedcrs`](@ref)
 """
-isderivedcrs(C::Type{<:AbstractCRS}) = nlinked_crs(C) == 1
+isderivedcrs(::Type{C}) where {C<:AbstractCRS} = nlinked_crs(C) == 1
 isderivedcrs(crs::AbstractCRS) = isderivedcrs(typeof(crs))
 
 """
