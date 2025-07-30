@@ -317,14 +317,16 @@ function TransformsBase.apply(::AngularPointingToDirectionCosines{<:UV}, tup::NT
     w = sqrt(1 - u^2 - v^2)
     return (u, v, w), nothing
 end
-function TransformsBase.apply(::DirectionCosinesToAngularPointing{<:UV}, tup::NTuple{3, <:AbstractFloat})
+function TransformsBase.apply(::DirectionCosinesToAngularPointing{<:UV}, tup::NTuple{3, T}) where T <: AbstractFloat
     u, v, w = tup
+    isnan(w) && return map(T, (NaN, NaN)), nothing
     w >= 0 || throw(ArgumentError("The provided values in the `DirectionCosines` CRS are not valid as they are located in the half-hemisphere containing the cartesian -Z axis and can not be converted to UV coordinates"))
     return (u, v), nothing
 end
 
 # ThetaPhi <-> UV (Specific implementation for slightly faster conversion)
-function transform_tuplecoords(::UV{CRS}, ::ThetaPhi{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
+function transform_tuplecoords(::UV{CRS}, ::ThetaPhi{CRS}, tup::NTuple{2, T}) where {CRS <: AbstractCRS, T <: AbstractFloat}
+    any(isnan, tup) && return map(T, (NaN, NaN))
     θ, φ = tup
 	θ <= π/2 || throw(ArgumentError("The provided ThetaPhi coordinate has θ > 90° so it lies in the half-hemisphere containing the -Z axis and can not be represented in UV"))
 	v, u = sin(θ) .* sincos(φ)

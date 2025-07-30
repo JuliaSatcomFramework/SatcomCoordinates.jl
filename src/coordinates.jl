@@ -113,19 +113,6 @@ for T in (Vararg{Number}, Point{N, Number} where N)
         crs = basetype(CRS)(wrapped_crs)
         return Coordinate(crs, coords)
     end
-
-    @eval function (CRS::Type{<:AbstractCRS})(wrapped_crs::AbstractCRS, v::Val{NaN})
-        return Coordinate(wrapped_crs, v)
-    end
-
-    @eval function (CRS::Type{<:AbstractCRS})(v::Val{NaN})
-        if isderivedcrs(CRS)
-            # This simply calls the next method below, which takes both the wrapped CRS and the coords as input
-            return basetype(CRS)(default_wrappedcrs(CRS), v)
-        else
-            return Coordinate(CRS(), v)
-        end
-    end
 end
 
 #### Show Methods ####
