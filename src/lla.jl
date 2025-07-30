@@ -36,7 +36,7 @@ end
 
 ##### Conversion with ECEF #####
 
-abstract type LLATransform <: AbstractCRSTransform end
+abstract type LLATransform <: AbstractRawCRSTransform end
 struct ECEFtoLLA{ID} <: LLATransform
     id::ID
 end
