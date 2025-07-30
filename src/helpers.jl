@@ -96,13 +96,22 @@ defaultcrs(::Type{Pointing}) = ThetaPhi()
 default_wrappedcrs(::Type{<:AbstractCRS}) = Cartesian()
 
 
-function change_crs(crsₒ::AbstractCRS, coord::AbstractSatcomCoordinate)
-    tup = transform_tuplecoords(crsₒ, crs(coord), tuplecoords(coord))
+function change_crs(crsₒ::AbstractCRS, coord::AbstractSatcomCoordinate; kwargs...)
+    tup = transform_tuplecoords(crsₒ, crs(coord), tuplecoords(coord); kwargs...)
     return constructor_without_checks(basetype(typeof(coord)), crsₒ, tup)
 end
-change_crs(::CRS, coord::AbstractSatcomCoordinate{CRS}) where CRS = coord
+function change_crs(crsₒ::CRS, coord::AbstractSatcomCoordinate{CRS}; kwargs...) where CRS
+    crsᵢ = crs(coord)
+    if crsₒ === crsᵢ 
+        # We have to do this check as we may have two different instances of the same CRS
+        return coord 
+    else
+        tup = transform_tuplecoords(crsₒ, crsᵢ, tuplecoords(coord); kwargs...)
+        return constructor_without_checks(basetype(typeof(coord)), crsₒ, tup)
+    end
+end
 
-function transform_tuplecoords(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, ::Any)
+function transform_tuplecoords(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, ::Any; kwargs...)
     throw(ArgumentError("No conversion is defined to go from an input CRS of type `$(typeof(crsᵢ))` to an output CRS of type `$(typeof(crsₒ))`"))
 end
 
