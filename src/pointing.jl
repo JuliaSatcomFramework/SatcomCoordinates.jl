@@ -187,10 +187,16 @@ for PT in (:AzOverEl, :ElOverAz, :AzEl)
 end 
 
 @define_properties DirectionCosines [
-    u => NoUnits
-    v => NoUnits
-    w => NoUnits
+    u => NoUnits => (x,)
+    v => NoUnits => (y,)
+    w => NoUnits => (z,)
 ]
+
+function Base.:(-)(c::Coordinate{<:DirectionCosines})
+    dccrs = crs(c)
+    newtup = map(-, tuplecoords(c))
+    return constructor_without_checks(Coordinate, dccrs, newtup)
+end
 
 ###################################################################
 ########               Constructors/Helpers                ########
@@ -211,7 +217,6 @@ wrap_spherical_angles_rad_normalized(θ::T, φ::T, ::Type{<:ThetaPhi}) where {T 
         (-θ, φ - copysign(π,φ)) # Need to wrap
     )
 
-process_unitless_coords(::Type{<:FieldOrCoordinate}, crs::AbstractPointingCRS, coords::NTuple{<:Any, <:Any}) = throw(ArgumentError("It is currently not possible to create coordinates other than `Pointing` with a reference CRS which is a subtype of `AbstractPointingCRS`"))
 
 function process_unitless_coords(::Type{<:Coordinate}, crs::AbstractPointingCRS, coords::NTuple{2,T}) where {T}
     PT = typeof(crs)
@@ -243,7 +248,7 @@ function process_unitless_coords(::Type{<:Coordinate}, crs::UV, coords::NTuple{2
     return (u, v)
 end
 
-function process_unitless_coords(::Type{P}, crs::DirectionCosines, coords::NTuple{3,T}) where {P<:Pointing,T}
+function process_unitless_coords(::Type{<:Coordinate}, crs::DirectionCosines, coords::NTuple{3,<:AbstractFloat})
     return coords ./ hypot(coords...)
 end
 
