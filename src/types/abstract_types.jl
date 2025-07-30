@@ -20,6 +20,8 @@ A subtype of an `AbstractCRS` shall satisfy the following conditions:
   - Derived CRSs should only depend on a single wrapped CRS. Complex derivations shall be implemented by nesting CRSs rather than by having multiple different wrapped CRSs as fields.
   - Derived CRSs should be wrapping a Cartesian CRS. Any kind of -non-cartesian CRS shall only be the last level of nesting.
 - Derived CRSs shall have a valid method for the `to_wrappedcrs` function, which should return a transformation to express a coordinate in the derived CRS to the equivalent ones expressed in the wrapped CRS.
+
+Additionally, for each CRS whose type parameters can be completely identified by their fields, only one inner constructor without explicit type parameters should be defined.
 .
 """
 abstract type AbstractCRS end

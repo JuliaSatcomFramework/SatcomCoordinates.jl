@@ -21,7 +21,7 @@ add_unit(userunit::Unitful.Units, refunit::Unitful.Units, val::Real) = enforce_u
 """
     remove_unit(userunit::Unitful.Units, refunit::Unitful.Units, val::Number)
 
-Take a number (with or without unit), convert or interpret it (depending on whether it has or not a unit) to the `usernit`, convert again to `refunit` and then strip the unit.
+Take a number (with or without unit), convert or interpret it (depending on whether it has or not a unit) to the `userunit`, convert again to `refunit` and then strip the unit.
 
 This is used internally in the constructor of `Coordinate`s to convert user inputs into the raw coordinate for the specific CRS.
 """

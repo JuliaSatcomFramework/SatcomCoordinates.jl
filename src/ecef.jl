@@ -36,26 +36,30 @@ See also: [`ecefid`](@ref), [`ellipsoidparams`](@ref), [`DefaultEarthFrame`](@re
 """
 struct ECEF{ID} <: AbstractCRS
     id::ID
-    function ECEF(id)
-        if id isa Symbol
-            id = Val(id)
-        end
-        new{typeof(id)}(id)
-    end
+    ECEF(id) = new{typeof(id)}(id)
 end
 ECEF() = ECEF(DefaultEarthFrame())
 
 """
-    ecefid(crs::ECEF)
+    frameid(crs::AbstractCRS)
 
-    Extracts the ECEF identifier from an ECEF CRS
+Extracts the frame identifier associated to the CRS `crs`. This is currently only used to extract the `id` field from the ECI and ECEF CRSs for further processing (e.g. extracting the ellipsoid parameters associated to the frame id)
+
 """
-ecefid(crs::ECEF) = return crs.id
-ecefid(crs::AbstractLinkedCRS{<:ECEF}) = return ecefid(linkedcrs(crs))
-function ecefid(crs::AbstractCRS)
+frameid(crs::ECEF) = return crs.id
+function frameid(crs::AbstractCRS)
     base = basecrs(crs)
-    base === crs && throw(ArgumentError("The provided CRS is not an ECEF CRS, so it cannot be used to extract the ECEF identifier."))
-    return ecefid(base)
+    linked = linkedcrs(crs)
+    if base === linked === base
+        # We are dealing with a root CRS, and these must explicitly create a custom method for `frameid` if they have one
+        throw(ArgumentError("The provided CRS does not seem to contain a frame id. Currently only `ECEF` and `ECI` frames support that."))
+    elseif base !== crs
+        # We try to go over the base CRS
+        return frameid(base)
+    else
+        # We are dealing with a simple derived CRS, so we try to go over the linked CRS
+        return frameid(linked)
+    end
 end
 
 function _ellipsoidparams(semimajor::Real, flattening::Real)
@@ -74,7 +78,7 @@ const WGS84_PARAMS = _ellipsoidparams(6378137.0, 1/298.257223563)
 const GRS80_PARAMS = _ellipsoidparams(6378137.0, 1/298.257222101)
 
 """
-    ellipsoidparams(ecef_id)
+    ellipsoidparams(frame_id)
 
 Function that shall have a valid method for all valid `id` (of either ECEF or ECI CRS) instances and shall return a NamedTuple with the following fields representing the useful ellipsoid parameters:
 - `a`: Semimajor axis
@@ -92,7 +96,7 @@ julia> ellipsoidparams(DefaultEarthFrame())
 (a = 6.378137e6, f = 0.0033528106647474805, b = 6.356752314245179e6, e² = 0.0066943799901413165, el² = 0.006739496742276434)
 ```
 """
-ellipsoidparams(crs::ECEF) = ellipsoidparams(ecefid(crs))
+ellipsoidparams(crs::AbstractCRS) = ellipsoidparams(frameid(crs))
 
 #### Random.rand #####
 function rand_tuplecoords(rng::AbstractRNG, crs::ECEF, T::Type{<:AbstractFloat})
