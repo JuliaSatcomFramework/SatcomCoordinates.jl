@@ -25,6 +25,18 @@ A subtype of an `AbstractCRS` shall satisfy the following conditions:
 abstract type AbstractCRS end
 
 """
+    AbstractLinkedCRS{CRS <: AbstractCRS} <: AbstractCRS
+
+Abstract type representing a CRS that is linked to another CRS.
+
+Each instance of a concrete subtype of `AbstractLinkedCRS` should have at least one field whose type subtypes `AbstractCRS`. 
+
+The first field represents an `AbstractCRS` is automatically returned by the `[linkedcrs](@ref)(crs::AbstractLinkedCRS)` function.
+
+"""
+abstract type AbstractLinkedCRS{CRS <: AbstractCRS} <: AbstractCRS end
+
+"""
     AbstractPointingCRS{CRS <: AbstractCRS} <: AbstractCRS
 
 Abstract type representing any pointing type defined over a 3D Cartesian CRS.
@@ -34,7 +46,7 @@ Although these are not strictly speaking CRSs themselves, they are considered a 
 
 See also: [`AbstractCRS`](@ref), [`AngularPointingCRS`](@ref)
 """
-abstract type AbstractPointingCRS{CRS <: AbstractCRS} <: AbstractCRS end
+abstract type AbstractPointingCRS{CRS <: AbstractCRS} <: AbstractLinkedCRS{CRS} end
 
 """
     Abstract2DPointingCRS{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS}
@@ -44,33 +56,6 @@ Abstract type representing any pointing type defined over a 3D Cartesian CRS tha
 See also: [`AbstractPointingCRS`](@ref), [`UV`](@ref), [`ThetaPhi`](@ref), [`AzOverEl`](@ref), [`ElOverAz`](@ref), [`AzEl`](@ref)
 """
 abstract type Abstract2DPointingCRS{CRS <: AbstractCRS} <: AbstractPointingCRS{CRS} end
-
-"""
-    AbstractEllipsoidCentricCRS <: AbstractCRS
-
-Abstract type representing a 3D Cartesian CRS whose origin is at the center of a reference ellipsoid.
-
-Examples of such a CRS are the ECEF and ECI CRSs.
-"""
-abstract type AbstractEllipsoidCentricCRS <: AbstractCRS end
-
-"""
-    AbstractEllipsoidFixedCRS <: AbstractEllipsoidCentricCRS
-
-Abstract type representing a 3D Cartesian CRS whose origin is at the center of a reference ellipsoid and whose axes are fixed with respect to the surface of the ellipsoid.
-
-An example of such a CRS is the ECEF CRS.
-"""
-abstract type AbstractEllipsoidFixedCRS <: AbstractEllipsoidCentricCRS end
-
-"""
-    AbstractEllipsoidIntertialCRS <: AbstractEllipsoidCentricCRS
-
-Abstract type representing a 3D Cartesian CRS whose origin is at the center of a reference ellipsoid and whose axes are _inertial_ (i.e. not accelerating) with respect to the stars.
-
-An example of such a CRS is the ECI CRS.
-"""
-abstract type AbstractEllipsoidIntertialCRS <: AbstractEllipsoidCentricCRS end
 
 """
     abstract type FieldOrCoordinate end
@@ -97,3 +82,25 @@ abstract type AbstractSatcomCoordinate{CRS <: AbstractCRS, T, N} <: FieldOrCoord
 Abstract type representing a coordinate transform between two CRSs with numbertype `T`.
 """
 abstract type AbstractCRSTransform{CRSₒ <: AbstractCRS, CRSᵢ <: AbstractCRS} <: Transform end
+
+"""
+    AbstractRawCRSTransform <: Transform
+
+Abstract type representing a **raw** transform between two CRSs. A **raw** transform is the lower level CRS transformation that operate directly on the raw coordinates of the two CRSs (i.e. the one returned by `tuplecoords(coords::Coordinate{CRS})`)
+
+A **raw** transform is used inernally by the user-facing `AbstractCRSTransform` and is expected to receive as input a `NTuple{N, T <: AbstractFloat}` and produce as output a `NTuple{M, T <:AbstractFloat}`, where `N` and `M` are the number of coordinates (i.e. the output of `ncoords(crs)`) of the input and output CRSs respectively.
+
+See extended help for more details on necessary methods for new concrete subtypes of `AbstractRawCRSTransform`.
+
+# Extended Help
+
+Each new concrete subtype of `AbstractRawCRSTransform` (indicated with type name `RAW_T` in the rest of this section) is expected to implement a method for the following two methods:
+- `ncoords_out(::Type{<:RAW_T})`: Returns the number of coordinates in the output NTuple (i.e. the `M` above)
+- `ncoords_in(::Type{<:RAW_T})`: Returns the number of coordinates in the input NTuple (i.e. the `N` above)
+
+For transforms where `N === M`, it is sufficient to just implement `ncoords(::Type{<:RAW_T})` as that is the default fallback for both `ncoords_out` and `ncoords_in`.
+
+Additionally, new Raw transforms must implement the appropriate interface functions from `TransformsBase.jl` which as a minimum requires a valid method for:
+- `TransformsBase.apply(t::RAW_T, tup::NTuple{N, <:AbstractFloat}) where N`: Remember that this function must provide 2 separate outputs, the first is the actual transformed coordinate as `NTuple{M, <:AbstractFloat}` and the second is the `cache` output of the `TransformsBase` interface. For all expected subtypes of `AbstractRawCRSTransform`, this second output should simply be `nothing`.
+"""
+abstract type AbstractRawCRSTransform <: Transform end

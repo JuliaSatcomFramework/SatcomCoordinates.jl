@@ -269,13 +269,13 @@ end
 
 ##### Conversions #####
 """
-    abstract type PointingTransform <: Transform end
+    abstract type PointingTransform <: AbstractRawCRSTransform end
 
 Abstract type for all transformations that used to convert between a 2D pointing CRS to the DirectionCosines one (and vice-versa).
 
 These are **raw** transforms and are also used to go to map to the 
 """
-abstract type PointingTransform <: Transform end
+abstract type PointingTransform <: AbstractRawCRSTransform end
 
 struct AngularPointingToDirectionCosines{PT <: Abstract2DPointingCRS} <: PointingTransform end
 struct DirectionCosinesToAngularPointing{PT <: Abstract2DPointingCRS} <: PointingTransform end

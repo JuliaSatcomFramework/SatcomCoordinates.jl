@@ -35,18 +35,20 @@ end
 
 
 ##### Conversion with ECEF #####
-struct ECEFtoLLA{ID} <: Transform
+
+abstract type LLATransform <: AbstractCRSTransform end
+struct ECEFtoLLA{ID} <: LLATransform
     id::ID
 end
-struct LLAtoECEF{ID} <: Transform
+struct LLAtoECEF{ID} <: LLATransform
     id::ID
 end
 
 ellipsoidparams(t::Union{ECEFtoLLA, LLAtoECEF}) = ellipsoidparams(t.id)
 
-TransformsBase.parameters(t::ECEFtoLLA) = (t.id,)
-TransformsBase.isinvertible(::Union{Type{<:ECEFtoLLA}, Type{<:LLAtoECEF}}) = true
-TransformsBase.isrevertible(::Union{Type{<:ECEFtoLLA}, Type{<:LLAtoECEF}}) = true
+TransformsBase.parameters(t::LLATransform) = (t.id,)
+TransformsBase.isinvertible(::Type{<:LLATransform}) = true
+TransformsBase.isrevertible(::Type{<:LLATransform}) = true
 
 function TransformsBase.apply(t::ECEFtoLLA, tup::NTuple{3, <:AbstractFloat})
     ellparams = ellipsoidparams(t)
@@ -63,7 +65,7 @@ function TransformsBase.apply(t::LLAtoECEF, tup::NTuple{3, <:AbstractFloat})
     return (x, y, z), nothing
 end
 
-ncoords(::Type{<:Union{ECEFtoLLA, LLAtoECEF}}) = 3
+ncoords(::Type{<:LLATransform}) = 3
 
 TransformsBase.inverse(t::ECEFtoLLA) = LLAtoECEF(t.id)
 TransformsBase.inverse(t::LLAtoECEF) = ECEFtoLLA(t.id)

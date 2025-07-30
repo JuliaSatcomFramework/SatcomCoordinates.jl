@@ -23,7 +23,7 @@ include("define_properties.jl")
 public @define_properties
 
 include("types/abstract_types.jl")
-export AbstractCRS, AbstractPointingCRS, AbstractSphericalCRS, AbstractSatcomCoordinate, AbstractCRSTransform
+export AbstractCRS, AbstractPointingCRS, AbstractSphericalCRS, AbstractSatcomCoordinate, AbstractCRSTransform, AbstractLinkedCRS
 
 include("coordinates.jl")
 export Pointing, Coordinate, change_crs

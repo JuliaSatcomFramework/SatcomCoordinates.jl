@@ -45,7 +45,7 @@ function rand_tuplecoords(rng::AbstractRNG, crs::SphericalCRS, T::Type{<:Abstrac
 end
 
 #### Conversion ####
-abstract type SphericalTransform <: Transform end
+abstract type SphericalTransform <: AbstractCRSTransform end
 
 TransformsBase.isinvertible(::SphericalTransform) = true
 TransformsBase.isrevertible(::SphericalTransform) = true

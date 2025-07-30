@@ -8,7 +8,7 @@ A transform that is defined by a rotation and a translation that is intended to 
 - `translation::Union{Identity, NTuple{N, P}, SVector{N, P}}`: The translation of the transform.
 
 """
-struct RawAffineTransform{R, T} <: Transform
+struct RawAffineTransform{R, T} <: AbstractRawCRSTransform
     rotation::R
     translation::T
     function RawAffineTransform(rotation::Union{Identity, Rotation{N, P}}, translation::Union{Identity, NTuple{N, P}, SVector{N, P}}) where {N, P <: AbstractFloat}
@@ -112,7 +112,7 @@ function _compose(t1::Transform, t2::Transform)
 end
 
 #### ComposedRawTransform ####
-struct ComposedRawTransform{T1, T2} <: Transform
+struct ComposedRawTransform{T1 <: Transform, T2 <: Transform} <: AbstractRawCRSTransform
     t1::T1
     t2::T2
 end
