@@ -57,7 +57,7 @@ include("topocentric.jl")
 export NED
 
 include("helpers.jl")
-export pointingcrs, default_wrappedcrs, linkedcrs_transform
+export pointingcrs, default_wrappedcrs, linkedcrs_transform, change_crs
 
 include("deps_interface.jl")
 

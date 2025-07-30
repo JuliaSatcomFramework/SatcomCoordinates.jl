@@ -100,9 +100,9 @@ function change_crs(crsₒ::AbstractCRS, coord::AbstractSatcomCoordinate; kwargs
     tup = transform_tuplecoords(crsₒ, crs(coord), tuplecoords(coord); kwargs...)
     return constructor_without_checks(basetype(typeof(coord)), crsₒ, tup)
 end
-function change_crs(crsₒ::CRS, coord::AbstractSatcomCoordinate{CRS}; kwargs...) where CRS
+function change_crs(crsₒ::CRS, coord::AbstractSatcomCoordinate{CRS}; kwargs...) where CRS <: AbstractCRS
     crsᵢ = crs(coord)
-    if crsₒ === crsᵢ 
+    if is_same_crs(crsₒ, crsᵢ)
         # We have to do this check as we may have two different instances of the same CRS
         return coord 
     else
@@ -111,8 +111,21 @@ function change_crs(crsₒ::CRS, coord::AbstractSatcomCoordinate{CRS}; kwargs...
     end
 end
 
-function transform_tuplecoords(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, ::Any; kwargs...)
-    throw(ArgumentError("No conversion is defined to go from an input CRS of type `$(typeof(crsᵢ))` to an output CRS of type `$(typeof(crsₒ))`"))
+"""
+    transform_tuplecoords(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, tup::NTuple{N, <:AbstractFloat}; kwargs...)
+
+Low-level function that is used to convert to an output CRS (`CRSₒ`) the raw coordinates `tup` (coming as output of `tuplecords`) of a coordinate in an input CRS (`CRSᵢ`).
+
+This function must return a ntuple with `M` coordinates (where `M == ncoords(CRSₒ)`).
+
+Custom CRSs should implement a specific method of this function to enable conversion with other CRSs via the `change_crs` user facing function.
+"""
+function transform_tuplecoords(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, tup::Any; kwargs...)
+    if is_same_crs(crsₒ, crsᵢ)
+        return tup
+    else
+        throw(ArgumentError("No conversion is defined to go from an input CRS of type `$(typeof(crsᵢ))` to an output CRS of type `$(typeof(crsₒ))`"))
+    end
 end
 
 """
@@ -163,3 +176,15 @@ This function should return a **raw** transformation (i.e. a transformation oper
 A **raw** transformation shall expects a NTuple{N, <:AbstractFloat} as input (where `N` is the number of dimensions of the CRS) and return a NTuple{N, <:AbstractFloat} as output.
 """
 function raw_linkedcrs_transform end
+
+"""
+    is_same_crs(crs1::AbstractCRS, crs2::AbstractCRS)
+
+Returns `true` or `false` to indicate whether the two provided CRSs are the same.
+
+Defaults to true for CRSs of the same type and false otherwise.
+
+Custom CRSs which may be different despite having the same type should override this function accordingly.
+"""
+is_same_crs(crs1::AbstractCRS, crs2::AbstractCRS) = false
+is_same_crs(crs1::CRS, crs2::CRS) where CRS <: AbstractCRS = true
