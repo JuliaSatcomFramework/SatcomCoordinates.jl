@@ -1,4 +1,4 @@
-struct LLA{CRS <: AbstractCRS} <: AbstractCRS
+struct LLA{CRS <: AbstractCRS} <: AbstractLinkedCRS{CRS}
     wrapped_crs::CRS
     function LLA(wrapped_crs::AbstractCRS) 
         CRS = typeof(wrapped_crs)

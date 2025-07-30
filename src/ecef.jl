@@ -50,7 +50,8 @@ ECEF() = ECEF(DefaultEarthFrame())
 
     Extracts the ECEF identifier from an ECEF CRS
 """
-ecefid(crs::ECEF) = crs.id
+ecefid(crs::ECEF) = return crs.id
+ecefid(crs::AbstractLinkedCRS{<:ECEF}) = return ecefid(linkedcrs(crs))
 function ecefid(crs::AbstractCRS)
     base = basecrs(crs)
     base === crs && throw(ArgumentError("The provided CRS is not an ECEF CRS, so it cannot be used to extract the ECEF identifier."))
@@ -75,12 +76,21 @@ const GRS80_PARAMS = _ellipsoidparams(6378137.0, 1/298.257222101)
 """
     ellipsoidparams(ecef_id)
 
-Function that shall have a valid method for all valid `id` and shall return a NamedTuple with the following fields representing the useful ellipsoid parameters:
+Function that shall have a valid method for all valid `id` (of either ECEF or ECI CRS) instances and shall return a NamedTuple with the following fields representing the useful ellipsoid parameters:
 - `a`: Semimajor axis
 - `f`: Flattening
 - `b`: Semiminor axis
 - `e²`: First eccentricity squared
 - `el²`: Second eccentricity squared
+
+# Example
+Calling this function on the default Earth frames provides the output for the WGS84 ellipsoid:
+```jldoctest
+julia> using SatcomCoordinates: ellipsoidparams, DefaultEarthFrame
+
+julia> ellipsoidparams(DefaultEarthFrame())
+(a = 6.378137e6, f = 0.0033528106647474805, b = 6.356752314245179e6, e² = 0.0066943799901413165, el² = 0.006739496742276434)
+```
 """
 ellipsoidparams(crs::ECEF) = ellipsoidparams(ecefid(crs))
 

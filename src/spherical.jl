@@ -6,7 +6,7 @@
 
 A generic spherical CRS, which wraps a pointing CRS 
 """
-struct SphericalCRS{CRS <: AbstractCRS, PT <: Abstract2DPointingCRS{CRS}} <: AbstractCRS 
+struct SphericalCRS{CRS <: AbstractCRS, PT <: Abstract2DPointingCRS{CRS}} <: AbstractLinkedCRS{CRS} 
     cartesian::CRS
     pointing::PT
     function SphericalCRS(pointing_crs::Abstract2DPointingCRS) 
