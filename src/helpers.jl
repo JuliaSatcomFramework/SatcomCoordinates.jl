@@ -123,6 +123,11 @@ Custom CRSs should implement a specific method of this function to enable conver
 function transform_tuplecoords(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, tup::Any; kwargs...)
     if is_same_crs(crsₒ, crsᵢ)
         return tup
+    elseif is_same_crs(crsₒ, linkedcrs(crsᵢ))
+        return raw_linkedcrs_transform(crsᵢ)(tup)
+    elseif is_same_crs(linkedcrs(crsₒ), crsᵢ)
+        t = TransformsBase.inverse(raw_linkedcrs_transform(crsₒ))
+        return t(tup)
     else
         throw(ArgumentError("No conversion is defined to go from an input CRS of type `$(typeof(crsᵢ))` to an output CRS of type `$(typeof(crsₒ))`"))
     end

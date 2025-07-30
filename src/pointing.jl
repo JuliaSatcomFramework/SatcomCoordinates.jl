@@ -445,6 +445,16 @@ function transform_tuplecoords(crsₒ::AbstractPointingCRS{CRS}, crsᵢ::Abstrac
     return transform_tuplecoords(crsₒ, dc, uvw)
 end
 
+# This are to handle the case of going from CRS to AbstractPointingCRS{CRS}. The other direction is explicitly not supported
+function transform_tuplecoords(::DirectionCosines{CRS}, ::CRS, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
+    return tup ./ hypot(tup...)
+end
+function transform_tuplecoords(crsₒ::AbstractPointingCRS{CRS}, crsᵢ::CRS, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
+    dc = DirectionCosines(crsᵢ)
+    dctup = transform_tuplecoords(dc, crsᵢ, tup)
+    return transform_tuplecoords(crsₒ, dc, dctup)
+end
+
 #### Random.rand #####
 function rand_tuplecoords(rng::AbstractRNG, ::DirectionCosines, T::Type{<:AbstractFloat})
     tup = ntuple(i -> rand(rng) - .5, 3)

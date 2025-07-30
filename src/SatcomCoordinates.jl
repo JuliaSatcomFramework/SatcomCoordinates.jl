@@ -57,7 +57,7 @@ include("lla.jl")
 export LLA
 
 include("topocentric.jl")
-export NED
+export NED, ENU
 
 include("helpers.jl")
 export pointingcrs, default_wrappedcrs, linkedcrs_transform, change_crs

@@ -113,6 +113,12 @@ for T in (Vararg{Number}, Point{N, Number} where N)
         crs = basetype(CRS)(wrapped_crs)
         return Coordinate(crs, coords)
     end
+
+    # These are the methods that take an instance of a CRS and construct a coordinate with it
+    @eval function (crs::AbstractCRS)(coords::$T{N}) where {N}
+        N == ncoords(crs) || throw(DimensionMismatch("The number of coordinates provided ($(N)) does not match the number of coordinates expected by CRS of type $(typeof(crs)) ($(ncoords(crs)))"))
+        return Coordinate(crs, coords)
+    end
 end
 
 #### Show Methods ####

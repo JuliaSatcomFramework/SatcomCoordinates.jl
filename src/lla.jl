@@ -73,20 +73,8 @@ TransformsBase.inverse(t::LLAtoECEF) = ECEFtoLLA(t.id)
 ### Transformation
 function raw_linkedcrs_transform(crs::LLA)
     ecefcrs = linkedcrs(crs)
-    raw = LLAtoECEF(ecefid(ecefcrs))
+    raw = LLAtoECEF(frameid(ecefcrs))
     return raw
-end
-
-# From ECEF to LLA
-function transform_tuplecoords(::LLA{CRS}, crsᵢ::CRS, tup::NTuple{3,<:AbstractFloat}) where CRS<:AbstractCRS
-    t = ECEFtoLLA(ecefid(crsᵢ))
-    return t(tup)
-end
-# From LLA to ECEF
-function transform_tuplecoords(::CRS, crsᵢ::LLA{CRS}, tup::NTuple{3,<:AbstractFloat}) where CRS<:AbstractCRS
-    ecefcrs = linkedcrs(crsᵢ)
-    t = LLAtoECEF(frameid(ecefcrs))
-    return t(tup)
 end
 
 #### Custom isapprox implementation ####
