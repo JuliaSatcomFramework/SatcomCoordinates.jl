@@ -140,10 +140,15 @@ TransformsBase.isrevertible(::Type{<:CRSTransform{<:Any, <:Any, T}}) where T = T
 TransformsBase.parameters(t::AbstractCRSTransform) = getproperties(t)
 
 function TransformsBase.apply(t::CRSTransform{<:Any, CRSᵢ}, c::Coordinate{CRSᵢ}) where {CRSᵢ}
-    crs(c) == input_crs(t) || throw(ArgumentError("The CRS of the provided coordinate ($(crs(c))) does not match the input CRS of the transform ($(input_crs(t)))."))
+    is_same_crs(crs(c), input_crs(t)) || throw(ArgumentError("The CRS of the provided coordinate ($(crs(c))) does not match the input CRS of the transform ($(input_crs(t)))."))
     raw = raw_transform(t)
     # Apply the transformation at the raw level
     tup = raw(tuplecoords(c))
     # We now construct the output coordinate without additional checks
     return constructor_without_checks(Coordinate, output_crs(t), tup), nothing
+end
+
+function TransformsBase.inverse(t::CRSTransform)
+    raw = raw_transform(t)
+    return CRSTransform(input_crs(t), output_crs(t), inverse(raw))
 end

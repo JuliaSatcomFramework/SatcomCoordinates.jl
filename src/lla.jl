@@ -44,7 +44,7 @@ struct LLAtoECEF{ID} <: LLATransform
     id::ID
 end
 
-ellipsoidparams(t::Union{ECEFtoLLA,LLAtoECEF}) = ellipsoidparams(t.id)
+ellipsoidparams(t::LLATransform) = ellipsoidparams(t.id)
 
 TransformsBase.parameters(t::LLATransform) = (t.id,)
 TransformsBase.isinvertible(::Type{<:LLATransform}) = true
@@ -85,7 +85,7 @@ end
 # From LLA to ECEF
 function transform_tuplecoords(::CRS, crsᵢ::LLA{CRS}, tup::NTuple{3,<:AbstractFloat}) where CRS<:AbstractCRS
     ecefcrs = linkedcrs(crsᵢ)
-    t = LLAtoECEF(ecefid(ecefcrs))
+    t = LLAtoECEF(frameid(ecefcrs))
     return t(tup)
 end
 

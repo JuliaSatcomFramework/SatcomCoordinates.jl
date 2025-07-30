@@ -61,6 +61,7 @@ function frameid(crs::AbstractCRS)
         return frameid(linked)
     end
 end
+frameid(coord::AbstractSatcomCoordinate) = frameid(crs(coord))
 
 function _ellipsoidparams(semimajor::Real, flattening::Real)
     @inline
