@@ -80,3 +80,15 @@ function transform_tuplecoords(::CRS, sph::SphericalCRS{CRS}, tup::NTuple{3, <:A
     t = raw_linkedcrs_transform(sph)
     return t(tup)
 end
+
+##### Base.show #####
+function PlutoShowHelpers.repl_summary(c::SphericalCRS)
+    string(
+        PlutoShowHelpers.shortname(c), 
+        "{",
+        PlutoShowHelpers.shortname(linkedcrs(c)),
+        ", ",
+        PlutoShowHelpers.shortname(pointingcrs(c)),
+        "}"
+    )
+end

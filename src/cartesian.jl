@@ -19,3 +19,47 @@ struct Cartesian <: AbstractCRS end
     y => u"m"
     z => u"m"
 ]
+
+
+#### AffineCartesian ####
+
+"""
+    AffineCartesian{CRSₗ, CRS, T} <: AbstractLinkedCRS{CRS}
+
+A Cartesian CRS that is linked to another Cartesian CRS through a user-defined affine transform.
+
+# Fields
+- `linked::CRSₗ <: AbstractCRS`: The linked CRS
+- `base::CRS <: AbstractCRS`: The base CRS
+- `transform::T <: RawAffineTransform`: The affine transform that links the base CRS to the linked CRS
+
+The two CRSs used to define the AffineLinkedCRS instance must be Cartesian CRSs (i.e. they must have `iscartesiancrs(crs) == true`) and the **base** CRS must also be a Root CRS (i.e. `isrootcrs(base) == true`).
+
+For linking a non-root base CRS, simply use the `AffineCartesian` as the base for further nesting. As an example, if one desires to use an `LLA` CRS as the base for an `AffineCartesian` CRS, simply create an `AffineCartesian` CRS with the underlying `ECEF` CRS and use that for wrapping the `LLA` CRS.
+"""
+struct AffineCartesian{CRSₗ <: AbstractCRS, CRS <: AbstractCRS, T <: RawAffineTransform} <: AbstractLinkedCRS{CRSₗ}
+    linked::CRSₗ
+    base::CRS
+    transform::T
+    function AffineCartesian(linked::CRSₗ, base::CRS, transform::T) where {CRSₗ <: AbstractCRS, CRS <: AbstractCRS, T <: RawAffineTransform}
+        if !iscartesiancrs(linked) || !iscartesiancrs(base) || !isrootcrs(base)
+            throw(ArgumentError("The two CRSs used to define the AffineCartesian instance must be Cartesian CRSs (i.e. they must have `iscartesiancrs(crs) == true`).\nAdditionally, the base CRS must be a Root CRS (i.e. `isrootcrs(base) == true`)."))
+        end
+        ncoords(linked) == ncoords(base) == ncoords(transform) || throw(ArgumentError("The number of dimensions of the linked CRS, base CRS and provided transform must be the same."))
+        return new{CRSₗ, CRS, T}(linked, base, transform)
+    end
+end
+
+function is_same_crs(crs1::CRS, crs2::CRS) where {CRS <: AffineCartesian}
+    is_same_crs(crs1.linked, crs2.linked) || return false
+    is_same_crs(crs1.base, crs2.base) || return false
+    return crs1.transform == crs2.transform
+end
+
+basecrstype(::Type{<:AffineCartesian{<:Any, CRS}}) where {CRS} = CRS
+
+@define_properties AffineCartesian [
+    basecrstype(_)...
+]
+
+raw_linkedcrs_transform(crs::AffineCartesian) = crs.transform

@@ -27,7 +27,7 @@ See also: [`isrootcrs`](@ref), [`linkedcrs`](@ref)
 """
 function rootcrs(crs::AbstractCRS)
     isrootcrs(crs) && return crs
-    linked = likedcrs(crs)
+    linked = linkedcrs(crs)
     if isrootcrs(linked)
         return linked
     else

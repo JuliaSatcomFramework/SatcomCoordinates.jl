@@ -82,3 +82,24 @@ function raw_linkedcrs_transform(crs::AbstractTopocentricCRS)
     rotation = crs.rot
     return RawAffineTransform(rotation, translation)
 end
+
+have_same_origin(crs1::AbstractTopocentricCRS, crs2::AbstractTopocentricCRS) = false
+have_same_origin(crs1::AbstractTopocentricCRS{CRS}, crs2::AbstractTopocentricCRS{CRS}) where CRS <: AbstractCRS = crs1.ecef == crs2.ecef
+
+_different_origin_error(crs1::AbstractTopocentricCRS, crs2::AbstractTopocentricCRS) = throw(ArgumentError("The two provided Topocentric CRSs have different origins."))
+_different_linkedcrs_error(crs1::AbstractTopocentricCRS, crs2::AbstractTopocentricCRS) = throw(ArgumentError("The two provided Topocentric CRSs are based on different linked CRSs."))
+
+function transform_tuplecoords(crsₒ::NED{CRS}, crsᵢ::ENU{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
+    is_same_crs(linkedcrs(crsₒ), linkedcrs(crsᵢ)) || _different_linkedcrs_error(crsₒ, crsᵢ)
+    have_same_origin(crsₒ, crsᵢ) || _different_origin_error(crsₒ, crsᵢ)
+    # We extract the basis of the ENU frame from the rotation matrix
+    e, n, u = tup
+    return (n, e, -u)
+end
+function transform_tuplecoords(crsₒ::ENU{CRS}, crsᵢ::NED{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
+    is_same_crs(linkedcrs(crsₒ), linkedcrs(crsᵢ)) || _different_linkedcrs_error(crsₒ, crsᵢ)
+    have_same_origin(crsₒ, crsᵢ) || _different_origin_error(crsₒ, crsᵢ)
+    # We extract the basis of the NED frame from the rotation matrix
+    n, e, d = tup
+    return (e, n, -d)
+end

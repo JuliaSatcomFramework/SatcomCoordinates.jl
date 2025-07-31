@@ -42,7 +42,7 @@ include("pointing.jl")
 export UV, ThetaPhi, AzEl, AzOverEl, ElOverAz, DirectionCosines
 
 include("cartesian.jl")
-export Cartesian
+export Cartesian, AffineCartesian
 
 include("spherical.jl")
 export SphericalCRS
@@ -60,12 +60,12 @@ include("topocentric.jl")
 export NED, ENU
 
 include("helpers.jl")
-export pointingcrs, default_wrappedcrs, linkedcrs_transform, change_crs
+export pointingcrs, default_wrappedcrs, linkedcrs_transform, change_crs, crs
 
 include("deps_interface.jl")
 
 include("traits.jl")
-export iscartesiancrs, cartesiancrs, isecefcrs, istopocentriccrs, isllacrs, rootcrs
+export iscartesiancrs, cartesiancrs, isecefcrs, istopocentriccrs, isllacrs, rootcrs, linkedcrs, isderivedcrs, basecrs
 
 # include("types/pointing_offsets.jl") 
 # public PointingOffset

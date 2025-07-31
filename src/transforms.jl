@@ -28,14 +28,14 @@ end
 raw_rotation(t::RawAffineTransform) = t.rotation
 raw_translation(t::RawAffineTransform) = t.translation
 
-TransformsBase.parameters(t::RawAffineTransform) = getproperties(t)
+TransformsBase.parameters(t::T) where T <: RawAffineTransform = getproperties(t)
 
 function BasicTypes.valuetype(::Type{RawAffineTransform{R, T}}) where {R, T}
     r = valuetype(R)
     return r === Union{} ? valuetype(T) : r
 end
 
-ncoords(::Type{RawAffineTransform{R, T}}) where {R, T} = R <: Identity ? ncoords(R) : ncoords(T)
+ncoords(::Type{<:RawAffineTransform{R, T}}) where {R, T} = R <: Identity ? ncoords(T) : ncoords(R)
 
 const RawTranslation{T} = RawAffineTransform{Identity, T}
 const RawRotation{R} = RawAffineTransform{R, Identity}
