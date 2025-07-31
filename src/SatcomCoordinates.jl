@@ -7,7 +7,7 @@ using LinearAlgebra: LinearAlgebra, normalize, norm
 using PlutoShowHelpers: PlutoShowHelpers, DefaultShowOverload, HideWhenCompact, DualDisplayAngle, DisplayLength, InsidePluto, OutsidePluto, HideWhenFull, Ellipsis, repl_summary, shortname, longname, show_namedtuple
 using Random: Random, SamplerType, AbstractRNG
 using Rotations: Rotations, Rotation, nearest_rotation, RotMatrix, RotMatrix3
-using TransformsBase: TransformsBase, Transform, Identity, isinvertible, isrevertible, inverse, apply, →
+using TransformsBase: TransformsBase, Transform, Identity, isinvertible, isrevertible, inverse, apply
 using Unitful: Unitful, Quantity, ustrip, rad, @u_str, °, km, Units, NoUnits
 
 # To move to extension

@@ -130,6 +130,10 @@ function transform_tuplecoords(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, tup::An
     elseif is_same_crs(linkedcrs(crsₒ), crsᵢ)
         t = TransformsBase.inverse(raw_linkedcrs_transform(crsₒ))
         return t(tup)
+    elseif is_same_crs(rootcrs(crsₒ), rootcrs(crsᵢ))
+        t1 = raw_rootcrs_transform(crsᵢ) # This goes from input to root
+        t2 = raw_rootcrs_transform(crsₒ) |> inverse # This goes from root to output
+        return t2(t1(tup))
     else
         _missing_conversion_method(crsₒ, crsᵢ)
     end
@@ -192,7 +196,21 @@ This function should return a **raw** transformation (i.e. a transformation oper
 
 A **raw** transformation shall expects a NTuple{N, <:AbstractFloat} as input (where `N` is the number of dimensions of the CRS) and return a NTuple{N, <:AbstractFloat} as output.
 """
-function raw_linkedcrs_transform end
+function raw_linkedcrs_transform(crs::AbstractCRS)
+    linked = linkedcrs(crs)
+    if is_same_crs(crs, linked)
+        return Identity()
+    else
+        throw(ArgumentError("The provided CRS has a linked CRS but does not seem to implement an appropriate method for `SatcomCoordinates.raw_linkedcrs_transform`, which is a required method for all custom CRSs."))
+    end
+end
+
+function raw_rootcrs_transform(crs::AbstractCRS)
+    isrootcrs(crs) && return Identity()
+    linked = linkedcrs(crs)
+    raw = raw_linkedcrs_transform(crs)
+    return _compose(raw, raw_rootcrs_transform(linked))
+end
 
 """
     is_same_crs(crs1::AbstractCRS, crs2::AbstractCRS)

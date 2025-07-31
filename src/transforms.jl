@@ -88,7 +88,8 @@ _compose(t::Transform, ::Identity) = t
 _compose(::Identity, ::Identity) = Identity()
 
 function _compose(t1::Transform, t2::Transform)
-    isaffinetransform(t1) && isaffinetransform(t2) || throw(ArgumentError("The generic `_compose` method only works for transformation for which `isaffinetransform` is true.\nYou need to implement a custom method for `SatcomCoordinates._compose` to support the composition of the provided transforms $(typeof(t1)) and $(typeof(t2))."))
+    israwtransform(t1) && israwtransform(t2) || throw(ArgumentError("The generic `_compose` method only works for raw transforms.\nYou need to implement a custom method for `SatcomCoordinates._compose` to support the composition of the provided transforms $(typeof(t1)) and $(typeof(t2))."))
+    isaffinetransform(t1) && isaffinetransform(t2) || return ComposedRawTransform(t1, t2)
     t1rot = raw_rotation(t1)
     t1trans = raw_translation(t1)
     t2rot = raw_rotation(t2)
@@ -113,9 +114,59 @@ function _compose(t1::Transform, t2::Transform)
 end
 
 #### ComposedRawTransform ####
+"""
+    ComposedRawTransform{T1 <: Transform, T2 <: Transform} <: AbstractRawCRSTransform
+
+A transform that is the composition of two raw transforms.
+
+This type is automatically created when composing two raw (but non Identity) transforms that are not both affine (i.e. that do not satisfy `isaffinetransform(t) == true`).
+
+This is for example the case when composing an affine transform with a transformation between LLA and ECEF or between Spherical and Cartesian coordinates.
+
+# Fields
+- `t1::T1`: The first transform.
+- `t2::T2`: The second transform.
+
+When applied to an object, the operation order is `t2(t1(obj))`
+"""
 struct ComposedRawTransform{T1 <: Transform, T2 <: Transform} <: AbstractRawCRSTransform
     t1::T1
     t2::T2
+    function ComposedRawTransform(t1::Transform, t2::Transform) 
+        israwtransform(t1) && israwtransform(t2) || throw(ArgumentError("Both transforms used to construct an object of type `ComposedRawTransform` must be **raw** (i.e. that satisfy `israwtransform(t) == true`)."))
+        return new{typeof(t1), typeof(t2)}(t1, t2)
+    end
+end
+
+TransformsBase.parameters(t::ComposedRawTransform) = (t.t1, t.t2)
+function TransformsBase.isinvertible(::Type{<:ComposedRawTransform{T1, T2}}) where {T1, T2} 
+    return isinvertible(T1) && isinvertible(T2)
+end
+function TransformsBase.isrevertible(::Type{<:ComposedRawTransform{T1, T2}}) where {T1, T2} 
+    return isrevertible(T1) && isrevertible(T2)
+end
+
+function TransformsBase.apply(t::ComposedRawTransform, v::NTuple{<:Any, <:AbstractFloat})  
+    newval = t.t2(t.t1(v))
+    return newval, nothing
+end
+
+function TransformsBase.inverse(t::ComposedRawTransform) 
+    it1 = inverse(t.t1)
+    it2 = inverse(t.t2)
+    return ComposedRawTransform(it2, it1)
+end
+
+# Composition
+function _compose(t1::ComposedRawTransform, t2::Transform)
+    isaffinetransform(t1.t2) && isaffinetransform(t2) || throw(ArgumentError("The `_compose(t1::ComposedRawTransform, t2::Transform)` method only works if both `t1.t2` and `t2` are affine transforms."))
+    newt2 = _compose(t1.t2, t2)
+    return ComposedRawTransform(t1.t1, newt2)
+end
+function _compose(t1::Transform, t2::ComposedRawTransform)
+    isaffinetransform(t1) && isaffinetransform(t2.t1) || throw(ArgumentError("The `_compose(t1::Transform, t2::ComposedRawTransform)` method only works if both `t1` and `t2.t1` are affine transforms."))
+    newt1 = _compose(t1, t2.t1)
+    return ComposedRawTransform(newt1, t2.t2)
 end
 
 #### CRSTransform ####
