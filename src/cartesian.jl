@@ -62,4 +62,19 @@ basecrstype(::Type{<:AffineCartesian{<:Any, CRS}}) where {CRS} = CRS
     basecrstype(_)...
 ]
 
+basecrs(crs::AffineCartesian) = crs.base
+
+# Simply give the stored transform
 raw_linkedcrs_transform(crs::AffineCartesian) = crs.transform
+
+##### Base.show #####
+function PlutoShowHelpers.repl_summary(c::AffineCartesian)
+    string(
+        PlutoShowHelpers.shortname(c), 
+        "{",
+        PlutoShowHelpers.shortname(linkedcrs(c)),
+        ", ",
+        PlutoShowHelpers.shortname(basecrs(c)),
+        "}"
+    )
+end
