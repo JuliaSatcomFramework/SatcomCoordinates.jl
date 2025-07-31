@@ -111,6 +111,8 @@ function change_crs(crsₒ::CRS, coord::AbstractSatcomCoordinate{CRS}; kwargs...
     end
 end
 
+_missing_conversion_method(crsₒ, crsᵢ) = throw(ArgumentError("No conversion is defined to go from an input CRS of type `$(typeof(crsᵢ))` to an output CRS of type `$(typeof(crsₒ))`.\nConsider adding a specific method to `SatcomCoordinates.transform_tuplecoords` to support this conversion if necessary."))
+
 """
     transform_tuplecoords(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, tup::NTuple{N, <:AbstractFloat}; kwargs...)
 
@@ -129,7 +131,17 @@ function transform_tuplecoords(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, tup::An
         t = TransformsBase.inverse(raw_linkedcrs_transform(crsₒ))
         return t(tup)
     else
-        throw(ArgumentError("No conversion is defined to go from an input CRS of type `$(typeof(crsᵢ))` to an output CRS of type `$(typeof(crsₒ))`"))
+        _missing_conversion_method(crsₒ, crsᵢ)
+    end
+end
+function transform_tuplecoords(crsₒ::AbstractLinkedCRS{CRS}, crsᵢ::AbstractLinkedCRS{CRS}, tup::Any; kwargs...) where CRS <: AbstractCRS
+    if is_same_crs(linkedcrs(crsₒ), linkedcrs(crsᵢ))
+        # We pass through the common linked crs
+        intermediate = raw_linkedcrs_transform(crsᵢ)(tup)
+        rt = TransformsBase.inverse(raw_linkedcrs_transform(crsₒ))
+        return rt(intermediate)
+    else
+        _missing_conversion_method(crsₒ, crsᵢ)
     end
 end
 
@@ -189,7 +201,10 @@ Returns `true` or `false` to indicate whether the two provided CRSs are the same
 
 Defaults to true for CRSs of the same type and false otherwise.
 
-Custom CRSs which may be different despite having the same type should override this function accordingly.
+This is done in place of simply doing `crs1 == crs2` because it's slightly faster when the check can be done at compile time (on the types only).
+
+Custom CRSs which may be different despite having the same type (e.g. the Topocentric CRSs) should override this function accordingly.
 """
 is_same_crs(crs1::AbstractCRS, crs2::AbstractCRS) = false
 is_same_crs(crs1::CRS, crs2::CRS) where CRS <: AbstractCRS = true
+is_same_crs(crs1::CRS, crs2::CRS) where{DCRS <: AbstractCRS, CRS <: AbstractLinkedCRS{DCRS}} = is_same_crs(linkedcrs(crs1), linkedcrs(crs2))
