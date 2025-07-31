@@ -2,9 +2,26 @@
 ########                 Type Definitions                 ########
 ##################################################################
 """
-    SphericalCRS{CRS <: AbstractPointingCRS} <: AbstractCRS
+    SphericalCRS{CRS <: AbstractPointingCRS, PT <: Abstract2DPointingCRS{CRS}} <: AbstractLinkedCRS{CRS}
 
-A generic spherical CRS, which wraps a pointing CRS 
+A generic spherical CRS, which wraps a Cartesian CRS as root and has properties that are specified based on the pointing CRS PT
+
+# Constructor
+    SphericalCRS(pointing_crs::Abstract2DPointingCRS)
+
+The only constructor expects directly a 2D pointing CRS as input and will automatically extracts its base Cartesian CRS.
+
+# Example
+```julia
+# Generate a Spherical CRS based on ThetaPhi over a plain Cartesian CRS
+SphericalCRS() # This is equivalent to SphericalCRS(ThetaPhi())
+
+# Generate one where the pointing direction is `AzEl`
+SphericalCRS(AzEl())
+
+# Make the so-called `AER` CRS which is AzEl over an ENU frame
+aer_crs = SphericalCRS(AzEl(ENU(LLA(0,0,1200km))))
+```
 """
 struct SphericalCRS{CRS <: AbstractCRS, PT <: Abstract2DPointingCRS{CRS}} <: AbstractLinkedCRS{CRS} 
     cartesian::CRS

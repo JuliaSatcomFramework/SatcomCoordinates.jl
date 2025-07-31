@@ -34,10 +34,6 @@ export RawAffineTransform, RawTranslation, RawRotation, CRSTransform, AffineCRST
 include("raw.jl")
 export Raw
 
-# include("types/traits.jl")
-
-export PointingCRS
-
 include("pointing.jl")
 export UV, ThetaPhi, AzEl, AzOverEl, ElOverAz, DirectionCosines
 
@@ -60,7 +56,7 @@ include("topocentric.jl")
 export NED, ENU
 
 include("helpers.jl")
-export pointingcrs, default_wrappedcrs, linkedcrs_transform, change_crs, crs
+export pointingcrs, default_wrappedcrs, linkedcrs_transform, change_crs, crs, rootcrs_transform
 
 include("deps_interface.jl")
 

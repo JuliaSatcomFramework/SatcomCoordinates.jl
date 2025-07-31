@@ -169,6 +169,9 @@ function _compose(t1::Transform, t2::ComposedRawTransform)
     return ComposedRawTransform(newt1, t2.t2)
 end
 
+ncoords_in(::Type{<:ComposedRawTransform{T1, T2}}) where {T1, T2} = ncoords_in(T1)
+ncoords_out(::Type{<:ComposedRawTransform{T1, T2}}) where {T1, T2} = ncoords_out(T2)
+
 #### CRSTransform ####
 struct CRSTransform{CRSₒ <: AbstractCRS, CRSᵢ <: AbstractCRS, T <: Transform} <: AbstractCRSTransform{CRSₒ, CRSᵢ}
     crsₒ::CRSₒ

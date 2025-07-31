@@ -178,13 +178,37 @@ As an example, for a `LLA` CRS, the output of `linkedcrs_transform` should be a 
 This function relies internally on the `raw_linkedcrs_transform` function to return the raw transform. And custom CRSs shall add a method to [`raw_linkedcrs_transform`](@ref) directly.
 """
 function linkedcrs_transform(crs::AbstractCRS)
-    linked = linkedcrs(crs)
-    if linked === crs
-        return Identity()
-    else
-        raw = raw_linkedcrs_transform(crs)
-        return CRSTransform(linked, crs, raw)
-    end
+    raw = raw_linkedcrs_transform(crs)
+    return CRSTransform(linkedcrs(crs), crs, raw)
+end
+
+"""
+    rootcrs_transform(crs::AbstractCRS)
+
+Returns the CRSTransform that goes from the provided `crs` to its root one (It simply returns the Identity transform in case the provided CRS is already a root CRS).
+
+# Example
+```julia
+using SatcomCoordinates
+
+# We first create a NED CRS at a specific location above Earth
+ned_crs = NED(LLA(0,0,1200km))
+
+# We then create a Spherical CRS (AzEl) that is linked to the NED CRS. This is a double nested CRS as it's itself based on a NED which is based on an ECEF CRS.
+aer_crs = SphericalCRS(AzEl(ned_crs))
+
+linkedcrs(aer_crs) == ned_crs # The linked CRS is the one immediately below the provided CRS, which is the NED CRS
+
+rootcrs(aer_crs) == ECEF() # The root CRS is the one at the bottom of the nested CRS, which is the ECEF CRS
+
+
+```
+
+This function relies internally on the `raw_rootcrs_transform` function to return the raw transform. And custom CRSs shall add a method to [`raw_rootcrs_transform`](@ref) directly.
+"""
+function rootcrs_transform(crs::AbstractCRS)
+    raw = raw_rootcrs_transform(crs)
+    return CRSTransform(rootcrs(crs), crs, raw)
 end
 
 """
