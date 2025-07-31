@@ -11,13 +11,14 @@ A transform that is defined by a rotation and a translation that is intended to 
 struct RawAffineTransform{R, T} <: AbstractRawCRSTransform
     rotation::R
     translation::T
-    function RawAffineTransform(rotation::Union{Identity, Rotation{N, P}}, translation::Union{Identity, NTuple{N, P}, SVector{N, P}}) where {N, P <: AbstractFloat}
+    function RawAffineTransform(rotation::Union{Identity, Rotation{N, <:Real}}, translation::Union{Identity, Point{N, <:Real}}) where {N}
         rotation isa Identity && translation isa Identity && return Identity()
+        F = common_valuetype(AbstractFloat, Float64, rotation, translation)
         if !(rotation isa Identity)
-            rotation = RotMatrix(rotation)
+            rotation = RotMatrix{N, F}(rotation)
         end
         if !(translation isa Identity)
-            translation = SVector(translation)
+            translation = SVector{N, F}(translation)
         end
         R = typeof(rotation)
         T = typeof(translation)

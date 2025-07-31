@@ -1,5 +1,5 @@
 """
-    DefaultEarthFrame
+    EarthDefault
 
 This represents the default frame ID representing the Earth for both the ECEF and ECI CRSs
 
@@ -9,9 +9,9 @@ It assumes the WGS84 ellipsoid and assumes that the frames from conversion betwe
 
 See also: [`ellipsoidparams`](@ref), [`ECEF`](@ref), [`ECI`](@ref)
 """
-struct DefaultEarthFrame end
+struct EarthDefault end
 
-ellipsoidparams(::DefaultEarthFrame) = WGS84_PARAMS
+ellipsoidparams(::EarthDefault) = WGS84_PARAMS
 
 """
     ECEF{ID} <: AbstractCRS
@@ -30,15 +30,15 @@ For conversion between coordinates in ECEF and ECI CRSs, the following method mu
 - `SatcomCoordinates.eci_to_ecef_rotation(eci_id::ID1, ecef_id::ID2; kwargs...)`
 See its docstring for more details
 
-When not specified, the default ID for ECEF CRSs is an instance of the singleton type [`DefaultEarthFrame`](@ref).
+When not specified, the default ID for ECEF CRSs is an instance of the singleton type [`EarthDefault`](@ref).
 
-See also: [`ecefid`](@ref), [`ellipsoidparams`](@ref), [`DefaultEarthFrame`](@ref)
+See also: [`ecefid`](@ref), [`ellipsoidparams`](@ref), [`EarthDefault`](@ref)
 """
 struct ECEF{ID} <: AbstractCRS
     id::ID
     ECEF(id) = new{typeof(id)}(id)
 end
-ECEF() = ECEF(DefaultEarthFrame())
+ECEF() = ECEF(EarthDefault())
 
 """
     frameid(crs::AbstractCRS)
@@ -91,9 +91,9 @@ Function that shall have a valid method for all valid `id` (of either ECEF or EC
 # Example
 Calling this function on the default Earth frames provides the output for the WGS84 ellipsoid:
 ```jldoctest
-julia> using SatcomCoordinates: ellipsoidparams, DefaultEarthFrame
+julia> using SatcomCoordinates: ellipsoidparams, EarthDefault
 
-julia> ellipsoidparams(DefaultEarthFrame())
+julia> ellipsoidparams(EarthDefault())
 (a = 6.378137e6, f = 0.0033528106647474805, b = 6.356752314245179e6, e² = 0.0066943799901413165, el² = 0.006739496742276434)
 ```
 """

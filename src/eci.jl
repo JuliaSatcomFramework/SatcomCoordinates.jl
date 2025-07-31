@@ -11,16 +11,16 @@ For conversion between coordinates in ECEF and ECI CRSs, the following method mu
 - `SatcomCoordinates.eci_to_ecef_rotation(eci_id::ID1, ecef_id::ID2; kwargs...)`
 See its docstring for more details
 
-When not specified, the default ID for ECEF CRSs is an instance of the singleton type [`DefaultEarthFrame`](@ref).
+When not specified, the default ID for ECEF CRSs is an instance of the singleton type [`EarthDefault`](@ref).
 
-See also: [`ecefid`](@ref), [`ellipsoidparams`](@ref), [`DefaultEarthFrame`](@ref)
+See also: [`ecefid`](@ref), [`ellipsoidparams`](@ref), [`EarthDefault`](@ref)
 """
 struct ECI{ID} <: AbstractCRS
     id::ID
     # We only have a constructor without parameters specified
     ECI(id) = new{typeof(id)}(id)
 end
-ECI() = ECI(DefaultEarthFrame())
+ECI() = ECI(EarthDefault())
 
 frameid(crs::ECI) = return crs.id
 
@@ -43,7 +43,7 @@ All the auxiliary data required to compute the rotation matrix shall be provided
 function eci_to_ecef_rotation end
 
 """
-    eci_to_ecef_rotation(eci_id::DefaultEarthFrame, ecef_id::DefaultEarthFrame; jd_utc, eci_frame, ecef_frame, eop_data)
+    eci_to_ecef_rotation(eci_id::EarthDefault, ecef_id::EarthDefault; jd_utc, eci_frame, ecef_frame, eop_data)
 
 Returns the rotation matrix that transforms coordinates from the ECI frame `eci_frame` to the ECEF frame `ecef_frame` at the given UTC Julian date `jd_utc`.
 
@@ -57,7 +57,7 @@ This function is the only implementation defined within the SatcomCoordinates pa
 
 See the docstring of [`eci_to_ecef_rotation`](@ref) for more details.
 """
-function eci_to_ecef_rotation(eci_id::DefaultEarthFrame, ecef_id::DefaultEarthFrame; jd_utc, eci_frame = Val{:J2000}(), ecef_frame = Val{:ITRF}(), eop_data = NotProvided())
+function eci_to_ecef_rotation(eci_id::EarthDefault, ecef_id::EarthDefault; jd_utc, eci_frame = Val{:J2000}(), ecef_frame = Val{:ITRF}(), eop_data = NotProvided())
     if eop_data isa Optional{Nothing}
         if !applicable(r_eci_to_ecef, eci_frame, ecef_frame, jd_utc)
             throw(ArgumentError("The provided ECI ($(eci_frame)) and ECEF ($(ecef_frame)) frames require supplying the correct EOP data via the `eop_data` keyword argument."))

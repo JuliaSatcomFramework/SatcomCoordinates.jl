@@ -48,7 +48,7 @@ include("spherical.jl")
 export SphericalCRS
 
 include("ecef.jl")
-export ECEF, DefaultEarthFrame
+export ECEF, EarthDefault
 
 include("eci.jl")
 export ECI
