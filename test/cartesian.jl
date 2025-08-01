@@ -19,7 +19,7 @@ end
 
     antenna_crs = AffineCartesian(root, Cartesian(), rand(RawAffineTransform))
 
-    # We create a point at the origin of the antenna CRS, which assume to represent also a point on the antenna surface
+    # We create a point at the origin of the antenna CRS, which assume to represent also a point on the antenna surface. We can use the CRS instance directly to create a Coordinate in the CRS.
     antenna_surface_point = antenna_crs(0,0,0)
 
     # For computing the electric field at a specific point on the antenna surface, we need the coordinate of the point in spherical coordinates from the feed CRS
