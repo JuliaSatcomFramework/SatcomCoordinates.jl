@@ -10,10 +10,6 @@ using Rotations: Rotations, Rotation, nearest_rotation, RotMatrix, RotMatrix3
 using TransformsBase: TransformsBase, Transform, Identity, isinvertible, isrevertible, inverse, apply
 using Unitful: Unitful, Quantity, ustrip, rad, @u_str, °, km, Units, NoUnits
 
-# To move to extension
-using SatelliteToolboxTransformations: SatelliteToolboxTransformations, ecef_to_geodetic, geodetic_to_ecef, r_eci_to_ecef
-using SatelliteToolboxBase: SatelliteToolboxBase, Ellipsoid
-
 # From deps
 export °, km, @u_str # From Unitful
 export Identity # From TransformsBase
@@ -22,7 +18,7 @@ include("define_properties.jl")
 public @define_properties
 
 include("abstract_types.jl")
-export AbstractCRS, AbstractPointingCRS, AbstractSphericalCRS, AbstractSatcomCoordinate, AbstractCRSTransform, AbstractLinkedCRS
+export AbstractCRS, AbstractPointingCRS, AbstractSatcomCoordinate, AbstractCRSTransform, AbstractLinkedCRS
 
 include("traits.jl")
 export iscartesiancrs, cartesiancrs, istopocentriccrs, rootcrs, linkedcrs, basecrs

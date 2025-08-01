@@ -10,11 +10,15 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 PlutoShowHelpers = "61f21f9a-4073-5473-9260-49250f3db370"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Rotations = "6038ab10-8711-5258-84ad-4b1120ba62dc"
-SatelliteToolboxBase = "9e17983a-0463-41a7-9a16-1682db6d8b66"
-SatelliteToolboxTransformations = "6b019ec1-7a1e-4f04-96c7-a9db1ca5514d"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 TransformsBase = "28dd2a49-a57a-4bfb-84ca-1a49db9b96b8"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+
+[weakdeps]
+SatelliteToolboxTransformations = "6b019ec1-7a1e-4f04-96c7-a9db1ca5514d"
+
+[extensions]
+SatcomCoordinatesSatelliteToolboxTransformationsExt = ["SatelliteToolboxTransformations"]
 
 [compat]
 BasicTypes = "1.15"
@@ -23,7 +27,6 @@ LinearAlgebra = "1"
 PlutoShowHelpers = "0.3.1"
 Random = "1"
 Rotations = "1.7.1"
-SatelliteToolboxBase = "1"
 SatelliteToolboxTransformations = "1"
 StaticArrays = "1.9.10"
 TransformsBase = "1.6.0"
