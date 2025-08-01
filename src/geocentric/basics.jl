@@ -3,6 +3,7 @@
 
 Extracts the frame identifier associated to the CRS `crs`. This is currently only used to extract the `id` field from the ECI and ECEF CRSs for further processing (e.g. extracting the ellipsoid parameters associated to the frame id)
 
+See also: [`ellipsoidparams`](@ref), [`EarthDefault`](@ref)
 """
 function frameid(crs::AbstractCRS)
     base = basecrs(crs)
