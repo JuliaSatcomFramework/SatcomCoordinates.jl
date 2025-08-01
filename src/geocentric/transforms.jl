@@ -1,30 +1,4 @@
-"""
-    ECI{ID} <: AbstractCRS
-
-This represents an Ellipsoid-Centered Inertial (ECI) CRS which is uniquely identified by its only field `id::ID`.
-
-This is a generalization of the conventianal **ECI** acronym which is only referred to earth-centered coordinates.
-
-The `id` field can be any object that uniquely identifies a specific instance of ECI CRS
-
-For conversion between coordinates in ECEF and ECI CRSs, the following method must also be implemented:
-- `SatcomCoordinates.eci_to_ecef_rotation(eci_id::ID1, ecef_id::ID2; kwargs...)`
-See its docstring for more details
-
-When not specified, the default ID for ECEF CRSs is an instance of the singleton type [`EarthDefault`](@ref).
-
-See also: [`ecefid`](@ref), [`ellipsoidparams`](@ref), [`EarthDefault`](@ref)
-"""
-struct ECI{ID} <: AbstractCRS
-    id::ID
-    # We only have a constructor without parameters specified
-    ECI(id) = new{typeof(id)}(id)
-end
-ECI() = ECI(EarthDefault())
-
-frameid(crs::ECI) = return crs.id
-
-#### Transformation with ECI ####
+#### Transformation between ECI and ECEF ####
 
 """
     eci_to_ecef_rotation(eci_id, ecef_id; kwargs...)
@@ -68,6 +42,12 @@ function eci_to_ecef_rotation(eci_id::EarthDefault, ecef_id::EarthDefault; jd_ut
     end
 end
 
+"""
+    transform_tuplecoords(ecef_crs::ECEF, eci_crs::ECI, tup::NTuple{3,T}; R_eci_to_ecef = NotProvided(), kwargs...) where T<:AbstractFloat
+    transform_tuplecoords(eci_crs::ECI, ecef_crs::ECEF, tup::NTuple{3,T}; R_eci_to_ecef = NotProvided(), kwargs...) where T<:AbstractFloat
+
+Transforms a tuple of coordinates between an ECEF and ECI CRS. If the rotation matrix to go from the specific ECI CRS to the ECEF CRS is explicitly provided via the `R_eci_to_ecef` keyword argument, it will be used to directly transform the coordinates. Otherwise, the [`eci_to_ecef_rotation`](@ref) function will be used to compute it using the `frameid` of both ECI and ECEF CRSs.
+"""
 function transform_tuplecoords(eci_crs::ECI, ecef_crs::ECEF, tup::NTuple{3,T}; R_eci_to_ecef = NotProvided(), kwargs...) where T<:AbstractFloat
     eci_id = frameid(eci_crs)
     ecef_id = frameid(ecef_crs)
@@ -81,4 +61,47 @@ function transform_tuplecoords(ecef_crs::ECEF, eci_crs::ECI, tup::NTuple{3,T}; R
     R = @fallback(R_eci_to_ecef, eci_to_ecef_rotation(eci_id, ecef_id; kwargs...)) |> RotMatrix3{T}
     newv = R * SVector{3, T}(tup)
     return Tuple(newv)
+end
+
+
+#### Transformation between ECEF and LLA ####
+abstract type LLATransform <: AbstractRawCRSTransform end
+struct ECEFtoLLA{ID} <: LLATransform
+    id::ID
+end
+struct LLAtoECEF{ID} <: LLATransform
+    id::ID
+end
+
+ellipsoidparams(t::LLATransform) = ellipsoidparams(t.id)
+
+TransformsBase.parameters(t::LLATransform) = (t.id,)
+TransformsBase.isinvertible(::Type{<:LLATransform}) = true
+TransformsBase.isrevertible(::Type{<:LLATransform}) = true
+
+function TransformsBase.apply(t::ECEFtoLLA, tup::NTuple{3,T}) where T<:AbstractFloat
+    ellparams = ellipsoidparams(t)
+    ellipsoid = Ellipsoid(NamedTuple{(:a, :f, :b, :e², :el²)}(ellparams)...)
+    lat, lon, alt = ecef_to_geodetic(SVector(tup); ellipsoid)
+    return map(T, (lat, lon, alt)), nothing
+end
+
+function TransformsBase.apply(t::LLAtoECEF, tup::NTuple{3,T}) where T<:AbstractFloat
+    ellparams = ellipsoidparams(t)
+    ellipsoid = Ellipsoid(NamedTuple{(:a, :f, :b, :e², :el²)}(ellparams)...)
+    lat, lon, alt = tup
+    x, y, z = geodetic_to_ecef(lat, lon, alt; ellipsoid)
+    return map(T, (x, y, z)), nothing
+end
+
+ncoords(::Type{<:LLATransform}) = 3
+
+TransformsBase.inverse(t::ECEFtoLLA) = LLAtoECEF(t.id)
+TransformsBase.inverse(t::LLAtoECEF) = ECEFtoLLA(t.id)
+
+### Transformation
+function raw_linkedcrs_transform(crs::LLA)
+    ecefcrs = linkedcrs(crs)
+    raw = LLAtoECEF(frameid(ecefcrs))
+    return raw
 end

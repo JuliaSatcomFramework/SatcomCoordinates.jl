@@ -98,20 +98,7 @@ end
 
 for T in (Vararg{Number}, Point{N, Number} where N)
     @eval function (CRS::Type{<:AbstractCRS})(coords::$T{N}) where {N}
-        N == ncoords(CRS) || throw(DimensionMismatch("The number of coordinates provided ($(N)) does not match the number of coordinates expected by CRS of type $CRS ($(ncoords(CRS)))"))
-        if isderivedcrs(CRS)
-            # This simply calls the next method below, which takes both the wrapped CRS and the coords as input
-            return basetype(CRS)(default_wrappedcrs(CRS), coords)
-        else
-            return Coordinate(CRS(), coords)
-        end
-    end
-
-    @eval function (CRS::Type{<:AbstractCRS})(wrapped_crs::AbstractCRS, coords::$T{N}) where {N}
-        N == ncoords(CRS) || throw(DimensionMismatch("The number of coordinates provided ($(N)) does not match the number of coordinates expected by CRS of type $CRS ($(ncoords(CRS)))"))
-        isderivedcrs(CRS) || throw(ArgumentError("The provided CRS is not derived from another CRS, so it cannot be instantiated with another CRS as first argument"))
-        crs = basetype(CRS)(wrapped_crs)
-        return Coordinate(crs, coords)
+        return CRS()(coords...)
     end
 
     # These are the methods that take an instance of a CRS and construct a coordinate with it

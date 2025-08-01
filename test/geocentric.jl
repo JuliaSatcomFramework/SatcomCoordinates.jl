@@ -1,31 +1,35 @@
 @testsnippet setup_geocentric begin
-    using SatcomCoordinates: numbertype, raw_svector, raw_properties, @u_str
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
     using TestAllocations
+    using SatcomCoordinates
+    using Test
 end
 
 @testitem "ECEF/ECI" setup=[setup_geocentric] begin
     for P in (ECEF, ECI)
-        @test numbertype(P(1,2,3)) == Float64
-        @test numbertype(P{Float32}(1,2,3)) == Float32
+        @test valuetype(P(1,2,3)) == Float64
+        @test valuetype(P(1,2,3) |> change_valuetype(Float32)) == Float32
 
-        @test P(1,2,3) == P((1,2,3)) == P(SA[1,2,3])
+        @test P(1,2,3) == P()((1,2,3)) == P()(SA[1,2,3])
 
-        @test rand(P) isa P{Float64}
-        @test rand(P{Float32}) isa P{Float32}
+        @test rand(P()) isa Coordinate{<:P, Float64}
 
         @test isnan(ECEF(1, 2, NaN))
 
-        @test convert(P{Float32}, rand(P)) isa P{Float32}
-
-        p1, p2 = rand(P, 2)
+        p1, p2 = rand(P(), 2)
         @test p1 ≉ p2
         @test p1 ≈ p1
-        @test p1 ≈ convert(P{Float32}, p1)
+        @test p1 ≈ change_valuetype(Float32, p1)
     end
-    @test_throws "Cannot compare coordinates of different types" rand(ECEF) ≈ rand(ECI)
+    @test_throws "are not equivalent" rand(ECEF()) ≈ rand(ECI())
+
+    @testset "Allocations" begin
+        @test @nallocs(ECEF(1,2,3)) == 0
+        @test @nallocs(ECEF()(SA[1,2,3])) == 0
+        @test @nallocs(ECEF(1,2,3) |> change_valuetype(Float32)) == 0
+    end
 end
 
 @testitem "LLA" setup=[setup_geocentric] begin
@@ -48,9 +52,9 @@ end
     @test_nowarn LLA(0, 10°, 10u"km")
     @test_nowarn LLA(1°, .1, 10u"km")
 
-    @test rand(LLA) ≉ rand(LLA)
+    @test rand(LLA()) ≉ rand(LLA())
 
-    lla = rand(LLA)
+    lla = rand(LLA())
     @test lla.lat isa Deg
     @test lla.lon isa Deg
     @test lla.alt isa Met

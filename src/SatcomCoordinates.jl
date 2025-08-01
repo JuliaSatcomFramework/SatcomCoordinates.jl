@@ -43,14 +43,19 @@ export Cartesian, AffineCartesian
 include("spherical.jl")
 export SphericalCRS
 
-include("ecef.jl")
-export ECEF, EarthDefault
+include("geocentric/basics.jl")
+export frameid, ellipsoidparams, EarthDefault
 
-include("eci.jl")
+include("geocentric/ecef.jl")
+export ECEF
+
+include("geocentric/eci.jl")
 export ECI
 
-include("lla.jl")
+include("geocentric/lla.jl")
 export LLA
+
+include("geocentric/transforms.jl")
 
 include("topocentric.jl")
 export NED, ENU

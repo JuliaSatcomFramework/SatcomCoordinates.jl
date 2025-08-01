@@ -1,52 +1,9 @@
 """
-    EarthDefault
-
-This represents the default frame ID representing the Earth for both the ECEF and ECI CRSs
-
-It assumes the WGS84 ellipsoid and assumes that the frames from conversion between ECEF and ECI are the following:
-- ECEF: ITRF
-- ECI: GCRS 
-
-See also: [`ellipsoidparams`](@ref), [`ECEF`](@ref), [`ECI`](@ref)
-"""
-struct EarthDefault end
-
-ellipsoidparams(::EarthDefault) = WGS84_PARAMS
-
-"""
-    ECEF{ID} <: AbstractCRS
-
-This represents an Ellipsoid-Centered Ellipsoid-Fixed (ECEF) CRS which is uniquely identified by its only field `id::ID`.
-
-This is a generalization of the conventianal **ECEF** acronym which is only referred to earth-centered coordinates.
-
-The `id` field can be any object that uniquely identifies a specific instance of ECEF CRS
-
-To allow proper conversion betwen ECEF and LLA, a valid method for:
-- `SatcomCoordinates.ellipsoidparams(id::ID)`
-must be defined. See the docstrings of [`ellipsoidparams`](@ref) for more details.
-
-For conversion between coordinates in ECEF and ECI CRSs, the following method must also be implemented:
-- `SatcomCoordinates.eci_to_ecef_rotation(eci_id::ID1, ecef_id::ID2; kwargs...)`
-See its docstring for more details
-
-When not specified, the default ID for ECEF CRSs is an instance of the singleton type [`EarthDefault`](@ref).
-
-See also: [`ecefid`](@ref), [`ellipsoidparams`](@ref), [`EarthDefault`](@ref)
-"""
-struct ECEF{ID} <: AbstractCRS
-    id::ID
-    ECEF(id) = new{typeof(id)}(id)
-end
-ECEF() = ECEF(EarthDefault())
-
-"""
     frameid(crs::AbstractCRS)
 
 Extracts the frame identifier associated to the CRS `crs`. This is currently only used to extract the `id` field from the ECI and ECEF CRSs for further processing (e.g. extracting the ellipsoid parameters associated to the frame id)
 
 """
-frameid(crs::ECEF) = return crs.id
 function frameid(crs::AbstractCRS)
     base = basecrs(crs)
     linked = linkedcrs(crs)
@@ -99,11 +56,17 @@ julia> ellipsoidparams(EarthDefault())
 """
 ellipsoidparams(crs::AbstractCRS) = ellipsoidparams(frameid(crs))
 
-#### Random.rand #####
-function rand_tuplecoords(rng::AbstractRNG, crs::ECEF, T::Type{<:AbstractFloat})
-    # We create a point outside of the ellipsoid surface
-    (; a) = ellipsoidparams(crs)
-    coeff = T(a)
-    dc = rand_tuplecoords(rng, DirectionCosines(), T)
-    return dc .* coeff
-end
+"""
+    EarthDefault
+
+This represents the default frame ID representing the Earth for both the ECEF and ECI CRSs
+
+It assumes the WGS84 ellipsoid and assumes that the frames from conversion between ECEF and ECI are the following:
+- ECEF: ITRF
+- ECI: GCRS 
+
+See also: [`ellipsoidparams`](@ref), [`ECEF`](@ref), [`ECI`](@ref)
+"""
+struct EarthDefault end
+
+ellipsoidparams(::EarthDefault) = WGS84_PARAMS

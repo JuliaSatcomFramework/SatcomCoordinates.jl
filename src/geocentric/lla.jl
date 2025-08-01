@@ -1,3 +1,19 @@
+"""
+    LLA{CRS<:AbstractCRS} <: AbstractLinkedCRS{CRS}
+
+A coordinate system that represents a point in latitude, longitude and altitude over a specific ellipsoid.
+It is derived from an ECEF CRS and wraps it.
+
+# Properties/Units/Aliases
+- `lat` => u"°" => (latitude, lat, l): Latitude
+- `lon` => u"°" => (longitude, lon, l): Longitude
+- `alt` => u"m" => (altitude, alt, h, height): Altitude
+
+# Constructor
+    LLA(wrapped_crs::AbstractCRS)
+
+The constructor expects a CRS as input, which must be an ECEF CRS.
+"""
 struct LLA{CRS<:AbstractCRS} <: AbstractLinkedCRS{CRS}
     wrapped_crs::CRS
     function LLA(wrapped_crs::AbstractCRS)
@@ -7,6 +23,9 @@ struct LLA{CRS<:AbstractCRS} <: AbstractLinkedCRS{CRS}
     end
 end
 LLA() = LLA(ECEF())
+# Get 0 altitude if not provided
+(crs::LLA)(lat::Number, lon::Number) = crs(lat, lon, 0)
+
 
 @define_properties LLA [
     lat => u"°" => (:latitude,)
@@ -15,8 +34,6 @@ LLA() = LLA(ECEF())
 ]
 
 default_wrappedcrs(::Type{<:LLA{<:Any}}) = ECEF()
-
-ellipsoidparams(crs::LLA) = ellipsoidparams(linkedcrs(crs))
 
 function process_unitless_coords(::Type{<:Coordinate}, crs::LLA, coords::NTuple{3,<:AbstractFloat})
     lat, lon, alt = coords
@@ -33,49 +50,6 @@ function rand_tuplecoords(rng::AbstractRNG, ::LLA, T::Type{<:AbstractFloat})
     lat, lon, alt
 end
 
-
-##### Conversion with ECEF #####
-
-abstract type LLATransform <: AbstractRawCRSTransform end
-struct ECEFtoLLA{ID} <: LLATransform
-    id::ID
-end
-struct LLAtoECEF{ID} <: LLATransform
-    id::ID
-end
-
-ellipsoidparams(t::LLATransform) = ellipsoidparams(t.id)
-
-TransformsBase.parameters(t::LLATransform) = (t.id,)
-TransformsBase.isinvertible(::Type{<:LLATransform}) = true
-TransformsBase.isrevertible(::Type{<:LLATransform}) = true
-
-function TransformsBase.apply(t::ECEFtoLLA, tup::NTuple{3,<:AbstractFloat})
-    ellparams = ellipsoidparams(t)
-    ellipsoid = Ellipsoid(NamedTuple{(:a, :f, :b, :e², :el²)}(ellparams)...)
-    lat, lon, alt = ecef_to_geodetic(SVector(tup); ellipsoid)
-    return (lat, lon, alt), nothing
-end
-
-function TransformsBase.apply(t::LLAtoECEF, tup::NTuple{3,<:AbstractFloat})
-    ellparams = ellipsoidparams(t)
-    ellipsoid = Ellipsoid(NamedTuple{(:a, :f, :b, :e², :el²)}(ellparams)...)
-    lat, lon, alt = tup
-    x, y, z = geodetic_to_ecef(lat, lon, alt; ellipsoid)
-    return (x, y, z), nothing
-end
-
-ncoords(::Type{<:LLATransform}) = 3
-
-TransformsBase.inverse(t::ECEFtoLLA) = LLAtoECEF(t.id)
-TransformsBase.inverse(t::LLAtoECEF) = ECEFtoLLA(t.id)
-
-### Transformation
-function raw_linkedcrs_transform(crs::LLA)
-    ecefcrs = linkedcrs(crs)
-    raw = LLAtoECEF(frameid(ecefcrs))
-    return raw
-end
 
 #### Custom isapprox implementation ####
 function raw_isapprox(::Type{<:AbstractSatcomCoordinate}, crs1::LLA{CRS}, crs2::LLA{CRS}, coords1::NTuple{3,<:AbstractFloat}, coords2::NTuple{3,<:AbstractFloat}; angle_atol=1e-5u"°", alt_atol=1e-3u"m", atol=nothing, kwargs...) where CRS<:AbstractCRS
