@@ -42,7 +42,6 @@ SphericalCRS() = SphericalCRS(ThetaPhi())
     pointingcrs(_)... # This is a special synthax for the macro, saying that it should put here all the properties of the the `CRS` obtained by calling `pointingcrs(CRS::Type{<:SphericalCRS})`
     r => u"m" => (:distance, :range) # r as primary property name, u"m" as unit for `r` and `distance` and `range` as aliases for this property
 ]
-ncoords(::Type{SphericalCRS}) = 3 # This is needed to avoid errors in the simplified coordinate constructor when not specifying the CRS
 
 pointingcrs(::Type{<:SphericalCRS{<:Any, P}}) where P <: AbstractPointingCRS = P
 pointingcrs(s::SphericalCRS) = s.pointing
@@ -80,15 +79,6 @@ end
 
 function raw_linkedcrs_transform(::SphericalCRS{<:Any, PT}) where {PT <: Abstract2DPointingCRS}
     return SphericalToCartesian{PT}()
-end
-
-function transform_tuplecoords(sph::SphericalCRS{CRS}, ::CRS, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
-    t = raw_linkedcrs_transform(sph)
-    return inverse(t)(tup)
-end
-function transform_tuplecoords(::CRS, sph::SphericalCRS{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
-    t = raw_linkedcrs_transform(sph)
-    return t(tup)
 end
 
 # These are methods to extract just pointing from Spherical

@@ -56,6 +56,7 @@ include("pointing/constructors.jl")
 include("pointing/transforms.jl")
 
 include("pointing/misc.jl")
+export pointingcrs
 
 include("cartesian.jl")
 export Cartesian, AffineCartesian
@@ -84,7 +85,7 @@ include("topocentric.jl")
 export NED, ENU, istopocentriccrs
 
 include("helpers.jl")
-export pointingcrs, linkedcrs_transform, change_crs, crs, rootcrs_transform
+export linkedcrs_transform, change_crs, crs, rootcrs_transform
 
 include("deps_interface.jl")
 

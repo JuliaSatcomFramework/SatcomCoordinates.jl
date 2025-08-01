@@ -24,6 +24,7 @@ end
 # This function returns the type of the pointing CRS for a given CRS type. It is used to get the type of the pointing CRS from a CRS type.
 pointingcrs(P::Type{<:AbstractPointingCRS}) = P
 pointingcrs(crs::AbstractCRS) = pointingcrs(typeof(crs))
+pointingcrs(obj::FieldOrCoordinate) = pointingcrs(crs(obj))
 
 
 #### Random.rand #####
