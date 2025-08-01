@@ -1,50 +1,42 @@
 @testsnippet setup_printing begin
     using SatcomCoordinates.PlutoShowHelpers
     using SatcomCoordinates.PlutoShowHelpers: shortname, show_namedtuple, repl_summary
-    using SatcomCoordinates: UVOffset, ThetaPhiOffset
 end
 
 @testitem "Printing" setup=[setup_printing] begin
 
-    s = repr(rand(Spherical))
-    @test contains(s, "Spherical")
+    s = repr(rand(SphericalCRS()))
+    @test contains(s, "SphericalCRS")
 
-    s = repr(rand(AzElDistance))
-    @test contains(s, "AzElDistance")
+    s = repr(SphericalCRS(AzEl()))
+    @test contains(s, "AzEl")
 
-    s = repr(rand(GeneralizedSpherical{AzOverEl, Float64}))
+    s = repr(rand(SphericalCRS(AzOverEl())))
     @test contains(s, "AzOverEl")
 
-    s = repr(MIME"text/plain"(), rand(ECEF))
-    @test contains(s, "ECEF Coordinate")
+    s = repr(MIME"text/plain"(), rand(ECEF()))
+    @test contains(s, "Coordinate{ECEF")
     @test contains(s, "x = ")
 
-    s = repr(MIME"text/plain"(), rand(LLA))
-    @test contains(s, "LLA Coordinate")
+    s = repr(MIME"text/plain"(), rand(LLA()))
+    @test contains(s, "Coordinate{LLA")
     @test contains(s, "lat = ")
 
-    s = repr(MIME"text/plain"(), rand(BasicCRSTransform))
-    contains(s, "LocalCartesian")
-
-    s = repr(MIME"text/plain"(), rand(ThetaPhi))
-    @test contains(s, "ThetaPhi Pointing")
+    s = repr(MIME"text/plain"(), rand(ThetaPhi()))
+    @test contains(s, "Pointing{ThetaPhi")
     @test contains(s, "θ = ")
 
-    s = repr(MIME"text/plain"(), rand(PointingVersor))
-    @test contains(s, "PointingVersor")
-    @test contains(s, "x = ")
-    @test contains(s, "y = ")
-    @test contains(s, "z = ")
+    s = repr(MIME"text/plain"(), AER(rand(LLA())) |> rand)
+    @test contains(s, "Coordinate{AER")
+    @test contains(s, "az = ")
+    @test contains(s, "el = ")
+    @test contains(s, "r = ")
 
-    s = repr(MIME"text/plain"(), rand(UVOffset))
-    @test contains(s, "UV Pointing Offset")
+    s = repr(MIME"text/plain"(), rand(DirectionCosines()))
+    @test contains(s, "Pointing{DirectionCosines")
     @test contains(s, "u = ")
     @test contains(s, "v = ")
+    @test contains(s, "w = ")
 
-    s = repr(MIME"text/plain"(), rand(ThetaPhiOffset))
-    @test contains(s, "ThetaPhi Pointing Offset")
-    @test contains(s, "θ = ")
-    @test contains(s, "φ = ")
-
-    @test_logs (:warn, r"show_outside_pluto") repr(MIME"text/html"(), rand(LLA))
+    @test_logs (:warn, r"show_outside_pluto") repr(MIME"text/html"(), rand(LLA()))
 end
