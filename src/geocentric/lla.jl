@@ -26,16 +26,13 @@ LLA() = LLA(ECEF())
 # Get 0 altitude if not provided
 (crs::LLA)(lat::Number, lon::Number) = crs(lat, lon, 0)
 
-hascrstrait(::typeof(isllacrs), ::Type{<:LLA}) = true
-
+isllacrs(::Type{<:LLA}) = true
 
 @define_properties LLA [
     lat => u"°" => (:latitude,)
     lon => u"°" => (:longitude, :long)
     alt => u"m" => (:altitude, :h, :height)
 ]
-
-default_wrappedcrs(::Type{<:LLA{<:Any}}) = ECEF()
 
 function process_unitless_coords(::Type{<:Coordinate}, crs::LLA, coords::NTuple{3,<:AbstractFloat})
     lat, lon, alt = coords

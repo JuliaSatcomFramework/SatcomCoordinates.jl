@@ -1,6 +1,15 @@
 abstract type AbstractTopocentricCRS{CRS <: AbstractCRS, T} <: AbstractLinkedCRS{CRS} end
 
-hascrstrait(::typeof(istopocentriccrs), ::Type{<:AbstractTopocentricCRS}) = true
+
+"""
+    istopocentriccrs(CRS::Type{<:AbstractCRS})
+    istopocentriccrs(crs::AbstractCRS)
+
+Return `true` if the provided CRS `crs` (or CRS type `CRS`) is a topocentric CRS.
+"""
+istopocentriccrs(obj) = hascrstrait(istopocentriccrs, obj)
+hascrstrait(::typeof(istopocentriccrs), ::Type{<:AbstractCRS}) = false
+istopocentriccrs(::Type{<:AbstractTopocentricCRS}) = true
 
 for CRS in (:NED, :ENU)
     @eval struct $CRS{CRS <: AbstractCRS, T} <: AbstractTopocentricCRS{CRS, T}

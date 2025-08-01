@@ -31,10 +31,7 @@ struct SphericalCRS{CRS <: AbstractCRS, PT <: Abstract2DPointingCRS{CRS}} <: Abs
         new{typeof(cartesian_crs), typeof(pointing_crs)}(cartesian_crs, pointing_crs)
     end
 end
-function (CRS::Type{<:SphericalCRS})()
-    # This is the no-arg constructor, it creates a pointing CRS with the default wrapped CRS
-    return SphericalCRS(default_wrappedcrs(CRS))
-end
+SphericalCRS() = SphericalCRS(ThetaPhi())
 
 ##################################################################
 ########                 CRS Properties                  #########
@@ -49,10 +46,6 @@ ncoords(::Type{SphericalCRS}) = 3 # This is needed to avoid errors in the simpli
 
 pointingcrs(::Type{<:SphericalCRS{<:Any, P}}) where P <: AbstractPointingCRS = P
 pointingcrs(s::SphericalCRS) = s.pointing
-
-default_wrappedcrs(::Type{<:SphericalCRS{<:Any, P}}) where P <: AbstractPointingCRS = P()
-default_wrappedcrs(::Type{<:SphericalCRS{C}}) where C = ThetaPhi(C())
-default_wrappedcrs(::Type{SphericalCRS}) = ThetaPhi()
 
 #### Random.rand #####
 function rand_tuplecoords(rng::AbstractRNG, crs::SphericalCRS, T::Type{<:AbstractFloat})

@@ -93,9 +93,6 @@ defaultcrs(::Type{<:AbstractSatcomCoordinate{CRS}}) where CRS <: AbstractCRS = C
 defaultcrs(::Type{<:AbstractSatcomCoordinate{<:Any}}) = Cartesian()
 defaultcrs(::Type{Pointing}) = ThetaPhi()
 
-default_wrappedcrs(::Type{<:AbstractCRS}) = Cartesian()
-
-
 function change_crs(crsₒ::AbstractCRS, coord::AbstractSatcomCoordinate; kwargs...)
     tup = transform_tuplecoords(crsₒ, crs(coord), tuplecoords(coord); kwargs...)
     return constructor_without_checks(basetype(typeof(coord)), crsₒ, tup)
@@ -139,7 +136,9 @@ function transform_tuplecoords(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, tup::An
     end
 end
 function transform_tuplecoords(crsₒ::AbstractLinkedCRS{CRS}, crsᵢ::AbstractLinkedCRS{CRS}, tup::Any; kwargs...) where CRS <: AbstractCRS
-    if is_same_crs(linkedcrs(crsₒ), linkedcrs(crsᵢ))
+    if is_same_crs(crsₒ, crsᵢ)
+        return tup
+    elseif is_same_crs(linkedcrs(crsₒ), linkedcrs(crsᵢ))
         # We pass through the common linked crs
         intermediate = raw_linkedcrs_transform(crsᵢ)(tup)
         rt = TransformsBase.inverse(raw_linkedcrs_transform(crsₒ))

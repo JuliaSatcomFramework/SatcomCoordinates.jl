@@ -51,7 +51,7 @@ struct AffineCartesian{CRSₗ <: AbstractCRS, CRS <: AbstractCRS, T <: RawAffine
 end
 
 # With this function we forward all trait checks to the base CRS
-traitcrs(::Type{<:AffineCartesian{<:Any, CRS}}, ::typeof(isecefcrs)) where {CRS} = CRS
+traitcrs(::Type{<:AffineCartesian{<:Any, CRS}}) where {CRS} = CRS
 
 function is_same_crs(crs1::CRS, crs2::CRS) where {CRS <: AffineCartesian}
     is_same_crs(crs1.linked, crs2.linked) || return false

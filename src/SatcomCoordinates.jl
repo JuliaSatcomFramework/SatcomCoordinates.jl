@@ -24,17 +24,38 @@ public @define_properties
 include("abstract_types.jl")
 export AbstractCRS, AbstractPointingCRS, AbstractSphericalCRS, AbstractSatcomCoordinate, AbstractCRSTransform, AbstractLinkedCRS
 
+include("traits.jl")
+export iscartesiancrs, cartesiancrs, istopocentriccrs, rootcrs, linkedcrs, basecrs
+
 include("coordinates.jl")
 export Pointing, Coordinate, change_crs
 
-include("transforms.jl")
-export RawAffineTransform, RawTranslation, RawRotation, CRSTransform, AffineCRSTransform
+include("transforms/rawaffine.jl")
+export RawAffineTransform
+
+include("transforms/rawcomposed.jl")
+export RawComposedTransform
+
+include("transforms/crstransform.jl")
+export CRSTransform
+
+include("transforms/compose.jl")
+export compose
+
+include("transforms/traits.jl")
+export isaffinetransform, israwtransform
 
 include("raw.jl")
 export Raw
 
-include("pointing.jl")
+include("pointing/types.jl")
 export UV, ThetaPhi, AzEl, AzOverEl, ElOverAz, DirectionCosines
+
+include("pointing/constructors.jl")
+
+include("pointing/transforms.jl")
+
+include("pointing/misc.jl")
 
 include("cartesian.jl")
 export Cartesian, AffineCartesian
@@ -60,14 +81,12 @@ include("geocentric/traits.jl")
 export isecefcrs, isecicrs, isllacrs
 
 include("topocentric.jl")
-export NED, ENU
+export NED, ENU, istopocentriccrs
 
 include("helpers.jl")
-export pointingcrs, default_wrappedcrs, linkedcrs_transform, change_crs, crs, rootcrs_transform
+export pointingcrs, linkedcrs_transform, change_crs, crs, rootcrs_transform
 
 include("deps_interface.jl")
 
-include("traits.jl")
-export iscartesiancrs, cartesiancrs, istopocentriccrs, rootcrs, linkedcrs, isderivedcrs, basecrs
 
 end # module SatComCoordinates
