@@ -91,6 +91,27 @@ function transform_tuplecoords(::CRS, sph::SphericalCRS{CRS}, tup::NTuple{3, <:A
     return t(tup)
 end
 
+# These are methods to extract just pointing from Spherical
+# This handles simply extracting the pointing
+function transform_tuplecoords(crsₒ::PT, crsᵢ::SphericalCRS{CRS, PT}, tup::NTuple{3, <:AbstractFloat}) where {CRS <: AbstractCRS, PT <: Abstract2DPointingCRS{CRS}}
+    is_same_crs(crsₒ, pointingcrs(crsᵢ)) || throw(ArgumentError("The provided pointing CRS ($(crsₒ)) does not match the pointing CRS of the provided Spherical CRS ($(pointingcrs(crsᵢ)))."))
+    return tup[1:2]
+end
+# This handles different pointing CRS from the one stored in the Spherical
+function transform_tuplecoords(crsₒ::AbstractPointingCRS{CRS}, crsᵢ::SphericalCRS{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
+    is_same_crs(linkedcrs(crsₒ), linkedcrs(crsᵢ)) || throw(ArgumentError("The provided Pointing and Spherical CRSs are not derived from the same Cartesian CRS."))
+    ptup = transform_tuplecoords(pointingcrs(crsᵢ), crsᵢ, tup)
+    return transform_tuplecoords(crsₒ, pointingcrs(crsᵢ), ptup)
+end
+# This fast tracks just changing pointing without going back to the underlying cartesian
+function transform_tuplecoords(crsₒ::SphericalCRS{CRS}, crsᵢ::SphericalCRS{CRS}, tup::NTuple{3, <:AbstractFloat}) where {CRS <: AbstractCRS}
+    is_same_crs(crsₒ, crsᵢ) && return tup
+    is_same_crs(linkedcrs(crsₒ), linkedcrs(crsᵢ)) || throw(ArgumentError("The provided Spherical CRSs are not derived from the same Cartesian CRS."))
+    pt..., r = tup
+    pt = transform_tuplecoords(pointingcrs(crsₒ), pointingcrs(crsᵢ), pt)
+    return (pt..., r)
+end
+
 ##### Base.show #####
 function PlutoShowHelpers.repl_summary(c::SphericalCRS)
     string(
