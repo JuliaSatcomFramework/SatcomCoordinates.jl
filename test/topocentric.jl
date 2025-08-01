@@ -1,96 +1,101 @@
 @testsnippet setup_topocentric begin
-    using SatcomCoordinates: numbertype, raw_svector, raw_properties, @u_str
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
+    using SatelliteToolboxTransformations
     using TestAllocations
 end
 
 @testitem "ENU/NED" setup=[setup_topocentric] begin
     for P in (ENU, NED)
-        @test numbertype(P(1,2,3)) == Float64
-        @test numbertype(P{Float32}(1,2,3)) == Float32
+        topo_crs = P(LLA(0,0,1200km))
+        @test topo_crs == P(change_crs(ECEF(), LLA(0,0,1200km)))
+        @test valuetype(topo_crs) == Float64
+        @test valuetype(change_valuetype(Float32, topo_crs)) == Float32
 
-        @test P(1,2,3) == P((1,2,3)) == P(SA[1,2,3])
+        # Test different coord constructors
+        coord = topo_crs(1,2,3)
 
-        @test_throws "is not a valid property" rand(P).q
+        @test coord == topo_crs((1,2,3)) == topo_crs(SA[1,2,3])
 
-        @test rand(P) isa P{Float64}
-        @test rand(P{Float32}) isa P{Float32}
+        @test_throws "is not a valid property" rand(topo_crs).q
 
-        @test isnan(ENU(1, 2, NaN))
+        @test isnan(topo_crs(1, 2, NaN))
 
-        @test convert(P{Float32}, rand(P)) isa P{Float32}
-
-        p1, p2 = rand(P, 2)
+        p1, p2 = rand(topo_crs, 2)
         @test p1 ≉ p2
         @test p1 ≈ p1
-        @test p1 ≈ convert(P{Float32}, p1)
-
-        c1, c2 = rand(P, 2)
-        @test raw_svector(c1 + c2) == raw_svector(c1) + raw_svector(c2)
-        @test raw_svector(c1 - c2) == raw_svector(c1) - raw_svector(c2)
-
-        c3 = rand(P{Float32})
-        @test c1 + c3 isa P{Float64}
-        @test c1 - c3 isa P{Float64}
     end
-    @test_throws "Cannot add coordinates" ENU(1,2,3) + NED(1,2,3)
 
-    enu = rand(ENU)
-    @test enu.x isa Met
-    @test enu.y isa Met
-    @test enu.z isa Met
+    enu = ENU(LLA(0,0,1200km))(1,2,3)
+    @test enu.x == enu.e == enu.east == 1u"m"
+    @test enu.y == enu.n == enu.north == 2u"m"
+    @test enu.z == enu.u == enu.up == 3u"m"
 
-    ned = rand(NED)
-    @test ned.x isa Met
-    @test ned.y isa Met
-    @test ned.z isa Met
+    ned = NED(LLA(0,0,1200km))(1,2,3)
+    @test ned.x == ned.n == ned.north == 1u"m"
+    @test ned.y == ned.e == ned.east == 2u"m"
+    @test ned.z == ned.d == ned.down == 3u"m"
 
     @testset "Allocations" begin
-        @test @nallocs(ENU(1,2,3)) == 0
-        @test @nallocs(ENU{Float32}(1,2,3)) == 0
-        @test @nallocs(ENU(SVector(1f0,2f0,3f0))) == 0
+        ned_crs = crs(ned)
+        enu_crs = crs(enu)
+        @test @nallocs(change_crs(enu_crs, ned)) == 0
+        @test @nallocs(change_crs(ned_crs, enu)) == 0
+        # Going to ECEF
+        @test @nallocs(change_crs(ECEF(), ned)) == 0
+        @test @nallocs(change_crs(ECEF(), enu)) == 0
+        # Going to LLA
+        @test @nallocs(change_crs(LLA(), ned)) == 0
+        @test @nallocs(change_crs(LLA(), enu)) == 0
 
-        @test @nallocs(NED(1,2,3)) == 0
-        @test @nallocs(NED{Float32}(1,2,3)) == 0
-        @test @nallocs(NED(SVector(1f0,2f0,3f0))) == 0
+        # Construction
+        @test @nallocs(NED(LLA(0,0,1200km))) == 0
+        @test @nallocs(ENU(LLA(0,0,1200km))) == 0
+        # Coordinate construction
+        @test @nallocs(NED(LLA(0,0,1200km))(1,2,3)) == 0
+        @test @nallocs(ENU(LLA(0,0,1200km))(1,2,3)) == 0
     end
 end
 
 @testitem "AER" setup=[setup_topocentric] begin
-    @test numbertype(AER(1,2,3)) == Float64
-    @test numbertype(AER{Float32}(1,2,3)) == Float32
+    aer_crs = AER(LLA(0,0,1200km))
+    @test valuetype(aer_crs) == Float64
 
-    @test AER(190°, 90, 1000u"m") == AER(-170°, 90°, 1000u"m")
+    # We test wrapping of the angles
+    @test aer_crs(190°, 90, 1000u"m") == aer_crs(-170°, 90°, 1u"km")
 
-    @test_throws "is not a valid property" rand(AER).q
+    @test_throws "is not a valid property" rand(aer_crs).q
 
-    @test rand(AER) ≉ rand(AER)
-    aer = rand(AER)
+    @test rand(aer_crs) ≉ rand(aer_crs)
+    aer = aer_crs(10, 20, 1u"km")
     @test aer ≈ aer
 
-    @test aer.az isa Deg{Float64}
-    @test aer.el isa Deg{Float64}
-    @test aer.r isa Met{Float64}
 
-    ae = rand(AER)
-    @test convert(ENU, -ae) ≈ -convert(ENU, ae)
+    @test aer.az == aer.azimuth == 10u"°"
+    @test aer.el == aer.elevation == 20u"°"
+    @test aer.r == aer.distance == aer.range == 1000u"m"
+
+    ae = rand(aer_crs)
+    enu_crs = cartesiancrs(ae)
+    @test change_crs(enu_crs, -ae) ≈ -change_crs(enu_crs, ae)
 
     @testset "Allocations" begin
-        @test @nallocs(AER(1,2,3)) == 0
-        @test @nallocs(AER{Float32}(1,2,3)) == 0
+        @test @nallocs(AER(LLA(0,0,1200km))(1,2,3)) == 0
+        aer_crs = AER(LLA(0,0,1200km))
+        @test @nallocs(change_crs(aer_crs, LLA(0,0,1200km))) == 0
     end
 end
 
 @testitem "Conversion" setup=[setup_topocentric] begin
     valid_types = (ENU, NED, AER)
+    lla = LLA(0,0,1200km)
     for P in valid_types
         for Q in valid_types
-            p = rand(P)
-            q = convert(Q, p)
-            @test p ≈ q
-            @test p ≈ convert(P, q)
+            p = rand(P(lla))
+            q = change_crs(Q(lla), p)
+            p′ = change_crs(P(lla), q)
+            @test p ≈ p′
         end
     end
 end

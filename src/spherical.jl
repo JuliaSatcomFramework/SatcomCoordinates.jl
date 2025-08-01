@@ -46,6 +46,14 @@ SphericalCRS() = SphericalCRS(ThetaPhi())
 pointingcrs(::Type{<:SphericalCRS{<:Any, P}}) where P <: AbstractPointingCRS = P
 pointingcrs(s::SphericalCRS) = s.pointing
 
+#### Handle input coordinates ####
+# This simply forwards the pointing processing to the pointing CRS one and leaves the range as is
+function process_unitless_coords(C::Type{<:Coordinate}, crs::SphericalCRS, coords::NTuple{3, <:AbstractFloat})
+    pt..., r = coords
+    pt = process_unitless_coords(C, pointingcrs(crs), pt)
+    return (pt..., r)
+end
+
 #### Random.rand #####
 function rand_tuplecoords(rng::AbstractRNG, crs::SphericalCRS, T::Type{<:AbstractFloat})
     pt = rand_tuplecoords(rng, pointingcrs(crs), T)

@@ -98,6 +98,9 @@ end
 
 for T in (Vararg{Number}, Point{N, Number} where N)
     @eval function (CRS::Type{<:AbstractCRS})(coords::$T{N}) where {N}
+        if N === 0
+            throw(ArgumentError("The CRS type $CRS does not have a custom implementation of a no-argument constructor."))
+        end
         return CRS()(coords...)
     end
 

@@ -17,8 +17,7 @@ wrap_spherical_angles_rad_normalized(θ::T, φ::T, ::Type{<:ThetaPhi}) where {T 
         (-θ, φ - copysign(π,φ)) # Need to wrap
     )
 
-
-function process_unitless_coords(::Type{<:Coordinate}, crs::AbstractPointingCRS, coords::NTuple{2,T}) where {T}
+function process_unitless_coords(::Type{<:Coordinate}, crs::AbstractPointingCRS, coords::NTuple{2,<:AbstractFloat})
     PT = typeof(crs)
     tup = map(coords) do val
         rem2pi(val, RoundNearest)

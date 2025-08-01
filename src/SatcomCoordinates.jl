@@ -82,7 +82,7 @@ include("geocentric/traits.jl")
 export isecefcrs, isecicrs, isllacrs
 
 include("topocentric.jl")
-export NED, ENU, istopocentriccrs
+export NED, ENU, AER, istopocentriccrs, ecef_origin, lla_origin
 
 include("helpers.jl")
 export linkedcrs_transform, change_crs, crs, rootcrs_transform

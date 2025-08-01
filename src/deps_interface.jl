@@ -1,6 +1,7 @@
 
-BasicTypes.valuetype(::Type{<:AbstractSatcomCoordinate{<:Any, T}}) where T = T
-BasicTypes.valuetype(::Type{<:AbstractSatcomCoordinate{<:Any}}) = Union{}
+BasicTypes.valuetype(::Type{<:AbstractSatcomCoordinate{<:Any, T}}) where T = return T
+
+BasicTypes.valuetype(::Type{<:AbstractLinkedCRS{CRS}}) where CRS <: AbstractCRS = return valuetype(CRS)
 
 # This is the default implementation for CRSs that do not hold any coordinate within
 BasicTypes.change_valuetype(::Type{<:AbstractFloat}, crs::AbstractCRS) = crs
@@ -12,6 +13,7 @@ end
 
 #### Base ####
 Base.isnan(coord::AbstractSatcomCoordinate) = any(isnan, tuplecoords(coord))
+
 # Negation of a Coordinate
 function Base.:(-)(c::AbstractSatcomCoordinate)
     newtup = raw_negation(crs(c), tuplecoords(c))
@@ -51,6 +53,6 @@ function raw_isapprox(::Type{C}, crs1::AbstractCRS, crs2::AbstractCRS, coords1::
     if is_same_crs(crs1, crs2)
         return isapprox(SVector(coords1), SVector(coords2); kwargs...)
     else
-        throw(ArgumentError("The default implementation of `Base.isapprox` for `AbstractSatcomCoordinate` only works between CRSs that are equivalent.\nThe two provided CRSs ($(crs1) and $(crs2)) are not equivalent and should be eventually covered by a new custom method of `SatcomCoordinates.raw_isapprox`."))
+        throw(ArgumentError("The default implementation of `Base.isapprox` for `AbstractSatcomCoordinate` only works between CRSs that are equivalent.\nThe two provided CRSs are not equivalent and should be eventually covered by a new custom method of `SatcomCoordinates.raw_isapprox`."))
     end
 end
