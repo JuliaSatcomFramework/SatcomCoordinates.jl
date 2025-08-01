@@ -47,4 +47,21 @@ end
     # We test the custom show
     s = repr(MIME"text/plain"(), sph_crs)
     @test startswith(s, "SphericalCRS{Cartesian, ThetaPhi}")
+
+    @testset "Allocations" begin
+        @testset "Constructor" begin
+            @test @nallocs(SphericalCRS(1,2,3)) == 0
+            @test @nallocs(SphericalCRS(SVector(1f0,2f0,3f0))) == 0
+            @test @nallocs(SphericalCRS((1,2,3f0))) == 0
+            @test @nallocs(SphericalCRS(1,2,3) |> change_valuetype(Float32)) == 0
+        end
+
+        @testset "Conversion" begin
+            @test @nallocs(change_crs(sph_crs, Cartesian(0,0,1))) == 0
+            @test @nallocs(change_crs(Cartesian(), sph)) == 0
+
+            @test @nallocs(change_crs(AzEl(), sph)) == 0
+            @test @nallocs(change_crs(SphericalCRS(AzEl()), sph)) == 0
+        end
+    end
 end
