@@ -57,6 +57,9 @@ export LLA
 
 include("geocentric/transforms.jl")
 
+include("geocentric/traits.jl")
+export isecefcrs, isecicrs, isllacrs
+
 include("topocentric.jl")
 export NED, ENU
 
@@ -66,43 +69,6 @@ export pointingcrs, default_wrappedcrs, linkedcrs_transform, change_crs, crs, ro
 include("deps_interface.jl")
 
 include("traits.jl")
-export iscartesiancrs, cartesiancrs, isecefcrs, istopocentriccrs, isllacrs, rootcrs, linkedcrs, isderivedcrs, basecrs
-
-# include("types/pointing_offsets.jl") 
-# public PointingOffset
-
-# include("types/geocentric.jl") 
-# export ECEF, ECI, LLA 
-
-# include("types/topocentric.jl") 
-# export ENU, NED, AER 
-
-# include("types/local.jl") 
-# export LocalCartesian, GeneralizedSpherical 
-
-# include("types/transforms.jl") 
-# export CRSRotation, BasicCRSTransform, InverseTransform 
-
-# include("types/type_aliases.jl") 
-# export Spherical, AzElDistance
-
-# include("functions/traits.jl")
-
-# include("functions/pointing.jl")
-# include("functions/pointing_offsets.jl")
-# export get_angular_distance, get_angular_offset, add_angular_offset
-
-# include("functions/geocentric.jl")
-# include("functions/topocentric.jl")
-# include("functions/local.jl")
-# include("functions/transforms.jl")
-# public origin, rotation
-
-# include("functions/fieldvalues.jl")
-
-# include("utils.jl")
-# export numbertype, enforce_numbertype, has_numbertype, change_numbertype, default_numbertype, raw_properties, raw_svector, raw_properties
-
-# include("functions/fallbacks.jl")
+export iscartesiancrs, cartesiancrs, istopocentriccrs, rootcrs, linkedcrs, isderivedcrs, basecrs
 
 end # module SatComCoordinates

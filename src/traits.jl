@@ -1,6 +1,34 @@
 # Helper function to find how many fields which subtype AbstractCRS a specific CRS type has
 nlinked_crs(C::Type{<:AbstractCRS}) = count(T -> T <: AbstractCRS, fieldtypes(C))
 
+
+"""
+    hascrstrait(traitfunc::Function, crs::AbstractCRS)
+
+This is an helper function which should be used in the definition of the default method for a trait function.
+For example, the `istopocentriccrs` trait function's default method is actually defined as follows:
+```julia
+istopocentriccrs(obj) = hascrstrait(istopocentriccrs, obj)
+hascrstrait(::typeof(istopocentriccrs), ::Type{<:AbstractCRS}) = false
+```
+
+This is mainly done to simplify the handling of complex linked CRSs (like AffineCartesian) which should actually forward all the trait functions to their base CRS.
+
+Custom CRSs that simply need to add a method to an existing CRS trait function do not need to use this function, and this is only needed to be extended by a downstream user/developer when defining completely new CRS traits.
+
+The three basic CRS traits below are not defined using this function as they rely on core properties of all CRSs for their default implementation:
+- [`iscartesiancrs`](@ref)
+- [`isrootcrs`](@ref)
+- [`islinkedcrs`](@ref)
+"""
+hascrstrait(traitfunc, CRS::Type{<:AbstractCRS}) = return traitfunc(traitcrs(CRS, traitfunc))
+hascrstrait(traitfunc, crs::AbstractCRS) = return hascrstrait(traitfunc, typeof(crs))
+hascrstrait(traitfunc, obj::FieldOrCoordinate) = return hascrstrait(traitfunc, crs(obj))
+
+# This simply unwraps the CRS that must be used to check for the trait from the input CRS. It is only relevant for complex CRSs that need to forward the trait check to another CRS within their type. The first signature with both CRS and function is what is called by the default method of hascrstrait, and can be used to further customize the CRS to check the trait on depending on the specific trait function.
+traitcrs(CRS::Type{<:AbstractCRS}, ::Function) = return traitcrs(CRS)
+traitcrs(CRS::Type{<:AbstractCRS}) = CRS
+
 """
     isrootcrs(C::Type{<:AbstractCRS})
     isrootcrs(crs::AbstractCRS)
@@ -11,7 +39,7 @@ A root CRS is a CRS which is not derived or linked to any other CRS.
 
 All root CRSs should also be cartesian CRSs
 
-See also: [`rootcrs`](@ref), [`iscartesiancrs`](@ref), [`isderivedcrs`](@ref), []
+See also: [`rootcrs`](@ref), [`iscartesiancrs`](@ref)
 """
 function isrootcrs(::Type{C}) where {C<:AbstractCRS}
     return nlinked_crs(C) == 0
@@ -28,11 +56,7 @@ See also: [`isrootcrs`](@ref), [`linkedcrs`](@ref)
 function rootcrs(crs::AbstractCRS)
     isrootcrs(crs) && return crs
     linked = linkedcrs(crs)
-    if isrootcrs(linked)
-        return linked
-    else
-        return rootcrs(linked)
-    end
+    return rootcrs(linked)
 end
 rootcrs(coord::FieldOrCoordinate) = rootcrs(crs(coord))
 
@@ -73,25 +97,6 @@ end
 linkedcrs(coord::FieldOrCoordinate) = linkedcrs(crs(coord))
 
 """
-    isderivedcrs(C::Type{<:AbstractCRS})
-    isderivedcrs(crs::AbstractCRS)
-
-Return `true` if the CRS `C` is derived from another CRS, `false` otherwise.
-
-The difference between a **derived CRS** and a **linked CRS** is that the former can only be defined on top of its linked CRS, the latter is instead encompassing all CRSs which are linked to (at least) one other CRS.
-
-An example of a **derived CRS** is the `LLA` CRS which is only defined on top of an `ECEF` CRS.
-
-An example of a **linked CRS** which is not also a **derived CRS** is a Cartesian CRS which is referenced to another Cartesian CRS via a user-defined affine transformation.
-
-By default, this function returns `true` if the CRS has exactly one field which is a subtype of `AbstractCRS`, `false` otherwise.
-
-See also: [`linkedcrs`](@ref), [`islinkedcrs`](@ref)
-"""
-isderivedcrs(::Type{C}) where {C<:AbstractCRS} = nlinked_crs(C) == 1
-isderivedcrs(crs::AbstractCRS) = isderivedcrs(typeof(crs))
-
-"""
     iscartesiancrs(C::Type{<:AbstractCRS})
     iscartesiancrs(crs::AbstractCRS)
 
@@ -99,7 +104,7 @@ Return `true` if the CRS `C` is a Cartesian CRS, `false` otherwise.
 
 The default implementation assumes a CRS is cartesian if it has 3 dimensions and all of them have units of length.
 
-See also: [`cartesiancrs`](@ref), [`isderivedcrs`](@ref), [`islinkedcrs`](@ref)
+See also: [`cartesiancrs`](@ref), [`isrootcrs`](@ref), [`islinkedcrs`](@ref)
 """
 iscartesiancrs(C::Type{<:AbstractCRS}) = ncoords(C) == 3 && all(u -> u isa Unitful.LengthUnits, units(C))
 iscartesiancrs(crs::AbstractCRS) = iscartesiancrs(typeof(crs))
@@ -112,11 +117,7 @@ Recursively traverse the CRSs wrapped by the provided `crs` until the first cart
 function cartesiancrs(crs::AbstractCRS)
     iscartesiancrs(crs) && return crs
     linked = linkedcrs(crs)
-    if iscartesiancrs(linked)
-        return linked
-    else
-        return cartesiancrs(wrapped)
-    end
+    return cartesiancrs(linked)
 end
 cartesiancrs(coord::FieldOrCoordinate) = crs(coord) |> cartesiancrs
 
@@ -136,34 +137,13 @@ basecrs(crs::AbstractCRS) = return crs
 basecrs(coord::FieldOrCoordinate) = return crs(coord) |> basecrs
 
 """
-    isecefcrs(CRS::Type{<:AbstractCRS})
-    isecefcrs(crs::AbstractCRS)
-
-Return `true` if the provided CRS `crs` (or CRS type `CRS`) is an Ellipsoide-Centered-Ellipsoid-Fixed (ECEF) one.
-""" 
-isecefcrs(::Type{<:AbstractCRS}) = false
-isecefcrs(::Type{<:ECEF}) = true
-isecefcrs(crs::AbstractCRS) = isecefcrs(typeof(crs))
-
-"""
     istopocentriccrs(CRS::Type{<:AbstractCRS})
     istopocentriccrs(crs::AbstractCRS)
 
 Return `true` if the provided CRS `crs` (or CRS type `CRS`) is a topocentric CRS.
 """
-istopocentriccrs(::Type{<:AbstractCRS}) = false
-istopocentriccrs(::Type{<:AbstractTopocentricCRS}) = true
-istopocentriccrs(crs::AbstractCRS) = istopocentriccrs(typeof(crs))
-
-"""
-    isllacrs(CRS::Type{<:AbstractCRS})
-    isllacrs(crs::AbstractCRS)
-
-Return `true` if the provided CRS `crs` (or CRS type `CRS`) is a Local Level Angle (LLA) CRS.
-"""
-isllacrs(::Type{<:AbstractCRS}) = false
-isllacrs(::Type{<:LLA}) = true
-isllacrs(crs::AbstractCRS) = isllacrs(typeof(crs))
+istopocentriccrs(obj) = hascrstrait(istopocentriccrs, obj)
+hascrstrait(::typeof(istopocentriccrs), ::Type{<:AbstractCRS}) = false
 
 ####### Transform traits #######
 

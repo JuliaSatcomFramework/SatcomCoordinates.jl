@@ -41,6 +41,9 @@ struct ECEF{ID} <: AbstractCRS
     ECEF(id) = new{typeof(id)}(id)
 end
 ECEF() = ECEF(EarthDefault())
+ECEF(p::Point{3, Number}) = ECEF(p...) # This is needed to disambiguate between default constructor in `coordinates.jl` and the inner one
+
+isecefcrs(::Type{<:ECEF}) = true
 
 frameid(crs::ECEF) = return crs.id
 

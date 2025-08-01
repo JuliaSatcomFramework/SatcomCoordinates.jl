@@ -29,5 +29,8 @@ struct ECI{ID} <: AbstractCRS
     ECI(id) = new{typeof(id)}(id)
 end
 ECI() = ECI(EarthDefault())
+ECI(p::Point{3, Number}) = ECI(p...) # This is needed to disambiguate between default constructor in `coordinates.jl` and the inner one which takes an arbitrary ID
+
+isecicrs(::Type{<:ECI}) = true
 
 frameid(crs::ECI) = return crs.id
