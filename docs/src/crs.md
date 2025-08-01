@@ -29,4 +29,13 @@ All of the above traits default to `false` for all CRSs except the corresponding
 New custom CRSs can simply define their specific trait if needed (e.g. defining a custom ECEF CRS without relying on the concrete `ECEF` type defined in this package).
 
 ## Expected methods/behavior of CRSs
-All CRS types are expected to have an inner which does not take 
+Most of the CRS are expected to have a method that takes no argument and no explicit parametric type to return the default instance of the specific CRS type.
+
+As an example, the `ECEF` CRS is defined like this, where by default assumes that it's frame ID is the default Earth frame:
+```julia
+struct ECEF{ID} <: AbstractCRS
+    id::ID
+    ECEF(id) = new{typeof(id)}(id)
+end
+ECEF() = ECEF(EarthDefault())
+```

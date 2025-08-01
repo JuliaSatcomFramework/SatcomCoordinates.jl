@@ -16,13 +16,12 @@ using SatelliteToolboxBase: SatelliteToolboxBase, Ellipsoid
 
 # From deps
 export °, km, @u_str # From Unitful
-export to_degrees, to_meters # From BasicTypes
 export Identity # From TransformsBase
 
 include("define_properties.jl")
 public @define_properties
 
-include("types/abstract_types.jl")
+include("abstract_types.jl")
 export AbstractCRS, AbstractPointingCRS, AbstractSphericalCRS, AbstractSatcomCoordinate, AbstractCRSTransform, AbstractLinkedCRS
 
 include("coordinates.jl")
