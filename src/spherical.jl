@@ -51,7 +51,8 @@ pointingcrs(s::SphericalCRS) = s.pointing
 function process_unitless_coords(C::Type{<:Coordinate}, crs::SphericalCRS, coords::NTuple{3, <:AbstractFloat})
     pt..., r = coords
     pt = process_unitless_coords(C, pointingcrs(crs), pt)
-    return (pt..., r)
+    T = valuetype(r)
+    return map(T, (pt..., r))
 end
 
 #### Random.rand #####

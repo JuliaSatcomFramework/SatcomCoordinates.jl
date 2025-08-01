@@ -29,6 +29,8 @@ To allow proper conversion betwen ECEF and LLA, a valid method for:
 - `SatcomCoordinates.ellipsoidparams(id::ID)`
 must be defined. See the docstrings of [`ellipsoidparams`](@ref) for more details.
 
+Additionally, the conversion is implement inside an extension and relies on the package `SatelliteToolboxTransformations` to be loaded to perform the actual conversion.
+
 ## Conversion between ECEF and ECI
 
 For conversion between coordinates in ECEF and ECI CRSs, the Rotation matrix between the two frames at a specific instane must be provided.
@@ -41,7 +43,9 @@ struct ECEF{ID} <: AbstractCRS
     ECEF(id) = new{typeof(id)}(id)
 end
 ECEF() = ECEF(EarthDefault())
-ECEF(p::Point{3, Number}) = ECEF(p...) # This is needed to disambiguate between default constructor in `coordinates.jl` and the inner one
+# These are for resolving ambiguities between the default constructor in `coordinates.jl` and the inner one which takes an arbitrary ID
+ECEF(p::Point{N, Number}) where N = ECEF(p...)
+ECEF(::Number) = _dimension_mismatch_error(ECEF(), 1)
 
 isecefcrs(::Type{<:ECEF}) = true
 

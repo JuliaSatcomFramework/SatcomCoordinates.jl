@@ -4,6 +4,7 @@
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
+    using SatelliteToolboxTransformations
     using Test
     using TestAllocations
 end
@@ -51,7 +52,7 @@ end
     @testset "Allocations" begin
         @testset "Constructor" begin
             @test @nallocs(SphericalCRS(1,2,3)) == 0
-            @test @nallocs(SphericalCRS(SVector(1f0,2f0,3f0))) == 0
+            @test @nallocs(SphericalCRS(SA[1f0,2f0,3f0])) == 0
             @test @nallocs(SphericalCRS((1,2,3f0))) == 0
             @test @nallocs(SphericalCRS(1,2,3) |> change_valuetype(Float32)) == 0
         end

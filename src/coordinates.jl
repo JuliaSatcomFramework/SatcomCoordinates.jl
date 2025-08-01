@@ -21,7 +21,9 @@ struct Coordinate{CRS <: AbstractCRS, T, N} <: AbstractSatcomCoordinate{CRS, T, 
     crs::CRS
     tuplecoords::NTuple{N, T}
 
-    BasicTypes.constructor_without_checks(::Type{Coordinate}, crs::CRS, tuplecoords::NTuple{N, T}) where {CRS <: AbstractCRS, T, N} = new{CRS, T, N}(crs, tuplecoords)
+    function BasicTypes.constructor_without_checks(::Type{Coordinate}, crs::CRS, tuplecoords::NTuple{N, T}) where {CRS <: AbstractCRS, T <: AbstractFloat, N} 
+        return new{CRS, T, N}(crs, tuplecoords)
+    end
 end
 
 (C::Type{<:AbstractSatcomCoordinate})(args::Vararg{Any, N}) where {N} = create_coordinate(C, args...)
@@ -96,17 +98,21 @@ end
 
 # This is to automatically construct a coordinate instance when trying to feed coords to a CRS constructor
 
+_dimension_mismatch_error(crs::AbstractCRS, N) = throw(ArgumentError("The number of coordinates provided ($(N)) does not match the number of coordinates expected by CRS of type $(typeof(crs)) ($(ncoords(crs)))"))
+
+_no_fastcoord_error(CRS::Type{<:AbstractCRS}) = throw(ArgumentError("The CRS type $CRS does not have a custom implementation of a no-argument constructor.\n It can not be used for generating a coordinate by simply using the typename ($(CRS)) as on values."))
+
 for T in (Vararg{Number}, Point{N, Number} where N)
     @eval function (CRS::Type{<:AbstractCRS})(coords::$T{N}) where {N}
         if N === 0
-            throw(ArgumentError("The CRS type $CRS does not have a custom implementation of a no-argument constructor."))
+            _no_fastcoord_error(CRS)
         end
         return CRS()(coords...)
     end
 
     # These are the methods that take an instance of a CRS and construct a coordinate with it
     @eval function (crs::AbstractCRS)(coords::$T{N}) where {N}
-        N == ncoords(crs) || throw(DimensionMismatch("The number of coordinates provided ($(N)) does not match the number of coordinates expected by CRS of type $(typeof(crs)) ($(ncoords(crs)))"))
+        N == ncoords(crs) || _dimension_mismatch_error(crs, N)
         return Coordinate(crs, coords)
     end
 end

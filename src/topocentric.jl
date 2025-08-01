@@ -252,6 +252,9 @@ function AER(args...)
     enu_crs = ENU(args...)
     return SphericalCRS(AzEl(enu_crs))
 end
+# These are for solving ambiguities
+AER(::Point{N, Number}) where N = _no_fastcoord_error(AER)
+AER(::Vararg{Number}) = _no_fastcoord_error(AER)
 
 PlutoShowHelpers.shortname(::AER) = "AER"
 PlutoShowHelpers.repl_summary(aer::AER) = "AER{" * PlutoShowHelpers.shortname(cartesiancrs(aer) |> linkedcrs) * "}"

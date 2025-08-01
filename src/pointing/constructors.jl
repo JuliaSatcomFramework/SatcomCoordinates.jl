@@ -27,7 +27,7 @@ end
 
 const UV_CONSTRUCTOR_TOLERANCE = Ref{Float64}(1e-5)
 
-function process_unitless_coords(::Type{<:Coordinate}, crs::UV, coords::NTuple{2,T}) where {T}
+function process_unitless_coords(::Type{<:Coordinate}, crs::UV, coords::NTuple{2,<:AbstractFloat})
     u, v = coords
     n = u^2 + v^2
     tol = UV_CONSTRUCTOR_TOLERANCE[]

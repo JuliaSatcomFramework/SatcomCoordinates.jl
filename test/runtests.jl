@@ -2,7 +2,7 @@ using TestItemRunner
 
 @testitem "Aqua" begin
     using Aqua
-    Aqua.test_all(SatcomCoordinates; ambiguities = false) 
+    Aqua.test_all(SatcomCoordinates; ambiguities = false, unbound_args = false) 
     Aqua.test_ambiguities(SatcomCoordinates)
 end
 

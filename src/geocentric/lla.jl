@@ -13,6 +13,19 @@ It is derived from an ECEF CRS and wraps it.
     LLA(wrapped_crs::AbstractCRS)
 
 The constructor expects a CRS as input, which must be an ECEF CRS.
+
+See also: [`ECEF`](@ref), [`frameid`](@ref), [`ellipsoidparams`](@ref), [`EarthDefault`](@ref)
+
+# Extended Help
+
+## Conversion between ECEF and LLA
+
+To allow proper conversion betwen ECEF and LLA, a valid method for:
+- `SatcomCoordinates.ellipsoidparams(id::ID)`
+must be defined. See the docstrings of [`ellipsoidparams`](@ref) for more details.
+
+Additionally, the conversion is implement inside an extension and relies on the package `SatelliteToolboxTransformations` to be loaded to perform the actual conversion.
+
 """
 struct LLA{CRS<:AbstractCRS} <: AbstractLinkedCRS{CRS}
     wrapped_crs::CRS

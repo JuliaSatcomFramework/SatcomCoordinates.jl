@@ -29,7 +29,9 @@ struct ECI{ID} <: AbstractCRS
     ECI(id) = new{typeof(id)}(id)
 end
 ECI() = ECI(EarthDefault())
-ECI(p::Point{3, Number}) = ECI(p...) # This is needed to disambiguate between default constructor in `coordinates.jl` and the inner one which takes an arbitrary ID
+# These are for resolving ambiguities between the default constructor in `coordinates.jl` and the inner one which takes an arbitrary ID
+ECI(p::Point{N, Number}) where N = ECI(p...)
+ECI(::Number) = _dimension_mismatch_error(ECI(), 1)
 
 isecicrs(::Type{<:ECI}) = true
 
