@@ -1,19 +1,17 @@
-function Base.:(-)(c::Coordinate{<:DirectionCosines})
-    newtup = map(-, tuplecoords(c))
-    return constructor_without_checks(basetype(c), crs(c), newtup)
+function raw_negation(::DirectionCosines, tup::NTuple)
+    return map(-, tup)
 end
-function Base.:(-)(p::Coordinate{<:Union{ElOverAz, AzEl, AzOverEl}})
-    (;az, el) = Raw(p)
-    if crs(p) isa Union{AzEl, ElOverAz}
+function raw_negation(crs::Union{AzEl, ElOverAz, AzOverEl}, tup::NTuple)
+    az, el = tup
+    if crs isa Union{AzEl, ElOverAz}
         el = -el
     end
     az = az - copysign(π, az)
-    constructor_without_checks(basetype(p), crs(p), (az, el))
+    return (az, el)
 end
-function Base.:(-)(p::Coordinate{<:ThetaPhi})
-    (;θ, φ) = Raw(p)
-    v = (π - θ, φ - copysign(π, φ))
-    constructor_without_checks(basetype(p), crs(p), v)
+function raw_negation(::ThetaPhi, tup::NTuple)
+    θ, φ = tup
+    return (π - θ, φ - copysign(π, φ))
 end
 
 

@@ -14,12 +14,14 @@ end
 Base.isnan(coord::AbstractSatcomCoordinate) = any(isnan, tuplecoords(coord))
 # Negation of a Coordinate
 function Base.:(-)(c::AbstractSatcomCoordinate)
-    base_crs = basecrs(c)
-    if iscartesiancrs(base_crs)
-        newtup = map(-, tuplecoords(c))
-        return constructor_without_checks(basetype(typeof(c)), crs(coord), newtup)
+    newtup = raw_negation(crs(c), tuplecoords(c))
+    return constructor_without_checks(basetype(typeof(c)), crs(c), newtup)
+end
+function raw_negation(crs::AbstractCRS, tup::NTuple)
+    if iscartesiancrs(crs)
+        return map(-, tup)
     else
-        throw(ArgumentError("The default implementation of `Base.(-)` for `AbstractSatcomCoordinate` is not available for the CRS which are not cartesian.\nThe CRS of the provided coordinate ($(typeof(crs(c)))) is not cartesian."))
+        throw(ArgumentError("The default implementation of `Base.(-)` for `AbstractSatcomCoordinate` is not available for the CRS which are not cartesian.\nThe CRS of the provided coordinate ($(typeof(crs))) is not cartesian."))
     end
 end
 

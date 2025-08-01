@@ -102,6 +102,13 @@ function transform_tuplecoords(crsₒ::SphericalCRS{CRS}, crsᵢ::SphericalCRS{C
     return (pt..., r)
 end
 
+#### Negation ####
+function raw_negation(crs::SphericalCRS, tup::NTuple)
+    pt..., r = tup
+    pt = raw_negation(pointingcrs(crs), pt)
+    return (pt..., r)
+end
+
 ##### Base.show #####
 function PlutoShowHelpers.repl_summary(c::SphericalCRS)
     string(
