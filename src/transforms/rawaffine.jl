@@ -26,6 +26,8 @@ struct RawAffineTransform{R, T} <: AbstractRawCRSTransform
     end
 end
 
+Random.rand(rng::AbstractRNG, ::Random.SamplerType{RawAffineTransform}) = RawAffineTransform(rand(rng, RotMatrix3), rand(rng, SVector{3}))
+
 raw_rotation(t::RawAffineTransform) = t.rotation
 raw_translation(t::RawAffineTransform) = t.translation
 
