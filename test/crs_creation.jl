@@ -67,7 +67,13 @@ end
     # We customize the printing of the CRS name
     PlutoShowHelpers.shortname(crs::NamedCRS) = return crs.name
 
+    # We test that trying to directly create a coordinate with just number fails as the no-argument constructor for this CRS is not defined (and does not make sense)
+    @test_throws "no-argument" NamedCRS()
+
     custom_crs = NamedCRS(SphericalCRS(), "MySpherical")
+
+    # We test that providing the wrong number of coordinates gives an error
+    @test_throws "does not match" custom_crs(1,2)
 
     @test linkedcrstype(custom_crs) <: SphericalCRS
 

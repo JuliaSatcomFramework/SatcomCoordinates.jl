@@ -9,13 +9,39 @@ The type parameter `CRS` is the CRS type, `T` is the type of the coordinates, an
 
 The type parameter `CRS` is a subtype of `AbstractCRS`, and the type parameter `T` is a subtype of `AbstractFloat`.
 
-The constructor internally calls the `create_coordinate` function, which is the main entry point for creating a coordinate instance.
+# Constructors
+    Coordinate(crs::AbstractCRS, coords...)
+    (crs::AbstractCRS)(coords...)
 
-This in turn relies on the `preprocess_input_coords` and `process_unitless_coords` functions, which are the main entry points for processing the input coordinates and unitless coordinates respectively.
-Custom CRSs can add more specific methods to either of these functions, but it is usually only necessary (and not even always) to add a custom method to `process_unitless_coords` to achieve the desired behavior.
+Coordinates can be constructed directly with the `Coordinate` constructor by providing a CRS instance as first argument and the specific numerical coordinates (either as tuple/svector or as separate values) as remaining argument[s]
 
-The coordinates over the specific CRS are stored internally as a plain `NTuple{N, T}` (where `T <: AbstractFloat` is currently enforced during construction) which holds the raw coordinates (i.e. without unit and transformed to the preferred, usually SI, unit. This means that for example if a specific CRS has the unit of `u"km"`, the raw values stored internally are the numerical value in meters)
+Alternatively (and usually easier) an instance of a specific CRS can be directly used with the numerical coordinates to construct a `Coordinate` instance
 
+# Examples
+```jldoctest
+julia> using SatcomCoordinates
+
+julia> cartcrs = Cartesian();
+
+julia> cartcrs(1, 2, 3)
+Coordinate{Cartesian}:
+  x = 1.0 m
+  y = 2.0 m
+  z = 3.0 m
+
+julia> cartcrs((1,2,3)) == Coordinate(cartcrs, 1, 2, 3)
+true
+```
+
+# Extended Help
+
+The coordinates over the specific CRS are stored internally as a plain `NTuple{N, T}` (where `T <: AbstractFloat` is currently enforced during construction) which holds the raw coordinates (i.e. without unit and transformed to corresponding SI unit (for angles we transform to radians). This means that for example if a specific CRS has the unit of `u"km"`, the raw values stored internally are the numerical value in meters)
+
+The constructor basically goes over the following 3 steps:
+- Eventually strip units and normalize to unitless SI floating point values using the `preprocess_input_coords` function.
+  - This function should not need to be customized for custom CRSs and only operates on the specific units associated to each properties specified with the `@define_properties` macro.
+- Perform additional checks and manipulation on the raw coordinates based on the specific CRS instance provided to the constructor, using the `process_unitless_coords` function.
+  - Not all custom CRSs require special processing and the default method for the `process_unitless_coords` function simply returns the input tuple as is. An example of CRSs that need to do some further processing are the concrete subtypes of `AbstractPointingCRS` which wraps the angles to always have them within the range `[-π, π]`
 """
 struct Coordinate{CRS <: AbstractCRS, T, N} <: AbstractSatcomCoordinate{CRS, T, N}
     crs::CRS
@@ -26,32 +52,20 @@ struct Coordinate{CRS <: AbstractCRS, T, N} <: AbstractSatcomCoordinate{CRS, T, 
     end
 end
 
-(C::Type{<:AbstractSatcomCoordinate})(args::Vararg{Any, N}) where {N} = create_coordinate(C, args...)
-
-const Pointing{CRS <: AbstractPointingCRS, T, N} = Coordinate{CRS, T, N}
-
-create_coordinate(C::Type{<:AbstractSatcomCoordinate}, args::Point{M, Number}) where {M} = create_coordinate(C, args...)
-create_coordinate(C::Type{<:AbstractSatcomCoordinate}, crs::AbstractCRS, args::Point{M, Number}) where {M} = create_coordinate(C, crs, args...)
-function create_coordinate(C::Type{<:AbstractSatcomCoordinate}, coords::Vararg{Any, M}) where {M}
-    return create_coordinate(C, defaultcrs(C), coords...)
-end
-function create_coordinate(C::Type{<:AbstractSatcomCoordinate}, crs::AbstractCRS, coords::Vararg{Number, M}) where {M}
-    N = ncoords(crs)
-    N == M || throw(DimensionMismatch("The number of coordinates provided ($(M)) does not match the number of coordinates expected by the provided CRS ($(N))"))
+# This just forwards to the next
+Coordinate(crs::AbstractCRS, coords::Point{<:Any, Number}) = Coordinate(crs, coords...)
+# This is the main constructor
+function Coordinate(crs::AbstractCRS, coords::Vararg{Number, N}) where {N}
+    N == ncoords(crs) || _dimension_mismatch_error(crs, N)
     # We check that if a crs was provided in the coordinate type signature, that it matches the provided crs instance
     CRS = typeof(crs)
-    if crstype(C) !== Union{}
-        crstype(C) == CRS || throw(ArgumentError("The provided crs does not match the crs type signature of the coordinate type $C"))
-    end
-    CT = valuetype(C)
-    T = bypass_bottom(CT, common_valuetype(AbstractFloat, Float64, coords...))
+    T = common_valuetype(AbstractFloat, Float64, coords...)
     tup = preprocess_input_coords(CRS, T, coords)
-    raw = process_unitless_coords(C, crs, tup)
-    return constructor_without_checks(basetype(C), crs, raw)
+    raw = process_unitless_coords(Coordinate, crs, tup)
+    return constructor_without_checks(Coordinate, crs, raw)
 end
-function create_coordinate(::Type{C}, crs::AbstractCRS, ::Val{NaN}) where {C <: AbstractSatcomCoordinate}
-    return constructor_without_checks(C, crs, ntuple(i -> NaN, ncoords(crs)))
-end
+
+const Pointing{CRS <: AbstractPointingCRS, T, N} = Coordinate{CRS, T, N}
 
 """
     preprocess_input_coords(CRS::Type{<:AbstractCRS}, T::Type{<:AbstractFloat}, coords::Point{N, Any}) where N
@@ -61,7 +75,7 @@ This function take input coordinates and process them by eventually removing uni
 function preprocess_input_coords(CRS::Type{<:AbstractCRS}, T::Type{<:AbstractFloat}, coords::Point{N, Any}) where {N}
     userunits = units(CRS)
     refunits = referenceunits(CRS)
-    N == ncoords(CRS) || throw(DimensionMismatch("The number of coordinates provided ($(N)) does not match the number of coordinates expected by CRS of type $CRS ($(ncoords(CRS)))"))
+    N == ncoords(CRS) || _dimension_mismatch_error(crs, N)
     tup = ntuple(N) do i
         unit = userunits[i]
         refunit = refunits[i]
@@ -98,7 +112,7 @@ end
 
 # This is to automatically construct a coordinate instance when trying to feed coords to a CRS constructor
 
-_dimension_mismatch_error(crs::AbstractCRS, N) = throw(ArgumentError("The number of coordinates provided ($(N)) does not match the number of coordinates expected by CRS of type $(typeof(crs)) ($(ncoords(crs)))"))
+_dimension_mismatch_error(crs::AbstractCRS, N) = throw(DimensionMismatch("The number of coordinates provided ($(N)) does not match the number of coordinates expected by CRS of type $(typeof(crs)) ($(ncoords(crs)))"))
 
 _no_fastcoord_error(CRS::Type{<:AbstractCRS}) = throw(ArgumentError("The CRS type $CRS does not have a custom implementation of a no-argument constructor.\n It can not be used for generating a coordinate by simply using the typename ($(CRS)) as on values."))
 
