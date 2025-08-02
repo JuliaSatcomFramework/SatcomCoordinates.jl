@@ -33,17 +33,17 @@ A Cartesian CRS that is linked to another Cartesian CRS through a user-defined a
 - `base::CRS <: AbstractCRS`: The base CRS
 - `transform::T <: RawAffineTransform`: The affine transform that links the base CRS to the linked CRS
 
-The two CRSs used to define the AffineLinkedCRS instance must be Cartesian CRSs (i.e. they must have `iscartesiancrs(crs) == true`) and the **base** CRS must also be a Root CRS (i.e. `isrootcrs(base) == true`).
+The two CRSs used to define the AffineLinkedCRS instance must be Cartesian CRSs (i.e. they must have `iscartesiancrs(crs) == true`).
 
-For linking a non-root base CRS, simply use the `AffineCartesian` as the base for further nesting. As an example, if one desires to use an `LLA` CRS as the base for an `AffineCartesian` CRS, simply create an `AffineCartesian` CRS with the underlying `ECEF` CRS and use that for wrapping the `LLA` CRS.
+For linking a non-cartesian base CRS, simply use the `AffineCartesian` as the base for further nesting. As an example, if one desires to use an `LLA` CRS as the base for an `AffineCartesian` CRS, simply create an `AffineCartesian` CRS with the underlying `ECEF` CRS and use that for wrapping the `LLA` CRS.
 """
 struct AffineCartesian{CRSₗ <: AbstractCRS, CRS <: AbstractCRS, T <: RawAffineTransform} <: AbstractLinkedCRS{CRSₗ}
     linked::CRSₗ
     base::CRS
     transform::T
     function AffineCartesian(linked::CRSₗ, base::CRS, transform::T) where {CRSₗ <: AbstractCRS, CRS <: AbstractCRS, T <: RawAffineTransform}
-        if !iscartesiancrs(linked) || !iscartesiancrs(base) || !isrootcrs(base)
-            throw(ArgumentError("The two CRSs used to define the AffineCartesian instance must be Cartesian CRSs (i.e. they must have `iscartesiancrs(crs) == true`).\nAdditionally, the base CRS must be a Root CRS (i.e. `isrootcrs(base) == true`)."))
+        if !iscartesiancrs(linked) || !iscartesiancrs(base)
+            throw(ArgumentError("The two CRSs used to define the AffineCartesian instance must be Cartesian CRSs (i.e. they must have `iscartesiancrs(crs) == true`)."))
         end
         ncoords(linked) == ncoords(base) == ncoords(transform) || throw(ArgumentError("The number of dimensions of the linked CRS, base CRS and provided transform must be the same."))
         return new{CRSₗ, CRS, T}(linked, base, transform)
@@ -51,7 +51,7 @@ struct AffineCartesian{CRSₗ <: AbstractCRS, CRS <: AbstractCRS, T <: RawAffine
 end
 
 # With this function we forward all trait checks to the base CRS
-traitcrs(::Type{<:AffineCartesian{<:Any, CRS}}) where {CRS} = CRS
+traitcrs(::Type{<:AffineCartesian{<:Any, CRS}}) where {CRS} = return CRS
 
 function is_same_crs(crs1::CRS, crs2::CRS) where {CRS <: AffineCartesian}
     is_same_crs(crs1.linked, crs2.linked) || return false
