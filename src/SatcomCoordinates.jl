@@ -21,7 +21,7 @@ include("abstract_types.jl")
 export AbstractCRS, AbstractPointingCRS, AbstractSatcomCoordinate, AbstractCRSTransform, AbstractLinkedCRS
 
 include("traits.jl")
-export iscartesiancrs, cartesiancrs, istopocentriccrs, rootcrs, linkedcrs, basecrs
+export iscartesiancrs, cartesiancrs, istopocentriccrs
 
 include("coordinates.jl")
 export Pointing, Coordinate, change_crs
@@ -81,7 +81,7 @@ include("topocentric.jl")
 export NED, ENU, AER, istopocentriccrs, ecef_origin, lla_origin
 
 include("helpers.jl")
-export linkedcrs_transform, change_crs, crs, rootcrs_transform
+export linkedcrs_transform, change_crs, crs, rootcrs_transform, rootcrstype, linkedcrstype, basecrs, cartesiancrs, linkedcrs, rootcrs
 
 include("deps_interface.jl")
 

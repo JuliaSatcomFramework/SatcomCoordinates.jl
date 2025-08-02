@@ -7,7 +7,7 @@ Allow to customize the preferred unit on different types of CRSs. Defaults to `U
     This is not the same function as `Unitful.upreferred` but just shares the same name as they basically have the same end goal. It is nonetheless redefined internally to `SatComCoordinates` to avoid polluting the methods of `Unitful.upreferred`.
 """
 upreferred(unit::Unitful.Units) = Unitful.upreferred(unit)
-upreferred(::Union{typeof(u"°"), typeof(u"rad")}) = u"rad"
+upreferred(::Union{typeof(u"°"), typeof(u"rad")}) = return u"rad"
 
 """
     add_unit(userunit::Unitful.Units, refunit::Unitful.Units, val::Real)
@@ -51,8 +51,8 @@ ncoords(::Type{Identity}) = AnyN()
 
 # Inner ncoords helpers
 ncoords(::Type{<:Rotation{N}}) where {N} = N
-ncoords(::Type{<:SVector{N}}) where {N} = N
-ncoords(v::Union{SVector, NTuple}) = length(v)
+ncoords(::Type{<:Point{N}}) where {N} = return N
+ncoords(v::Point) = return ncoords(typeof(v))
 
 @inline crstype(::Type{<:AbstractSatcomCoordinate{CRS}}) where CRS <: AbstractCRS = CRS
 @inline crstype(::Type{CRS}) where CRS <: AbstractCRS = CRS
@@ -249,3 +249,80 @@ Custom CRSs which may be different despite having the same type (e.g. the Topoce
 is_same_crs(crs1::AbstractCRS, crs2::AbstractCRS) = false
 is_same_crs(crs1::CRS, crs2::CRS) where CRS <: AbstractCRS = true
 is_same_crs(crs1::CRS, crs2::CRS) where{DCRS <: AbstractCRS, CRS <: AbstractLinkedCRS{DCRS}} = is_same_crs(linkedcrs(crs1), linkedcrs(crs2))
+
+"""
+    rootcrs(crs::AbstractCRS)
+
+Return the root CRS of the provided CRS `crs`. This basically traverses recursively all the CRSs `crs` is derived from until it finds the root one.
+
+See also: [`isrootcrs`](@ref), [`linkedcrs`](@ref)
+"""
+function rootcrs(crs::AbstractCRS)
+    isrootcrs(crs) && return crs
+    linked = linkedcrs(crs)
+    return rootcrs(linked)
+end
+rootcrs(coord::FieldOrCoordinate) = rootcrs(crs(coord))
+
+"""
+    rootcrstype(CRS::Type{<:AbstractCRS})
+
+Return the root CRS type of the provided CRS type `CRS`.
+"""
+function rootcrstype(CRS::Type{<:AbstractCRS})
+    isrootcrs(CRS) && return CRS
+    throw(ArgumentError("Could not extract the root CRS type directly from the provided CRS type $(CRS)."))
+end
+rootcrstype(::Type{<:AbstractLinkedCRS{CRS}}) where CRS <: AbstractCRS = rootcrstype(CRS)
+rootcrstype(crs::AbstractCRS) = return rootcrstype(typeof(crs))
+
+"""
+    linkedcrs(crs::AbstractCRS)
+
+Return the CRS instance that is **linked** to the provided `crs` if it exists, otherwise return the `crs` itself.
+
+By default, this function returns the first field within the provided `crs` which is a subtype of `AbstractCRS`.
+"""
+function linkedcrs(crs::AbstractCRS)
+    if islinkedcrs(crs)
+        return getproperty_oftype(crs, AbstractCRS)
+    else
+        return crs
+    end
+end
+linkedcrs(coord::FieldOrCoordinate) = linkedcrs(crs(coord))
+
+"""
+    linkedcrstype(CRS::Type{<:AbstractCRS})
+
+Return the linked CRS type of the provided CRS type `CRS`.
+"""
+linkedcrstype(::Type{<:AbstractLinkedCRS{CRS}}) where CRS <: AbstractCRS = return CRS
+linkedcrstype(crs::AbstractCRS) = return linkedcrstype(typeof(crs))
+
+"""
+    cartesiancrs(crs::AbstractCRS)
+
+Recursively traverse the CRSs wrapped by the provided `crs` until the first cartesian one (i.e. the first for which [`iscartesiancrs`](@ref) returns `true`) is found, and then return it.
+"""
+function cartesiancrs(crs::AbstractCRS)
+    iscartesiancrs(crs) && return crs
+    linked = linkedcrs(crs)
+    return cartesiancrs(linked)
+end
+cartesiancrs(coord::FieldOrCoordinate) = crs(coord) |> cartesiancrs
+
+"""
+    basecrs(crs::AbstractCRS)
+    basecrs(coord::FieldOrCoordinate)
+
+Return the base CRS of the provided `crs`.
+
+For most of the CRSs, this will simply return the crs itself. However, this is useful in the case of the [`AffineLinkedCRS`](@ref) which holds a base CRS and another CRS that is linked to the base one via an affine transformation.
+
+All function checking a certain trait over an arbitrary CRS instance should use this function to first eventually unwrap the base CRS from its container.
+
+As an example, if one wants to check whether a certain CRS instance is cartesian, one should write `iscartesiancrs(basecrs(crs))` instead of `iscartesiancrs(crs)`.
+"""
+basecrs(crs::AbstractCRS) = return crs
+basecrs(coord::FieldOrCoordinate) = return crs(coord) |> basecrs

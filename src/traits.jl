@@ -23,7 +23,6 @@ The three basic CRS traits below are not defined using this function as they rel
 """
 hascrstrait(traitfunc, CRS::Type{<:AbstractCRS}) = return traitfunc(traitcrs(CRS, traitfunc))
 hascrstrait(traitfunc, crs::AbstractCRS) = return hascrstrait(traitfunc, typeof(crs))
-hascrstrait(traitfunc, obj::FieldOrCoordinate) = return hascrstrait(traitfunc, crs(obj))
 
 # This simply unwraps the CRS that must be used to check for the trait from the input CRS. It is only relevant for complex CRSs that need to forward the trait check to another CRS within their type. The first signature with both CRS and function is what is called by the default method of hascrstrait, and can be used to further customize the CRS to check the trait on depending on the specific trait function.
 traitcrs(CRS::Type{<:AbstractCRS}, ::Function) = return traitcrs(CRS)
@@ -47,20 +46,6 @@ end
 isrootcrs(crs::AbstractCRS) = isrootcrs(typeof(crs))
 
 """
-    rootcrs(crs::AbstractCRS)
-
-Return the root CRS of the provided CRS `crs`. This basically traverses recursively all the CRSs `crs` is derived from until it finds the root one.
-
-See also: [`isrootcrs`](@ref), [`linkedcrs`](@ref)
-"""
-function rootcrs(crs::AbstractCRS)
-    isrootcrs(crs) && return crs
-    linked = linkedcrs(crs)
-    return rootcrs(linked)
-end
-rootcrs(coord::FieldOrCoordinate) = rootcrs(crs(coord))
-
-"""
     islinkedcrs(C::Type{<:AbstractCRS})
     islinkedcrs(crs::AbstractCRS)
 
@@ -80,21 +65,6 @@ islinkedcrs(::Type{C}) where {C<:AbstractCRS} = nlinked_crs(C) > 0
 islinkedcrs(crs::AbstractCRS) = islinkedcrs(typeof(crs))
 
 
-"""
-    linkedcrs(crs::AbstractCRS)
-
-Return the CRS instance that is **linked** to the provided `crs` if it exists, otherwise return the `crs` itself.
-
-By default, this function returns the first field within the provided `crs` which is a subtype of `AbstractCRS`.
-"""
-function linkedcrs(crs::AbstractCRS)
-    if islinkedcrs(crs)
-        return getproperty_oftype(crs, AbstractCRS)
-    else
-        return crs
-    end
-end
-linkedcrs(coord::FieldOrCoordinate) = linkedcrs(crs(coord))
 
 """
     iscartesiancrs(C::Type{<:AbstractCRS})
@@ -108,30 +78,3 @@ See also: [`cartesiancrs`](@ref), [`isrootcrs`](@ref), [`islinkedcrs`](@ref)
 """
 iscartesiancrs(C::Type{<:AbstractCRS}) = ncoords(C) == 3 && all(u -> u isa Unitful.LengthUnits, units(C))
 iscartesiancrs(crs::AbstractCRS) = iscartesiancrs(typeof(crs))
-
-"""
-    cartesiancrs(crs::AbstractCRS)
-
-Recursively traverse the CRSs wrapped by the provided `crs` until the first cartesian one (i.e. the first for which [`iscartesiancrs`](@ref) returns `true`) is found, and then return it.
-"""
-function cartesiancrs(crs::AbstractCRS)
-    iscartesiancrs(crs) && return crs
-    linked = linkedcrs(crs)
-    return cartesiancrs(linked)
-end
-cartesiancrs(coord::FieldOrCoordinate) = crs(coord) |> cartesiancrs
-
-"""
-    basecrs(crs::AbstractCRS)
-    basecrs(coord::FieldOrCoordinate)
-
-Return the base CRS of the provided `crs`.
-
-For most of the CRSs, this will simply return the crs itself. However, this is useful in the case of the [`AffineLinkedCRS`](@ref) which holds a base CRS and another CRS that is linked to the base one via an affine transformation.
-
-All function checking a certain trait over an arbitrary CRS instance should use this function to first eventually unwrap the base CRS from its container.
-
-As an example, if one wants to check whether a certain CRS instance is cartesian, one should write `iscartesiancrs(basecrs(crs))` instead of `iscartesiancrs(crs)`.
-"""
-basecrs(crs::AbstractCRS) = return crs
-basecrs(coord::FieldOrCoordinate) = return crs(coord) |> basecrs

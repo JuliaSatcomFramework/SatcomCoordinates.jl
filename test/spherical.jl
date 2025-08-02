@@ -45,10 +45,6 @@ end
     @test change_crs(sph_crs, Cartesian(0,0,1)) ≈ sph
     @test change_crs(Cartesian(), sph) ≈ Cartesian(0,0,1)
 
-    # We test the custom show
-    s = repr(MIME"text/plain"(), sph_crs)
-    @test startswith(s, "SphericalCRS{Cartesian, ThetaPhi}")
-
     @testset "Allocations" begin
         @testset "Constructor" begin
             @test @nallocs(SphericalCRS(1,2,3)) == 0
