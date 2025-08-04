@@ -4,6 +4,7 @@
     using SatcomCoordinates.BasicTypes
     using SatelliteToolboxTransformations
     using TestAllocations
+    using Test
 end
 
 @testitem "ENU/NED" setup=[setup_topocentric] begin
@@ -77,7 +78,7 @@ end
     @test aer.r == aer.distance == aer.range == 1000u"m"
 
     ae = rand(aer_crs)
-    enu_crs = cartesiancrs(ae)
+    enu_crs = getcrs(cartesiancrs, ae)
     @test change_crs(enu_crs, -ae) ≈ -change_crs(enu_crs, ae)
 
     @testset "Allocations" begin

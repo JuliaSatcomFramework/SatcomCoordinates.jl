@@ -61,7 +61,7 @@ TransformsBase.inverse(t::LLAtoECEF) = ECEFtoLLA(t.id)
 
 ### Transformation
 function raw_linkedcrs_transform(crs::LLA)
-    ecefcrs = linkedcrs(crs)
-    raw = LLAtoECEF(frameid(ecefcrs))
+    ecef_crs = getcrs(linkedcrs, crs)
+    raw = LLAtoECEF(frameid(ecef_crs))
     return raw
 end

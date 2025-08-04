@@ -53,6 +53,7 @@ end
 getcrstype(getterfunc::F, obj) where {F <: Function} = return getcrstype(getterfunc, typeof(obj))
 getcrstype(getterfunc::F, ::Type{<:FieldOrCoordinate{CRS}}) where {F <: Function, CRS <: AbstractCRS} = return getcrstype(getterfunc, CRS)
 
+# This is the basic internal function, which returns the 
 crs(coord::AbstractSatcomCoordinate) = return getfield(coord, :crs)
 crs(c::AbstractCRS) = return c
 # Version for types

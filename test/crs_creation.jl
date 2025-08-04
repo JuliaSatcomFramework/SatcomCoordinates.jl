@@ -23,7 +23,7 @@ end
     custom_crs = CartesianKm()
 
     # This is still considered cartesian as it has three length units as properties
-    @test iscartesiancrs(custom_crs)
+    @test hascrstrait(cartesiancrs, custom_crs)
 
     coord = custom_crs(1,2,3)
 
@@ -53,13 +53,13 @@ end
 
     # Here we are saying to simply extract the coordinates and aliases from the wrapped CRS
     SatcomCoordinates.@define_properties NamedCRS [
-        linkedcrstype(_)... # The ... is needed for proper identification by the macro. This simply mirrors the properties of the CRS that is the output of `linkedcrstype(_)` where `_` is substituted with the the specific subtype of `NamedCRS`
+        getcrstype(linkedcrs, _)... # The ... is needed for proper identification by the macro. This simply mirrors the properties of the CRS that is the output of `linkedcrstype(_)` where `_` is substituted with the the specific subtype of `NamedCRS`
     ]
 
-    # This throws because without specifying the type of the wrapped CRS, it's impossible extract the properties and units
-    @test_throws MethodError SatcomCoordinates.units(NamedCRS)
-
     @test SatcomCoordinates.units(NamedCRS{Cartesian}) == (; x = u"m", y = u"m", z = u"m")
+
+    # This is also the case because there is a default method for `SatcomCoordinates.units` that simply returns these cartesian units for all abstract CRS types. And the linkedcrs in NamedCRS is taken from the `crs` field which is upper bounded by `AbstractCRS`
+    @test SatcomCoordinates.units(NamedCRS) == (; x = u"m", y = u"m", z = u"m")
 
     # We now test that the units are correctly extracted from the wrapped CRS
     @test SatcomCoordinates.units(NamedCRS{ThetaPhi{Cartesian}}) == (; θ = u"°", φ = u"°")
@@ -75,8 +75,8 @@ end
     # We test that providing the wrong number of coordinates gives an error
     @test_throws "does not match" custom_crs(1,2)
 
-    @test linkedcrstype(custom_crs) <: SphericalCRS
-    @test linkedcrs(custom_crs) == SphericalCRS()
+    @test getcrstype(linkedcrs, custom_crs) <: SphericalCRS
+    @test getcrs(linkedcrs, custom_crs) == SphericalCRS()
 
     coord = custom_crs(1,2,3)
 
@@ -97,8 +97,8 @@ end
         # We start by first checking that if we don't do anything, the trait are checked directly on the NamedCRS (which is not really what we want)
 
         # This works because the cartesian trait only looks at the units of the properties
-        @test iscartesiancrs(NamedCRS(Cartesian(), "test"))
-        @test !iscartesiancrs(NamedCRS(AzOverEl(), "test"))
+        @test hascrstrait(cartesiancrs, NamedCRS(Cartesian(), "test"))
+        @test !hascrstrait(cartesiancrs, NamedCRS(AzOverEl(), "test"))
 
         # If we try to wrap an ECEF CRS, we see that the isecef trait does not work
     end

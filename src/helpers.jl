@@ -115,16 +115,14 @@ This function must return a ntuple with `M` coordinates (where `M == ncoords(CRS
 Custom CRSs should implement a specific method of this function to enable conversion with other CRSs via the `change_crs` user facing function.
 """
 function transform_tuplecoords(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, tup::Any; kwargs...)
-    getlinked = getcrs(linkedcrs)
-    getroot = getcrs(rootcrs)
     if is_same_crs(crsₒ, crsᵢ)
         return tup
-    elseif is_same_crs(crsₒ, getlinked(crsᵢ))
+    elseif is_same_crs(crsₒ, _extract_crs(linkedcrs, crsᵢ))
         return raw_linkedcrs_transform(crsᵢ)(tup)
-    elseif is_same_crs(getlinked(crsₒ), crsᵢ)
+    elseif is_same_crs(_extract_crs(linkedcrs, crsₒ), crsᵢ)
         t = TransformsBase.inverse(raw_linkedcrs_transform(crsₒ))
         return t(tup)
-    elseif is_same_crs(getroot(crsₒ), getroot(crsᵢ))
+    elseif is_same_crs(getcrs(rootcrs, crsₒ), getcrs(rootcrs, crsᵢ))
         t1 = raw_rootcrs_transform(crsᵢ) # This goes from input to root
         t2 = raw_rootcrs_transform(crsₒ) |> inverse # This goes from root to output
         return t2(t1(tup))
@@ -133,10 +131,9 @@ function transform_tuplecoords(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, tup::An
     end
 end
 function transform_tuplecoords(crsₒ::AbstractLinkedCRS{CRS}, crsᵢ::AbstractLinkedCRS{CRS}, tup::Any; kwargs...) where CRS <: AbstractCRS
-    getlinked = getcrs(linkedcrs)
     if is_same_crs(crsₒ, crsᵢ)
         return tup
-    elseif is_same_crs(getlinked(crsₒ), getlinked(crsᵢ))
+    elseif is_same_crs(getcrs(linkedcrs, crsₒ), getcrs(linkedcrs, crsᵢ))
         # We pass through the common linked crs
         intermediate = raw_linkedcrs_transform(crsᵢ)(tup)
         rt = TransformsBase.inverse(raw_linkedcrs_transform(crsₒ))
@@ -161,7 +158,7 @@ It is called automatically when doing `rand(crs)` where `crs` is an instance of 
 rand_tuplecoords(crs::AbstractCRS, T::Type{<:AbstractFloat} = Float64) = rand_tuplecoords(Random.default_rng(), crs, T)
 
 function rand_tuplecoords(rng::AbstractRNG, crs::AbstractCRS, T::Type{<:AbstractFloat})
-    iscartesiancrs(basecrs(crs)) || throw(ArgumentError("The default method for generating random coordinates works only for Cartesian CRSs.\nAdd a custom method to `SatcomCoordinates.rand_tuplecoords` to support random generation of coordinates in the CRS $(basetype(crs))."))
+    hascrstrait(cartesiancrs, crs) || throw(ArgumentError("The default method for generating random coordinates works only for Cartesian CRSs.\nAdd a custom method to `SatcomCoordinates.rand_tuplecoords` to support random generation of coordinates in the CRS $(basetype(crs))."))
     return ntuple(i -> rand(rng, T), ncoords(crs))
 end
 
@@ -227,7 +224,7 @@ function raw_linkedcrs_transform(crs::AbstractCRS)
 end
 
 function raw_rootcrs_transform(crs::AbstractCRS)
-    isrootcrs(crs) && return Identity()
+    hascrstrait(rootcrs, crs) && return Identity()
     linked = getcrs(linkedcrs, crs)
     raw = raw_linkedcrs_transform(crs)
     return _compose(raw, raw_rootcrs_transform(linked))

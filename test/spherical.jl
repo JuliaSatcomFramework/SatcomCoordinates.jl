@@ -10,13 +10,13 @@
 end
 
 @testitem "SphericalCRS" setup=[setup_spherical] begin
-    @test pointingcrs(SphericalCRS()) == ThetaPhi()
-    @test pointingcrs(SphericalCRS(AzEl())) == AzEl()
+    @test getcrs(pointingcrs, SphericalCRS()) == ThetaPhi()
+    @test getcrs(pointingcrs, SphericalCRS(AzEl())) == AzEl()
 
     # We test constructor of coordinate from CRS type
     sph = SphericalCRS(1,2,3)
     @test sph isa Coordinate{<:SphericalCRS}
-    @test pointingcrs(sph) == ThetaPhi()
+    @test getcrs(pointingcrs, sph) == ThetaPhi()
     # We test constructor with tuple directly
     @test sph == SphericalCRS((1,2,3))
 

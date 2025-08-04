@@ -33,6 +33,4 @@ ECI() = ECI(EarthDefault())
 ECI(p::Point{N, Number}) where N = ECI(p...)
 ECI(::Number) = _dimension_mismatch_error(ECI(), 1)
 
-isecicrs(::Type{<:ECI}) = true
-
 frameid(crs::ECI) = return crs.id

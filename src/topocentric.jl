@@ -7,9 +7,9 @@ for CRS in (:NED, :ENU)
         lla::Coordinate{LLA{CRS}, T, 3}
         rot::RotMatrix3{T}
         function $CRS(ecef_crs::CRS, ecef::Coordinate{CRS, T, 3}, lla::Coordinate{LLA_CRS, T, 3}, rot::RotMatrix3{T}) where {CRS <: AbstractCRS, LLA_CRS <: LLA{CRS}, T}
-            isecefcrs(ecef_crs) || throw(ArgumentError("The $CRS CRS must be associated with an ECEF CRS. The provided ECEF CRS is $(basetype(ecef_crs)) which is not an ECEF one."))
+            hascrstrait(ecefcrs, ecef_crs) || throw(ArgumentError("The $CRS CRS must be associated with an ECEF CRS. The provided ECEF CRS is $(basetype(ecef_crs)) which is not an ECEF one."))
             is_same_crs(ecef_crs, getcrs(ecef)) || throw(ArgumentError("The `ecef` coordinate provided as second input does not seem to have the same CRS as the explicitly provided ECEF CRS `ecef_crs`."))
-            isllacrs(getcrs(lla)) || throw(ArgumentError("The `lla` coordinate provided as third input does not seem to be based on an LLA CRS."))
+            hascrstrait(llacrs, getcrs(lla)) || throw(ArgumentError("The `lla` coordinate provided as third input does not seem to be based on an LLA CRS."))
             getcrs(linkedcrs, lla) == ecef_crs || throw(ArgumentError("The CRS of the `lla` coordinate provided as third input must be derived from the same ECEF CRS provided as first input."))
             return new{CRS, T}(ecef_crs, ecef, lla, rot)
         end
@@ -53,7 +53,7 @@ function ecef_origin(crs::AbstractCRS)
     if !isvalidcrs(topo_crs)
         throw(ArgumentError("A topocentric CRS could not found while traversing the linked CRS chain. So no ECEF origin could be extracted"))
     else
-        return ecef_origin(topo_crs)
+        return ecef_origin(topo_crs |> traitcrs) # We need to call `traitcrs` on the `topo_crs` as that may be a compound CRS that acts as ecefcrs by having a proxy for traits. This is the case for example for the AffineCartesian CRS.
     end
 end
 ecef_origin(obj::FieldOrCoordinate) = ecef_origin(crs(obj))
@@ -76,7 +76,7 @@ function lla_origin(crs::AbstractCRS)
     if !isvalidcrs(topo_crs)
         throw(ArgumentError("A topocentric CRS could not found while traversing the linked CRS chain. So no LLA origin could be extracted"))
     else
-        return lla_origin(linked)
+        return lla_origin(topo_crs |> traitcrs) # We need to call `traitcrs` on the `topo_crs` as that may be a compound CRS that acts as llacrs by having a proxy for traits. This is the case for example for the AffineCartesian CRS.
     end
 end
 lla_origin(obj::FieldOrCoordinate) = lla_origin(crs(obj))
@@ -102,20 +102,19 @@ function (::Type{TOPO})(ecef_crs::CRS, ecef::Coordinate{CRS, T, 3}, lla::Coordin
     return C(ecef_crs, ecef, lla, R)
 end
 function (::Type{TOPO})(origin::Coordinate) where {TOPO <: AbstractTopocentricCRS}
-    base = basecrs(origin)
     C = basetype(TOPO)
-    if isecefcrs(base)
-        ecefcrs = crs(origin)
+    if hascrstrait(ecefcrs, origin)
+        ecef_crs = getcrs(origin)
         ecef = origin
-        lla = change_crs(LLA(ecefcrs), ecef)
-        return C(ecefcrs, ecef, lla)
-    elseif isllacrs(base)
-        ecefcrs = linkedcrs(crs(origin))
+        lla = change_crs(LLA(ecef_crs), ecef)
+        return C(ecef_crs, ecef, lla)
+    elseif hascrstrait(llacrs, origin)
+        ecef_crs = getcrs(linkedcrs, origin)
         lla = origin
-        ecef = change_crs(ecefcrs, lla)
-        return C(ecefcrs, ecef, lla)
+        ecef = change_crs(ecef_crs, lla)
+        return C(ecef_crs, ecef, lla)
     else
-        throw(ArgumentError("The origin of the $C CRS must be associated with an ECEF or LLA CRS. The provided origin's CRS is $(basetype(crs(origin))) which is not an ECEF or LLA one."))
+        throw(ArgumentError("The origin of the $C CRS must be associated with an ECEF or LLA CRS. The provided origin's CRS is $(basetype(getcrs(origin))) which is not an ECEF or LLA one."))
     end
 end
 
@@ -147,14 +146,14 @@ _different_origin_error(crs1::AbstractTopocentricCRS, crs2::AbstractTopocentricC
 _different_linkedcrs_error(crs1::AbstractTopocentricCRS, crs2::AbstractTopocentricCRS) = throw(ArgumentError("The two provided Topocentric CRSs are based on different linked CRSs."))
 
 function transform_tuplecoords(crsₒ::NED{CRS}, crsᵢ::ENU{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
-    is_same_crs(linkedcrs(crsₒ), linkedcrs(crsᵢ)) || _different_linkedcrs_error(crsₒ, crsᵢ)
+    is_same_crs(getcrs(linkedcrs, crsₒ), getcrs(linkedcrs, crsᵢ)) || _different_linkedcrs_error(crsₒ, crsᵢ)
     have_same_origin(crsₒ, crsᵢ) || _different_origin_error(crsₒ, crsᵢ)
     # We extract the basis of the ENU frame from the rotation matrix
     e, n, u = tup
     return (n, e, -u)
 end
 function transform_tuplecoords(crsₒ::ENU{CRS}, crsᵢ::NED{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
-    is_same_crs(linkedcrs(crsₒ), linkedcrs(crsᵢ)) || _different_linkedcrs_error(crsₒ, crsᵢ)
+    is_same_crs(getcrs(linkedcrs, crsₒ), getcrs(linkedcrs, crsᵢ)) || _different_linkedcrs_error(crsₒ, crsᵢ)
     have_same_origin(crsₒ, crsᵢ) || _different_origin_error(crsₒ, crsᵢ)
     # We extract the basis of the NED frame from the rotation matrix
     n, e, d = tup
@@ -253,16 +252,16 @@ AER(::Point{N, Number}) where N = _no_fastcoord_error(AER)
 AER(::Vararg{Number}) = _no_fastcoord_error(AER)
 
 PlutoShowHelpers.shortname(::AER) = "AER"
-PlutoShowHelpers.repl_summary(aer::AER) = "AER{" * PlutoShowHelpers.shortname(cartesiancrs(aer) |> linkedcrs) * "}"
+PlutoShowHelpers.repl_summary(aer::AER) = "AER{" * PlutoShowHelpers.shortname(getcrs(ecefcrs, aer)) * "}"
 
 # Fast conversion between AER and NED
 function transform_tuplecoords(crsₒ::AER{CRS}, crsᵢ::NED{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
-    enu_crs = cartesiancrs(crsₒ)
+    enu_crs = getcrs(cartesiancrs, crsₒ)
     enutup = transform_tuplecoords(enu_crs, crsᵢ, tup)
     return transform_tuplecoords(crsₒ, enu_crs, enutup)
 end
 function transform_tuplecoords(crsₒ::NED{CRS}, crsᵢ::AER{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
-    enu_crs = cartesiancrs(crsᵢ)
+    enu_crs = getcrs(cartesiancrs, crsᵢ)
     enutup = transform_tuplecoords(enu_crs, crsᵢ, tup)
     return transform_tuplecoords(crsₒ, enu_crs, enutup)
 end

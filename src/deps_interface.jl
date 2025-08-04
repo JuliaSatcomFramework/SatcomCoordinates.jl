@@ -20,7 +20,7 @@ function Base.:(-)(c::AbstractSatcomCoordinate)
     return constructor_without_checks(basetype(typeof(c)), crs(c), newtup)
 end
 function raw_negation(crs::AbstractCRS, tup::NTuple)
-    if iscartesiancrs(crs)
+    if hascrstrait(cartesiancrs, crs)
         return map(-, tup)
     else
         throw(ArgumentError("The default implementation of `Base.(-)` for `AbstractSatcomCoordinate` is not available for the CRS which are not cartesian.\nThe CRS of the provided coordinate ($(typeof(crs))) is not cartesian."))

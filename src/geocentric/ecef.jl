@@ -47,8 +47,6 @@ ECEF() = ECEF(EarthDefault())
 ECEF(p::Point{N, Number}) where N = ECEF(p...)
 ECEF(::Number) = _dimension_mismatch_error(ECEF(), 1)
 
-isecefcrs(::Type{<:ECEF}) = true
-
 frameid(crs::ECEF) = return crs.id
 
 

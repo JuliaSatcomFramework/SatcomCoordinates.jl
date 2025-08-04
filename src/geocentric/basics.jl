@@ -6,20 +6,20 @@ Extracts the frame identifier associated to the CRS `crs`. This is currently onl
 See also: [`ellipsoidparams`](@ref), [`EarthDefault`](@ref)
 """
 function frameid(crs::AbstractCRS)
-    base = basecrs(crs)
-    linked = linkedcrs(crs)
-    if base === linked === crs
-        # We are dealing with a root CRS, and these must explicitly create a custom method for `frameid` if they have one
-        throw(ArgumentError("The provided CRS does not seem to contain a frame id. Currently only `ECEF` and `ECI` frames support that."))
-    elseif base !== crs
-        # We try to go over the base CRS
-        return frameid(base)
+    exception() = ArgumentError("The provided CRS (of type `$(typeof(crs))`) does not seem to contain a frame id (neither directly nor within its nested CRSs).\nCurrently only `ECEF` and `ECI` frames have a frame id.")
+    ecef_crs = _recurse_crs(ecefcrs, crs)
+    if isvalidcrs(ecef_crs)
+        return frameid(ecef_crs |> traitcrs)
     else
-        # We are dealing with a simple derived CRS, so we try to go over the linked CRS
-        return frameid(linked)
+        eci_crs = _recurse_crs(ecicrs, crs)
+        if isvalidcrs(eci_crs)
+            return frameid(eci_crs |> traitcrs)
+        else
+            throw(exception())
+        end
     end
 end
-frameid(coord::AbstractSatcomCoordinate) = frameid(crs(coord))
+frameid(coord::AbstractSatcomCoordinate) = frameid(getcrs(coord))
 
 function _ellipsoidparams(semimajor::Real, flattening::Real)
     @inline

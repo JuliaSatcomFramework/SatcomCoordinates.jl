@@ -40,6 +40,7 @@ function hascrstrait(traitfunc, ::Type{CRS}) where {CRS<:AbstractCRS}
 end
 hascrstrait(traitfunc, crs::AbstractCRS) = return hascrstrait(traitfunc, typeof(crs))
 hascrstrait(traitfunc::Function) = Base.Fix1(hascrstrait, traitfunc)
+hascrstrait(traitfunc::Function, obj::FieldOrCoordinate) = return hascrstrait(traitfunc, getcrs(obj))
 
 function traitcrs(obj::Union{AbstractCRS, Type{<:AbstractCRS}})
     CRS = getcrstype(obj)
@@ -87,3 +88,12 @@ function cartesiancrs(::Type{C}) where {C<:AbstractCRS}
         return NoCRSFallback
     end
 end
+
+"""
+    linkedcrs
+
+CRS Trait function identifying that a CRS is linked to another CRS.
+
+For this specific trait, the `getcrs` and `getcrstype` functions will return the instance or type of the linked CRS.
+"""
+function linkedcrs end
