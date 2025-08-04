@@ -1,16 +1,5 @@
 abstract type AbstractTopocentricCRS{CRS <: AbstractCRS, T} <: AbstractLinkedCRS{CRS} end
 
-
-"""
-    istopocentriccrs(CRS::Type{<:AbstractCRS})
-    istopocentriccrs(crs::AbstractCRS)
-
-Return `true` if the provided CRS `crs` (or CRS type `CRS`) is a topocentric CRS.
-"""
-istopocentriccrs(obj) = hascrstrait(istopocentriccrs, obj)
-hascrstrait(::typeof(istopocentriccrs), ::Type{<:AbstractCRS}) = false
-istopocentriccrs(::Type{<:AbstractTopocentricCRS}) = true
-
 for CRS in (:NED, :ENU)
     @eval struct $CRS{CRS <: AbstractCRS, T} <: AbstractTopocentricCRS{CRS, T}
         crs::CRS
@@ -19,9 +8,9 @@ for CRS in (:NED, :ENU)
         rot::RotMatrix3{T}
         function $CRS(ecef_crs::CRS, ecef::Coordinate{CRS, T, 3}, lla::Coordinate{LLA_CRS, T, 3}, rot::RotMatrix3{T}) where {CRS <: AbstractCRS, LLA_CRS <: LLA{CRS}, T}
             isecefcrs(ecef_crs) || throw(ArgumentError("The $CRS CRS must be associated with an ECEF CRS. The provided ECEF CRS is $(basetype(ecef_crs)) which is not an ECEF one."))
-            is_same_crs(ecef_crs, crs(ecef)) || throw(ArgumentError("The `ecef` coordinate provided as second input does not seem to have the same CRS as the explicitly provided ECEF CRS `ecef_crs`."))
-            isllacrs(crs(lla)) || throw(ArgumentError("The `lla` coordinate provided as third input does not seem to be based on an LLA CRS."))
-            linkedcrs(crs(lla)) == ecef_crs || throw(ArgumentError("The CRS of the `lla` coordinate provided as third input must be derived from the same ECEF CRS provided as first input."))
+            is_same_crs(ecef_crs, getcrs(ecef)) || throw(ArgumentError("The `ecef` coordinate provided as second input does not seem to have the same CRS as the explicitly provided ECEF CRS `ecef_crs`."))
+            isllacrs(getcrs(lla)) || throw(ArgumentError("The `lla` coordinate provided as third input does not seem to be based on an LLA CRS."))
+            getcrs(linkedcrs, lla) == ecef_crs || throw(ArgumentError("The CRS of the `lla` coordinate provided as third input must be derived from the same ECEF CRS provided as first input."))
             return new{CRS, T}(ecef_crs, ecef, lla, rot)
         end
     end
@@ -40,6 +29,13 @@ end
 ]
 
 """
+    topocrs
+
+CRS Trait function to represent CRSs which are topocentric.
+"""
+topocrs(CRS::Type{<:AbstractTopocentricCRS}) = CRS
+
+"""
     ecef_origin(crs::AbstractCRS)
     ecef_origin(obj::FieldOrCoordinate)
 
@@ -53,11 +49,11 @@ See also [`lla_origin`](@ref)
 """
 ecef_origin(crs::AbstractTopocentricCRS) = crs.ecef
 function ecef_origin(crs::AbstractCRS)
-    linked = linkedcrs(crs)
-    if linked === crs
+    topo_crs = _recurse_crs(topocrs, crs)
+    if !isvalidcrs(topo_crs)
         throw(ArgumentError("A topocentric CRS could not found while traversing the linked CRS chain. So no ECEF origin could be extracted"))
     else
-        return ecef_origin(linked)
+        return ecef_origin(topo_crs)
     end
 end
 ecef_origin(obj::FieldOrCoordinate) = ecef_origin(crs(obj))
@@ -76,8 +72,8 @@ See also [`ecef_origin`](@ref), [`AbstractTopocentricCRS`](@ref)
 """ 
 lla_origin(crs::AbstractTopocentricCRS) = crs.lla
 function lla_origin(crs::AbstractCRS)
-    linked = linkedcrs(crs)
-    if linked === crs
+    topo_crs = _recurse_crs(topocrs, crs)
+    if !isvalidcrs(topo_crs)
         throw(ArgumentError("A topocentric CRS could not found while traversing the linked CRS chain. So no LLA origin could be extracted"))
     else
         return lla_origin(linked)
@@ -99,7 +95,7 @@ is_same_crs(crs1::CRS, crs2::CRS) where CRS <: AbstractTopocentricCRS = crs1 == 
 
 # Constructors
 function (::Type{TOPO})(ecef_crs::CRS, ecef::Coordinate{CRS, T, 3}, lla::Coordinate{LLA_CRS, T, 3}) where {TOPO <: AbstractTopocentricCRS, CRS <: AbstractCRS, LLA_CRS <: AbstractCRS, T <: AbstractFloat}
-    isllacrs(crs(lla)) || throw(ArgumentError("The `lla` coordinate provided as third input does not seem to be based on an LLA CRS."))
+    hascrstrait(llacrs, lla) || throw(ArgumentError("The `lla` coordinate provided as third input does not seem to be based on an LLA CRS."))
     (; lat, lon) = Raw(lla)
     C = basetype(TOPO)
     R = _topocentric_rotation(C, lat, lon)

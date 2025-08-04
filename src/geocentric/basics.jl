@@ -8,7 +8,7 @@ See also: [`ellipsoidparams`](@ref), [`EarthDefault`](@ref)
 function frameid(crs::AbstractCRS)
     base = basecrs(crs)
     linked = linkedcrs(crs)
-    if base === linked === base
+    if base === linked === crs
         # We are dealing with a root CRS, and these must explicitly create a custom method for `frameid` if they have one
         throw(ArgumentError("The provided CRS does not seem to contain a frame id. Currently only `ECEF` and `ECI` frames support that."))
     elseif base !== crs

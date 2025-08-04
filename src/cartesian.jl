@@ -42,16 +42,19 @@ struct AffineCartesian{CRSₗ <: AbstractCRS, CRS <: AbstractCRS, T <: RawAffine
     base::CRS
     transform::T
     function AffineCartesian(linked::CRSₗ, base::CRS, transform::T) where {CRSₗ <: AbstractCRS, CRS <: AbstractCRS, T <: RawAffineTransform}
-        if !iscartesiancrs(linked) || !iscartesiancrs(base)
-            throw(ArgumentError("The two CRSs used to define the AffineCartesian instance must be Cartesian CRSs (i.e. they must have `iscartesiancrs(crs) == true`)."))
+        iscartesian = hascrstrait(cartesiancrs)
+        isroot = hascrstrait(rootcrs)
+        if !iscartesian(linked) || !iscartesian(base)
+            throw(ArgumentError("The two CRSs used to define the AffineCartesian instance must be Cartesian CRSs (i.e. they must have `hascrstrait(cartesiancrs, crs) == true`)."))
         end
+        isroot(base) || throw(ArgumentError("The base CRS of an AffineCartesian CRS must be a root CRS (i.e. it must have `hascrstrait(rootcrs, crs) == true`)."))
         ncoords(linked) == ncoords(base) == ncoords(transform) || throw(ArgumentError("The number of dimensions of the linked CRS, base CRS and provided transform must be the same."))
         return new{CRSₗ, CRS, T}(linked, base, transform)
     end
 end
 
 # With this function we forward all trait checks to the base CRS
-traitcrs(::Type{<:AffineCartesian{<:Any, CRS}}) where {CRS} = return CRS
+crsfield(::typeof(traitcrs), ::Type{<:AffineCartesian}) = :base
 
 function is_same_crs(crs1::CRS, crs2::CRS) where {CRS <: AffineCartesian}
     is_same_crs(crs1.linked, crs2.linked) || return false
@@ -59,13 +62,9 @@ function is_same_crs(crs1::CRS, crs2::CRS) where {CRS <: AffineCartesian}
     return crs1.transform == crs2.transform
 end
 
-basecrstype(::Type{<:AffineCartesian{<:Any, CRS}}) where {CRS} = CRS
-
 @define_properties AffineCartesian [
-    basecrstype(_)...
+    getcrstype(traitcrs, _)...
 ]
-
-basecrs(crs::AffineCartesian) = crs.base
 
 # Simply give the stored transform
 raw_linkedcrs_transform(crs::AffineCartesian) = crs.transform
@@ -75,9 +74,9 @@ function PlutoShowHelpers.repl_summary(c::AffineCartesian)
     string(
         PlutoShowHelpers.shortname(c), 
         "{",
-        PlutoShowHelpers.shortname(linkedcrs(c)),
+        PlutoShowHelpers.shortname(getcrs(linkedcrs, c)),
         ", ",
-        PlutoShowHelpers.shortname(basecrs(c)),
+        PlutoShowHelpers.shortname(getcrs(traitcrs, c)),
         "}"
     )
 end

@@ -31,7 +31,7 @@ struct LLA{CRS<:AbstractCRS} <: AbstractLinkedCRS{CRS}
     wrapped_crs::CRS
     function LLA(wrapped_crs::AbstractCRS)
         CRS = typeof(wrapped_crs)
-        isecefcrs(basecrs(wrapped_crs)) || throw(ArgumentError("The provided CRS ($CRS) is not an ECEF CRS, so it cannot be used to instantiate an LLA CRS"))
+        hascrstrait(ecefcrs, wrapped_crs) || throw(ArgumentError("The provided CRS (of type `$CRS`) does not satisfy the `ecefcrs` trait, so it cannot be used to instantiate an LLA CRS"))
         new{typeof(wrapped_crs)}(wrapped_crs)
     end
 end

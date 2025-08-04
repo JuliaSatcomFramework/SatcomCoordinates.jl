@@ -54,26 +54,21 @@ ncoords(::Type{<:Rotation{N}}) where {N} = N
 ncoords(::Type{<:Point{N}}) where {N} = return N
 ncoords(v::Point) = return ncoords(typeof(v))
 
-@inline crstype(::Type{<:AbstractSatcomCoordinate{CRS}}) where CRS <: AbstractCRS = CRS
-@inline crstype(::Type{CRS}) where CRS <: AbstractCRS = CRS
-@inline crstype(::Type) = Union{}
-@inline crstype(x::Union{AbstractCRS, AbstractSatcomCoordinate}) = crstype(typeof(x))
 
 units(::CRS) where CRS <: AbstractCRS = units(CRS)
 referenceunits(CRS::Type{<:AbstractCRS}) = map(upreferred, units(CRS))
 
-crs(coord::AbstractSatcomCoordinate) = getfield(coord, :crs)
 tuplecoords(coord::AbstractSatcomCoordinate) = getfield(coord, :tuplecoords)
 
 function rawcoords(coord::AbstractSatcomCoordinate)
-    CRS = crstype(coord)
+    CRS = getcrstype(coord)
     userunits = units(CRS)
     coords = tuplecoords(coord)
     return NamedTuple{keys(userunits)}(coords)
 end
 
 function coords(coord::AbstractSatcomCoordinate)
-    CRS = crstype(coord)
+    CRS = getcrstype(coord)
     userunits = units(CRS)
     refunits = referenceunits(CRS)
     c = tuplecoords(coord)
@@ -86,7 +81,7 @@ end
 
 
 function check_cartesian_wrapped(CRS::Type{<:AbstractCRS}, wrapped::AbstractCRS) 
-    iscartesiancrs(basecrs(wrapped)) || throw(ArgumentError("CRSs of type $(basetype(CRS)) must be defined over a Cartesian CRS, while the provided CRS ($(typeof(wrapped))) is not a Cartesian one."))
+    hascrstrait(cartesiancrs, wrapped) || throw(ArgumentError("CRSs of type $(basetype(CRS)) must be defined over a Cartesian CRS, while the provided CRS ($(typeof(wrapped))) is not a Cartesian one."))
 end
 
 defaultcrs(::Type{<:AbstractSatcomCoordinate{CRS}}) where CRS <: AbstractCRS = CRS()
@@ -120,14 +115,16 @@ This function must return a ntuple with `M` coordinates (where `M == ncoords(CRS
 Custom CRSs should implement a specific method of this function to enable conversion with other CRSs via the `change_crs` user facing function.
 """
 function transform_tuplecoords(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, tup::Any; kwargs...)
+    getlinked = getcrs(linkedcrs)
+    getroot = getcrs(rootcrs)
     if is_same_crs(crsₒ, crsᵢ)
         return tup
-    elseif is_same_crs(crsₒ, linkedcrs(crsᵢ))
+    elseif is_same_crs(crsₒ, getlinked(crsᵢ))
         return raw_linkedcrs_transform(crsᵢ)(tup)
-    elseif is_same_crs(linkedcrs(crsₒ), crsᵢ)
+    elseif is_same_crs(getlinked(crsₒ), crsᵢ)
         t = TransformsBase.inverse(raw_linkedcrs_transform(crsₒ))
         return t(tup)
-    elseif is_same_crs(rootcrs(crsₒ), rootcrs(crsᵢ))
+    elseif is_same_crs(getroot(crsₒ), getroot(crsᵢ))
         t1 = raw_rootcrs_transform(crsᵢ) # This goes from input to root
         t2 = raw_rootcrs_transform(crsₒ) |> inverse # This goes from root to output
         return t2(t1(tup))
@@ -136,9 +133,10 @@ function transform_tuplecoords(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, tup::An
     end
 end
 function transform_tuplecoords(crsₒ::AbstractLinkedCRS{CRS}, crsᵢ::AbstractLinkedCRS{CRS}, tup::Any; kwargs...) where CRS <: AbstractCRS
+    getlinked = getcrs(linkedcrs)
     if is_same_crs(crsₒ, crsᵢ)
         return tup
-    elseif is_same_crs(linkedcrs(crsₒ), linkedcrs(crsᵢ))
+    elseif is_same_crs(getlinked(crsₒ), getlinked(crsᵢ))
         # We pass through the common linked crs
         intermediate = raw_linkedcrs_transform(crsᵢ)(tup)
         rt = TransformsBase.inverse(raw_linkedcrs_transform(crsₒ))
@@ -178,7 +176,7 @@ This function relies internally on the `raw_linkedcrs_transform` function to ret
 """
 function linkedcrs_transform(crs::AbstractCRS)
     raw = raw_linkedcrs_transform(crs)
-    return CRSTransform(linkedcrs(crs), crs, raw)
+    return CRSTransform(getcrs(linkedcrs,crs), crs, raw)
 end
 
 """
@@ -196,9 +194,9 @@ ned_crs = NED(LLA(0,0,1200km))
 # We then create a Spherical CRS (AzEl) that is linked to the NED CRS. This is a double nested CRS as it's itself based on a NED which is based on an ECEF CRS.
 aer_crs = SphericalCRS(AzEl(ned_crs))
 
-linkedcrs(aer_crs) == ned_crs # The linked CRS is the one immediately below the provided CRS, which is the NED CRS
+getcrs(linkedcrs, aer_crs) == ned_crs # The linked CRS is the one immediately below the provided CRS, which is the NED CRS
 
-rootcrs(aer_crs) == ECEF() # The root CRS is the one at the bottom of the nested CRS, which is the ECEF CRS
+getcrs(rootcrs, aer_crs) == ECEF() # The root CRS is the one at the bottom of the nested CRS, which is the ECEF CRS
 
 
 ```
@@ -220,7 +218,7 @@ This function should return a **raw** transformation (i.e. a transformation oper
 A **raw** transformation shall expects a NTuple{N, <:AbstractFloat} as input (where `N` is the number of dimensions of the CRS) and return a NTuple{N, <:AbstractFloat} as output.
 """
 function raw_linkedcrs_transform(crs::AbstractCRS)
-    linked = linkedcrs(crs)
+    linked = getcrs(linkedcrs, crs)
     if is_same_crs(crs, linked)
         return Identity()
     else
@@ -230,7 +228,7 @@ end
 
 function raw_rootcrs_transform(crs::AbstractCRS)
     isrootcrs(crs) && return Identity()
-    linked = linkedcrs(crs)
+    linked = getcrs(linkedcrs, crs)
     raw = raw_linkedcrs_transform(crs)
     return _compose(raw, raw_rootcrs_transform(linked))
 end
@@ -248,69 +246,9 @@ Custom CRSs which may be different despite having the same type (e.g. the Topoce
 """
 is_same_crs(crs1::AbstractCRS, crs2::AbstractCRS) = false
 is_same_crs(crs1::CRS, crs2::CRS) where CRS <: AbstractCRS = true
-is_same_crs(crs1::CRS, crs2::CRS) where{DCRS <: AbstractCRS, CRS <: AbstractLinkedCRS{DCRS}} = is_same_crs(linkedcrs(crs1), linkedcrs(crs2))
+is_same_crs(crs1::CRS, crs2::CRS) where{DCRS <: AbstractCRS, CRS <: AbstractLinkedCRS{DCRS}} = is_same_crs(getcrs(linkedcrs, crs1), getcrs(linkedcrs, crs2))
 
-"""
-    rootcrs(crs::AbstractCRS)
 
-Return the root CRS of the provided CRS `crs`. This basically traverses recursively all the CRSs `crs` is derived from until it finds the root one.
-
-See also: [`isrootcrs`](@ref), [`linkedcrs`](@ref)
-"""
-function rootcrs(crs::AbstractCRS)
-    isrootcrs(crs) && return crs
-    linked = linkedcrs(crs)
-    return rootcrs(linked)
-end
-rootcrs(coord::FieldOrCoordinate) = rootcrs(crs(coord))
-
-"""
-    rootcrstype(CRS::Type{<:AbstractCRS})
-
-Return the root CRS type of the provided CRS type `CRS`.
-"""
-function rootcrstype(CRS::Type{<:AbstractCRS})
-    isrootcrs(CRS) && return CRS
-    throw(ArgumentError("Could not extract the root CRS type directly from the provided CRS type $(CRS)."))
-end
-rootcrstype(::Type{<:AbstractLinkedCRS{CRS}}) where CRS <: AbstractCRS = rootcrstype(CRS)
-rootcrstype(crs::AbstractCRS) = return rootcrstype(typeof(crs))
-
-"""
-    linkedcrs(crs::AbstractCRS)
-
-Return the CRS instance that is **linked** to the provided `crs` if it exists, otherwise return the `crs` itself.
-
-By default, this function returns the first field within the provided `crs` which is a subtype of `AbstractCRS`.
-"""
-function linkedcrs(crs::AbstractCRS)
-    if islinkedcrs(crs)
-        return getproperty_oftype(crs, AbstractCRS)
-    else
-        return crs
-    end
-end
-linkedcrs(coord::FieldOrCoordinate) = linkedcrs(crs(coord))
-
-"""
-    linkedcrstype(CRS::Type{<:AbstractCRS})
-
-Return the linked CRS type of the provided CRS type `CRS`.
-"""
-linkedcrstype(::Type{<:AbstractLinkedCRS{CRS}}) where CRS <: AbstractCRS = return CRS
-linkedcrstype(crs::AbstractCRS) = return linkedcrstype(typeof(crs))
-
-"""
-    cartesiancrs(crs::AbstractCRS)
-
-Recursively traverse the CRSs wrapped by the provided `crs` until the first cartesian one (i.e. the first for which [`iscartesiancrs`](@ref) returns `true`) is found, and then return it.
-"""
-function cartesiancrs(crs::AbstractCRS)
-    iscartesiancrs(crs) && return crs
-    linked = linkedcrs(crs)
-    return cartesiancrs(linked)
-end
-cartesiancrs(coord::FieldOrCoordinate) = crs(coord) |> cartesiancrs
 
 """
     basecrs(crs::AbstractCRS)

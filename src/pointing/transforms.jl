@@ -154,7 +154,7 @@ function transform_tuplecoords(::PT, ::DirectionCosines{CRS}, tup::NTuple{3, <:A
     dc2pt(tup)
 end
 function transform_tuplecoords(crsₒ::AbstractPointingCRS{CRS}, crsᵢ::AbstractPointingCRS{CRS}, tup::NTuple{2, <:AbstractFloat}) where CRS <: AbstractCRS
-    dc = DirectionCosines(linkedcrs(crsₒ))
+    dc = DirectionCosines(getcrs(linkedcrs, crsₒ))
     uvw = transform_tuplecoords(dc, crsᵢ, tup)
     return transform_tuplecoords(crsₒ, dc, uvw)
 end

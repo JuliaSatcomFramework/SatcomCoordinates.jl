@@ -21,7 +21,7 @@ SatelliteToolboxTransformations = "6b019ec1-7a1e-4f04-96c7-a9db1ca5514d"
 SatcomCoordinatesSatelliteToolboxTransformationsExt = ["SatelliteToolboxTransformations"]
 
 [compat]
-BasicTypes = "1.15"
+BasicTypes = "1.16"
 ConstructionBase = "1.5.8"
 LinearAlgebra = "1"
 PlutoShowHelpers = "0.3.1"

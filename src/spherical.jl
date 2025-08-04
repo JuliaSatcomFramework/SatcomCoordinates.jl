@@ -27,7 +27,7 @@ struct SphericalCRS{CRS <: AbstractCRS, PT <: Abstract2DPointingCRS{CRS}} <: Abs
     cartesian::CRS
     pointing::PT
     function SphericalCRS(pointing_crs::Abstract2DPointingCRS) 
-        cartesian_crs = cartesiancrs(pointing_crs)
+        cartesian_crs = getcrs(cartesiancrs, pointing_crs)
         new{typeof(cartesian_crs), typeof(pointing_crs)}(cartesian_crs, pointing_crs)
     end
 end
@@ -39,25 +39,25 @@ SphericalCRS() = SphericalCRS(ThetaPhi())
 
 
 @define_properties SphericalCRS [
-    pointingcrs(_)... # This is a special synthax for the macro, saying that it should put here all the properties of the the `CRS` obtained by calling `pointingcrs(CRS::Type{<:SphericalCRS})`
+    getcrstype(pointingcrs, _)... # This is a special synthax for the macro, saying that it should put here all the properties of the the `CRS` obtained by calling `pointingcrs(CRS::Type{<:SphericalCRS})`
     r => u"m" => (:distance, :range) # r as primary property name, u"m" as unit for `r` and `distance` and `range` as aliases for this property
 ]
 
-pointingcrs(::Type{<:SphericalCRS{<:Any, P}}) where P <: AbstractPointingCRS = P
-pointingcrs(s::SphericalCRS) = s.pointing
+# This specifies that the `pointingcrs` trait is stored within the `pointing` field of the `SphericalCRS` type.
+crsfield(::typeof(pointingcrs), CRS::Type{<:SphericalCRS}) = :pointing
 
 #### Handle input coordinates ####
 # This simply forwards the pointing processing to the pointing CRS one and leaves the range as is
 function process_unitless_coords(C::Type{<:Coordinate}, crs::SphericalCRS, coords::NTuple{3, <:AbstractFloat})
     pt..., r = coords
-    pt = process_unitless_coords(C, pointingcrs(crs), pt)
+    pt = process_unitless_coords(C, getcrs(pointingcrs)(crs), pt)
     T = valuetype(r)
     return map(T, (pt..., r))
 end
 
 #### Random.rand #####
 function rand_tuplecoords(rng::AbstractRNG, crs::SphericalCRS, T::Type{<:AbstractFloat})
-    pt = rand_tuplecoords(rng, pointingcrs(crs), T)
+    pt = rand_tuplecoords(rng, getcrs(pointingcrs, crs), T)
     r = rand(rng, T)
     return (pt..., r)
 end
@@ -93,28 +93,28 @@ end
 # These are methods to extract just pointing from Spherical
 # This handles simply extracting the pointing
 function transform_tuplecoords(crsₒ::PT, crsᵢ::SphericalCRS{CRS, PT}, tup::NTuple{3, <:AbstractFloat}) where {CRS <: AbstractCRS, PT <: Abstract2DPointingCRS{CRS}}
-    is_same_crs(crsₒ, pointingcrs(crsᵢ)) || throw(ArgumentError("The provided pointing CRS ($(crsₒ)) does not match the pointing CRS of the provided Spherical CRS ($(pointingcrs(crsᵢ)))."))
+    is_same_crs(crsₒ, getcrs(pointingcrs, crsᵢ)) || throw(ArgumentError("The provided pointing CRS ($(crsₒ)) does not match the pointing CRS of the provided Spherical CRS ($(getcrs(pointingcrs, crsᵢ)))."))
     return tup[1:2]
 end
 # This handles different pointing CRS from the one stored in the Spherical
 function transform_tuplecoords(crsₒ::AbstractPointingCRS{CRS}, crsᵢ::SphericalCRS{CRS}, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
-    is_same_crs(linkedcrs(crsₒ), linkedcrs(crsᵢ)) || throw(ArgumentError("The provided Pointing and Spherical CRSs are not derived from the same Cartesian CRS."))
-    ptup = transform_tuplecoords(pointingcrs(crsᵢ), crsᵢ, tup)
-    return transform_tuplecoords(crsₒ, pointingcrs(crsᵢ), ptup)
+    is_same_crs(getcrs(linkedcrs, crsₒ), getcrs(linkedcrs, crsᵢ)) || throw(ArgumentError("The provided Pointing and Spherical CRSs are not derived from the same Cartesian CRS."))
+    ptup = transform_tuplecoords(getcrs(pointingcrs, crsᵢ), crsᵢ, tup)
+    return transform_tuplecoords(crsₒ, getcrs(pointingcrs, crsᵢ), ptup)
 end
 # This fast tracks just changing pointing without going back to the underlying cartesian
 function transform_tuplecoords(crsₒ::SphericalCRS{CRS}, crsᵢ::SphericalCRS{CRS}, tup::NTuple{3, <:AbstractFloat}) where {CRS <: AbstractCRS}
     is_same_crs(crsₒ, crsᵢ) && return tup
-    is_same_crs(linkedcrs(crsₒ), linkedcrs(crsᵢ)) || throw(ArgumentError("The provided Spherical CRSs are not derived from the same Cartesian CRS."))
+    is_same_crs(getcrs(linkedcrs, crsₒ), getcrs(linkedcrs, crsᵢ)) || throw(ArgumentError("The provided Spherical CRSs are not derived from the same Cartesian CRS."))
     pt..., r = tup
-    pt = transform_tuplecoords(pointingcrs(crsₒ), pointingcrs(crsᵢ), pt)
+    pt = transform_tuplecoords(getcrs(pointingcrs, crsₒ), getcrs(pointingcrs, crsᵢ), pt)
     return (pt..., r)
 end
 
 #### Negation ####
 function raw_negation(crs::SphericalCRS, tup::NTuple)
     pt..., r = tup
-    pt = raw_negation(pointingcrs(crs), pt)
+    pt = raw_negation(getcrs(pointingcrs, crs), pt)
     return (pt..., r)
 end
 
@@ -123,9 +123,9 @@ function PlutoShowHelpers.repl_summary(c::SphericalCRS)
     string(
         PlutoShowHelpers.shortname(c), 
         "{",
-        PlutoShowHelpers.shortname(linkedcrs(c)),
+        PlutoShowHelpers.shortname(getcrs(linkedcrs, c)),
         ", ",
-        PlutoShowHelpers.shortname(pointingcrs(c)),
+        PlutoShowHelpers.shortname(getcrs(pointingcrs, c)),
         "}"
     )
 end

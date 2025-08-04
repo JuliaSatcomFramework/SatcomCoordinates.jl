@@ -149,8 +149,8 @@ end
 
 PlutoShowHelpers.shortname(c::AbstractCRS) = string(basetype(c |> typeof))
 function PlutoShowHelpers.repl_summary(c::AbstractCRS) 
-    linked = linkedcrs(c)
-    if linked != c
+    if hascrstrait(linkedcrs, c)
+        linked = getcrs(linkedcrs, c)
         return PlutoShowHelpers.shortname(c) * "{" * PlutoShowHelpers.shortname(linked) * "}"
     else
         return Base.summary(c)

@@ -19,12 +19,6 @@ end
 ########                  Other Helpers                    ########
 ###################################################################
 
-# This function returns the type of the pointing CRS for a given CRS type. It is used to get the type of the pointing CRS from a CRS type.
-pointingcrs(P::Type{<:AbstractPointingCRS}) = P
-pointingcrs(crs::AbstractCRS) = pointingcrs(typeof(crs))
-pointingcrs(obj::FieldOrCoordinate) = pointingcrs(crs(obj))
-
-
 #### Random.rand #####
 function rand_tuplecoords(rng::AbstractRNG, ::DirectionCosines, T::Type{<:AbstractFloat})
     tup = ntuple(i -> rand(rng) - .5, 3)
@@ -32,7 +26,7 @@ function rand_tuplecoords(rng::AbstractRNG, ::DirectionCosines, T::Type{<:Abstra
 end
 
 function rand_tuplecoords(rng::AbstractRNG, crs::UV, T::Type{<:AbstractFloat})
-    dc = DirectionCosines(linkedcrs(crs))
+    dc = DirectionCosines(getcrs(linkedcrs, crs))
     u, v, w = rand_tuplecoords(rng, dc, T)
     return map(T, (u, v))
 end
@@ -56,7 +50,7 @@ function raw_isapprox(C::Type{<:AbstractSatcomCoordinate}, crs1::CRS, crs2::CRS,
     return isapprox(SVector(coords1), SVector(coords2); kwargs...)
 end
 function raw_isapprox(C::Type{<:AbstractSatcomCoordinate}, crs1::AbstractPointingCRS{CRS}, crs2::AbstractPointingCRS{CRS}, coords1::NTuple{N, <:AbstractFloat}, coords2::NTuple{M, <:AbstractFloat}; kwargs...) where {CRS <: AbstractCRS, N, M}
-    basecartesian = linkedcrs(crs1)
+    basecartesian = getcrs(linkedcrs, crs1)
     dc_crs = DirectionCosines(basecartesian)
     coords1 = transform_tuplecoords(dc_crs, crs1, coords1)
     coords2 = transform_tuplecoords(dc_crs, crs2, coords2)

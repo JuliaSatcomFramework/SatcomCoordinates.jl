@@ -1,6 +1,7 @@
 # Helper function to find how many fields which subtype AbstractCRS a specific CRS type has
 nlinked_crs(C::Type{<:AbstractCRS}) = count(T -> T <: AbstractCRS, fieldtypes(C))
 
+struct NoCRSFallback <: AbstractCRS end
 
 """
     hascrstrait(traitfunc::Function, crs::AbstractCRS)
@@ -21,60 +22,68 @@ The three basic CRS traits below are not defined using this function as they rel
 - [`isrootcrs`](@ref)
 - [`islinkedcrs`](@ref)
 """
-hascrstrait(traitfunc, CRS::Type{<:AbstractCRS}) = return traitfunc(traitcrs(CRS, traitfunc))
+function hascrstrait(traitfunc, ::Type{CRS}) where {CRS<:AbstractCRS}
+    traitfunc === linkedcrs && return nlinked_crs(CRS) > 0 # We have a special case for the linkedcrs trait as can't check if the CRS type is the same as the input for linkedcrs
+    if applicable(traitfunc, CRS)
+        # We have an explicit method taking the CRS type as input, so we just check that it returns CRS itself
+        return traitfunc(CRS) === CRS
+    else
+        # We first try to see if the traitcrs returns 
+        TRAIT_CRS = traitcrs(CRS)
+        if TRAIT_CRS === CRS
+            return false # We don't have to check trait on another CRS and there is not method explicitly added to specify that `traitfunc` is true for this CRS
+        else
+            # We forward the check on the trait crs
+            return hascrstrait(traitfunc, TRAIT_CRS)
+        end
+    end
+end
 hascrstrait(traitfunc, crs::AbstractCRS) = return hascrstrait(traitfunc, typeof(crs))
+hascrstrait(traitfunc::Function) = Base.Fix1(hascrstrait, traitfunc)
 
-# This simply unwraps the CRS that must be used to check for the trait from the input CRS. It is only relevant for complex CRSs that need to forward the trait check to another CRS within their type. The first signature with both CRS and function is what is called by the default method of hascrstrait, and can be used to further customize the CRS to check the trait on depending on the specific trait function.
-traitcrs(CRS::Type{<:AbstractCRS}, ::Function) = return traitcrs(CRS)
-traitcrs(CRS::Type{<:AbstractCRS}) = CRS
+function traitcrs(obj::Union{AbstractCRS, Type{<:AbstractCRS}})
+    CRS = getcrstype(obj)
+    if applicable(crsfield, traitcrs, CRS)
+        # We have to forward the trait to a custom field
+        fname = crsfield(traitcrs, CRS)::Symbol
+        return _extract_crsfield(obj, fname)
+    else
+        return obj
+    end
+end
+
+# Every trait function should return the first CRS in the nested hieararch that satisfies the trait or in case none do, return `Union{}`
 
 """
-    isrootcrs(C::Type{<:AbstractCRS})
-    isrootcrs(crs::AbstractCRS)
+    rootcrs(C::Type{<:AbstractCRS})
 
-Return `true` if the CRS `C` is a root CRS, `false` otherwise.
+Returns the **Root CRS** type associated to the provided _CRS_ type `C`
 
 A root CRS is a CRS which is not derived or linked to any other CRS.
 
 All root CRSs should also be cartesian CRSs
 
-See also: [`rootcrs`](@ref), [`iscartesiancrs`](@ref)
+See also: [`rootcrs`](@ref), [`cartesiancrs`](@ref)
 """
-function isrootcrs(::Type{C}) where {C<:AbstractCRS}
-    return nlinked_crs(C) == 0
+function rootcrs(::Type{CRS}) where {CRS<:AbstractCRS}
+    return nlinked_crs(CRS) == 0 ? CRS : NoCRSFallback
 end
-isrootcrs(crs::AbstractCRS) = isrootcrs(typeof(crs))
 
 """
-    islinkedcrs(C::Type{<:AbstractCRS})
-    islinkedcrs(crs::AbstractCRS)
+    cartesiancrs(C::Type{<:AbstractCRS})
 
-Return `true` if the CRS `C` is linked to any other CRS, `false` otherwise.
+Returns the first **Cartesian CRS** type associated to the provided _CRS_ type `C`.
 
-The difference between a **linked CRS** and a **derived CRS** is that the latter can only be defined on top of its linked CRS, the second is instead encompassing all CRSs which are linked to (at least) one other CRS.
+A Cartesian CRS is a CRS which is defined in a 3D cartesian space.
 
-An example of a **derived CRS** is the `LLA` CRS which is only defined on top of an `ECEF` CRS.
+Any new custom Cartesian CRS type should define a method for this function that returns the Cartesian CRS type when given the custom CRS type as input.
 
-An example of a **linked CRS** which is not also a **derived CRS** is a Cartesian CRS which is referenced to another Cartesian CRS via a user-defined affine transformation.
-
-By default, this function returns `true` if the CRS has at least one field which is a subtype of `AbstractCRS`, `false` otherwise.
-
-See also: [`linkedcrs`](@ref), [`isrootcrs`](@ref)
+See also: [`cartesiancrs`](@ref), [`rootcrs`](@ref), [`linkedcrs`](@ref)
 """
-islinkedcrs(::Type{C}) where {C<:AbstractCRS} = nlinked_crs(C) > 0
-islinkedcrs(crs::AbstractCRS) = islinkedcrs(typeof(crs))
-
-
-
-"""
-    iscartesiancrs(C::Type{<:AbstractCRS})
-    iscartesiancrs(crs::AbstractCRS)
-
-Return `true` if the CRS `C` is a Cartesian CRS, `false` otherwise.
-
-The default implementation assumes a CRS is cartesian if it has 3 dimensions and all of them have units of length.
-
-See also: [`cartesiancrs`](@ref), [`isrootcrs`](@ref), [`islinkedcrs`](@ref)
-"""
-iscartesiancrs(C::Type{<:AbstractCRS}) = ncoords(C) == 3 && all(u -> u isa Unitful.LengthUnits, units(C))
-iscartesiancrs(crs::AbstractCRS) = iscartesiancrs(typeof(crs))
+function cartesiancrs(::Type{C}) where {C<:AbstractCRS}
+    if ncoords(C) == 3 && all(u -> u isa Unitful.LengthUnits, units(C)) 
+        return C 
+    else
+        return NoCRSFallback
+    end
+end

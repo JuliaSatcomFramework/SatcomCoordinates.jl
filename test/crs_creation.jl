@@ -76,6 +76,7 @@ end
     @test_throws "does not match" custom_crs(1,2)
 
     @test linkedcrstype(custom_crs) <: SphericalCRS
+    @test linkedcrs(custom_crs) == SphericalCRS()
 
     coord = custom_crs(1,2,3)
 
@@ -89,4 +90,16 @@ end
 
     s = repr(custom_crs(1,2,3))
     contains(s, r"Coordinate\{(SatcomCoordinates\.)?MySpherical")
+
+    @testset "Traits" begin
+        # Here we show how to customize forwarding trait functions to the inner CRS. By default this is done by adding a method to `SatcomCoordinates.traitcrs` for the specific CRS type
+
+        # We start by first checking that if we don't do anything, the trait are checked directly on the NamedCRS (which is not really what we want)
+
+        # This works because the cartesian trait only looks at the units of the properties
+        @test iscartesiancrs(NamedCRS(Cartesian(), "test"))
+        @test !iscartesiancrs(NamedCRS(AzOverEl(), "test"))
+
+        # If we try to wrap an ECEF CRS, we see that the isecef trait does not work
+    end
 end
