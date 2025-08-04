@@ -105,6 +105,7 @@ end
 @testitem "frameid" setup=[setup_geocentric] begin
     @test frameid(ECEF()) == EarthDefault()
     @test frameid(ECI()) == EarthDefault()
+    @test frameid(LLA()(1,2,3)) == EarthDefault()
     aff_ecef = AffineCartesian(Cartesian(), ECEF(), rand(RawAffineTransform))
     aff_eci = AffineCartesian(Cartesian(), ECI(), rand(RawAffineTransform))
     @test frameid(aff_ecef) == frameid(aff_eci) == EarthDefault()

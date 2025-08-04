@@ -51,12 +51,12 @@ ecef_origin(crs::AbstractTopocentricCRS) = crs.ecef
 function ecef_origin(crs::AbstractCRS)
     topo_crs = _recurse_crs(topocrs, crs)
     if !isvalidcrs(topo_crs)
-        throw(ArgumentError("A topocentric CRS could not found while traversing the linked CRS chain. So no ECEF origin could be extracted"))
+        throw(ArgumentError("A topocentric CRS could not be found while traversing the linked CRS chain. So no ECEF origin could be extracted"))
     else
         return ecef_origin(topo_crs |> traitcrs) # We need to call `traitcrs` on the `topo_crs` as that may be a compound CRS that acts as ecefcrs by having a proxy for traits. This is the case for example for the AffineCartesian CRS.
     end
 end
-ecef_origin(obj::FieldOrCoordinate) = ecef_origin(crs(obj))
+ecef_origin(obj::FieldOrCoordinate) = return ecef_origin(crs(obj))
 
 """
     lla_origin(crs::AbstractCRS)
@@ -74,12 +74,12 @@ lla_origin(crs::AbstractTopocentricCRS) = crs.lla
 function lla_origin(crs::AbstractCRS)
     topo_crs = _recurse_crs(topocrs, crs)
     if !isvalidcrs(topo_crs)
-        throw(ArgumentError("A topocentric CRS could not found while traversing the linked CRS chain. So no LLA origin could be extracted"))
+        throw(ArgumentError("A topocentric CRS could not be found while traversing the linked CRS chain. So no LLA origin could be extracted"))
     else
         return lla_origin(topo_crs |> traitcrs) # We need to call `traitcrs` on the `topo_crs` as that may be a compound CRS that acts as llacrs by having a proxy for traits. This is the case for example for the AffineCartesian CRS.
     end
 end
-lla_origin(obj::FieldOrCoordinate) = lla_origin(crs(obj))
+lla_origin(obj::FieldOrCoordinate) = return lla_origin(crs(obj))
 
 BasicTypes.valuetype(::Type{<:AbstractTopocentricCRS{<:Any, T}}) where T = T
 function BasicTypes.change_valuetype(::Type{T}, topo_crs::AbstractTopocentricCRS) where T <: AbstractFloat
@@ -139,8 +139,8 @@ function raw_linkedcrs_transform(crs::AbstractTopocentricCRS)
     return RawAffineTransform(rotation, translation)
 end
 
-have_same_origin(crs1::AbstractTopocentricCRS, crs2::AbstractTopocentricCRS) = false
-have_same_origin(crs1::AbstractTopocentricCRS{CRS}, crs2::AbstractTopocentricCRS{CRS}) where CRS <: AbstractCRS = ecef_origin(crs1) == ecef_origin(crs2)
+have_same_origin(crs1::AbstractTopocentricCRS, crs2::AbstractTopocentricCRS) = return false
+have_same_origin(crs1::AbstractTopocentricCRS{CRS}, crs2::AbstractTopocentricCRS{CRS}) where CRS <: AbstractCRS = return ecef_origin(crs1) == ecef_origin(crs2)
 
 _different_origin_error(crs1::AbstractTopocentricCRS, crs2::AbstractTopocentricCRS) = throw(ArgumentError("The two provided Topocentric CRSs have different origins."))
 _different_linkedcrs_error(crs1::AbstractTopocentricCRS, crs2::AbstractTopocentricCRS) = throw(ArgumentError("The two provided Topocentric CRSs are based on different linked CRSs."))

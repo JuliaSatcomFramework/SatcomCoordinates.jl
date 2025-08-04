@@ -28,16 +28,16 @@ This is used internally in the constructor of `Coordinate`s to convert user inpu
 remove_unit(userunit::Unitful.Units, refunit::Unitful.Units, val::Number) = enforce_unit(userunit, val) |> refunit |> ustrip
 
 
-@inline ncoords(::Type{<:AbstractSatcomCoordinate{<:Any, <:Any, N}}) where N = N
-@inline ncoords(::Type{CRS}) where CRS <: AbstractCRS = length(units(CRS))
-@inline ncoords(obj::Union{AbstractCRS, FieldOrCoordinate, Transform}) = ncoords(typeof(obj))
+@inline ncoords(::Type{<:AbstractSatcomCoordinate{<:Any, <:Any, N}}) where N = return N
+@inline ncoords(::Type{CRS}) where CRS <: AbstractCRS = return length(units(CRS))
+@inline ncoords(obj::Union{AbstractCRS, FieldOrCoordinate, Transform}) = return ncoords(typeof(obj))
 # NCoords for the transformations, which have an input and output dimension
 for f in (:ncoords_out, :ncoords_in)
-    @eval $f(T::Type{<:Transform}) = ncoords(T)
-    @eval $f(t::Transform) = $f(typeof(t))
+    @eval $f(T::Type{<:Transform}) = return ncoords(T)
+    @eval $f(t::Transform) = return $f(typeof(t))
 end
-ncoords_out(::Type{<:AbstractCRSTransform{CRSₒ}}) where CRSₒ = ncoords(CRSₒ)
-ncoords_in(::Type{<:AbstractCRSTransform{<:Any, CRSᵢ}}) where CRSᵢ = ncoords(CRSᵢ)
+ncoords_out(::Type{<:AbstractCRSTransform{CRSₒ}}) where CRSₒ = return ncoords(CRSₒ)
+ncoords_in(::Type{<:AbstractCRSTransform{<:Any, CRSᵢ}}) where CRSᵢ = return ncoords(CRSᵢ)
 
 """
     struct AnyN end
@@ -45,9 +45,9 @@ ncoords_in(::Type{<:AbstractCRSTransform{<:Any, CRSᵢ}}) where CRSᵢ = ncoords
 Singletone structure just used to match any integer number
 """
 struct AnyN end
-Base.:(==)(::AnyN, ::Integer) = true
-Base.:(==)(::Integer, ::AnyN) = true
-ncoords(::Type{Identity}) = AnyN()
+Base.:(==)(::AnyN, ::Integer) = return true
+Base.:(==)(::Integer, ::AnyN) = return true
+ncoords(::Type{Identity}) = return AnyN()
 
 # Inner ncoords helpers
 ncoords(::Type{<:Rotation{N}}) where {N} = N
@@ -84,23 +84,9 @@ function check_cartesian_wrapped(CRS::Type{<:AbstractCRS}, wrapped::AbstractCRS)
     hascrstrait(cartesiancrs, wrapped) || throw(ArgumentError("CRSs of type $(basetype(CRS)) must be defined over a Cartesian CRS, while the provided CRS ($(typeof(wrapped))) is not a Cartesian one."))
 end
 
-defaultcrs(::Type{<:AbstractSatcomCoordinate{CRS}}) where CRS <: AbstractCRS = CRS()
-defaultcrs(::Type{<:AbstractSatcomCoordinate{<:Any}}) = Cartesian()
-defaultcrs(::Type{Pointing}) = ThetaPhi()
-
 function change_crs(crsₒ::AbstractCRS, coord::AbstractSatcomCoordinate; kwargs...)
     tup = transform_tuplecoords(crsₒ, crs(coord), tuplecoords(coord); kwargs...)
     return constructor_without_checks(basetype(typeof(coord)), crsₒ, tup)
-end
-function change_crs(crsₒ::CRS, coord::AbstractSatcomCoordinate{CRS}; kwargs...) where CRS <: AbstractCRS
-    crsᵢ = crs(coord)
-    if is_same_crs(crsₒ, crsᵢ)
-        # We have to do this check as we may have two different instances of the same CRS
-        return coord 
-    else
-        tup = transform_tuplecoords(crsₒ, crsᵢ, tuplecoords(coord); kwargs...)
-        return constructor_without_checks(basetype(typeof(coord)), crsₒ, tup)
-    end
 end
 
 _missing_conversion_method(crsₒ, crsᵢ) = throw(ArgumentError("No conversion is defined to go from an input CRS of type `$(typeof(crsᵢ))` to an output CRS of type `$(typeof(crsₒ))`.\nConsider adding a specific method to `SatcomCoordinates.transform_tuplecoords` to support this conversion if necessary."))

@@ -4,7 +4,7 @@
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
-    using SatcomCoordinates.TransformsBase: isinvertible, isrevertible, TransformsBase
+    using SatcomCoordinates.TransformsBase: isinvertible, isrevertible, TransformsBase, inverse
     using Test
     using TestAllocations
 end

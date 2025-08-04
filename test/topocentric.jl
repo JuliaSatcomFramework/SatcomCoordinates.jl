@@ -1,4 +1,5 @@
 @testsnippet setup_topocentric begin
+    using SatcomCoordinates: WGS84_PARAMS
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
@@ -57,6 +58,33 @@ end
         @test @nallocs(NED(LLA(0,0,1200km))(1,2,3)) == 0
         @test @nallocs(ENU(LLA(0,0,1200km))(1,2,3)) == 0
     end
+
+    # ECEF/LLA origin
+    ned_crs = NED(LLA(0,0,1200km))
+    ned = ned_crs(1,2,3)
+    @test ecef_origin(ned_crs) == ecef_origin(ned)
+    @test lla_origin(ned_crs) == lla_origin(ned)
+
+    # Errors
+    @test_throws "A topocentric CRS could not be found" ecef_origin(rand(Cartesian()))
+    @test_throws "A topocentric CRS could not be found" lla_origin(rand(Cartesian()))
+
+    # Different origin errors
+    ned_crs = NED(LLA(0,0,1200km))
+    enu_crs = ENU(LLA(10,0,1200km))
+    @test_throws "have different origins" change_crs(enu_crs, ned_crs(1,2,3))
+
+    # Different linked CRS errors
+    SatcomCoordinates.ellipsoidparams(::Symbol) = WGS84_PARAMS
+    SatcomCoordinates.is_same_crs(crs1::ECEF{Symbol}, crs2::ECEF{Symbol}) = frameid(crs1) == frameid(crs2)
+    invokelatest() do
+        ned_crs = NED(LLA(ECEF(:B))(0,0,1200km))
+        enu_crs = ENU(LLA(ECEF(:S))(0,0,1200km))
+        @test_throws "different linked CRSs" change_crs(ned_crs, enu_crs(1,2,3))
+    end
+
+    # Construction error with wrong coordinate trait
+    @test_throws "origin of the $NED CRS must be associated with an ECEF or LLA CRS" NED(rand(Cartesian()))
 end
 
 @testitem "AER" setup=[setup_topocentric] begin
@@ -86,6 +114,12 @@ end
         aer_crs = AER(LLA(0,0,1200km))
         @test @nallocs(change_crs(aer_crs, LLA(0,0,1200km))) == 0
     end
+
+    # Ambiguities errors
+    @test_throws "does not have a custom implementation of a no-argument constructor" AER(1)
+    @test_throws "does not have a custom implementation of a no-argument constructor" AER((1, 2))
+
+    @test contains(repr(aer_crs), "AER")
 end
 
 @testitem "Conversion" setup=[setup_topocentric] begin
