@@ -11,9 +11,9 @@ Any transform which is considered **affine** should have a valid method for the 
 - `SatcomCoordinates.raw_rotation(t::Transform)`: Returns the rotation matrix associated to `t` as a `RotMatrix`
 - `SatcomCoordinates.raw_translation(t::Transform)`: Returns the translation vector associated to `t` as a `SVector`
 """
-isaffinetransform(::Type{<:RawAffineTransform}) = true
-isaffinetransform(::Type{<:Transform}) = false
-isaffinetransform(t::Transform) = isaffinetransform(typeof(t))
+isaffinetransform(::Type{<:RawAffineTransform}) = return true
+isaffinetransform(::Type{<:Transform}) = return false
+isaffinetransform(t::Transform) = return isaffinetransform(typeof(t))
 
 """
     israwtransform(t::Transform)
@@ -23,8 +23,11 @@ Function that returns true if the transform is considered **raw**, meaning that 
 
 Raw transforms are supposed to be internally used as fields to build concrete subtypes of `AbstractCRSTransform`.
 
+!!! note "Expected Input/Output" 
+    Raw transforms are always assumed to get a `NTuple` of floating numbers as input and produce a `NTuple` of floating numbers as output.
+
 See [`CRSTransform`](@ref) for an example of the only concrete subtype implemented in this package.
 """
-israwtransform(::Type{<:Transform}) = true
-israwtransform(t::Transform) = israwtransform(typeof(t))
-israwtransform(::Type{<:AbstractCRSTransform}) = false
+israwtransform(::Type{<:Transform}) = return true
+israwtransform(::Type{<:AbstractCRSTransform}) = return false
+israwtransform(t::Transform) = return israwtransform(typeof(t))

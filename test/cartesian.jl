@@ -40,4 +40,10 @@ end
         @test @nallocs(change_crs(Cartesian(), antenna_surface_point)) == 0
         @test @nallocs(change_crs(Cartesian(), feed_referenced_surface_point)) == 0
     end
+
+    # Some errors
+    @test_throws "must be Cartesian" AffineCartesian(Cartesian(), SphericalCRS(), rand(RawAffineTransform))
+
+    s = repr(MIME"text/plain"(), feed_cartesian_crs)
+    @test contains(s, "AffineCartesian")
 end

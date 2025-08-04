@@ -50,14 +50,14 @@ end
 
 ellipsoidparams(t::LLATransform) = ellipsoidparams(t.id)
 
-TransformsBase.parameters(t::LLATransform) = (t.id,)
-TransformsBase.isinvertible(::Type{<:LLATransform}) = true
-TransformsBase.isrevertible(::Type{<:LLATransform}) = true
+TransformsBase.parameters(t::LLATransform) = return (; id = t.id,)
+TransformsBase.isinvertible(::Type{<:LLATransform}) = return true
+TransformsBase.isrevertible(::Type{<:LLATransform}) = return true
 
-ncoords(::Type{<:LLATransform}) = 3
+ncoords(::Type{<:LLATransform}) = return 3
 
-TransformsBase.inverse(t::ECEFtoLLA) = LLAtoECEF(t.id)
-TransformsBase.inverse(t::LLAtoECEF) = ECEFtoLLA(t.id)
+TransformsBase.inverse(t::ECEFtoLLA) = return LLAtoECEF(t.id)
+TransformsBase.inverse(t::LLAtoECEF) = return ECEFtoLLA(t.id)
 
 ### Transformation
 function raw_linkedcrs_transform(crs::LLA)

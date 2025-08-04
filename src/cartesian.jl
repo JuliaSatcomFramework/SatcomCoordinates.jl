@@ -54,7 +54,7 @@ struct AffineCartesian{CRSₗ <: AbstractCRS, CRS <: AbstractCRS, T <: RawAffine
 end
 
 # With this function we forward all trait checks to the base CRS
-crsfield(::typeof(traitcrs), ::Type{<:AffineCartesian}) = :base
+crsfield(::typeof(traitcrs), ::Type{<:AffineCartesian}) = return :base
 
 function is_same_crs(crs1::CRS, crs2::CRS) where {CRS <: AffineCartesian}
     is_same_crs(crs1.linked, crs2.linked) || return false
@@ -71,7 +71,7 @@ raw_linkedcrs_transform(crs::AffineCartesian) = crs.transform
 
 ##### Base.show #####
 function PlutoShowHelpers.repl_summary(c::AffineCartesian)
-    string(
+    return string(
         PlutoShowHelpers.shortname(c), 
         "{",
         PlutoShowHelpers.shortname(getcrs(linkedcrs, c)),

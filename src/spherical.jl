@@ -44,7 +44,7 @@ SphericalCRS() = SphericalCRS(ThetaPhi())
 ]
 
 # This specifies that the `pointingcrs` trait is stored within the `pointing` field of the `SphericalCRS` type.
-crsfield(::typeof(pointingcrs), CRS::Type{<:SphericalCRS}) = :pointing
+crsfield(::typeof(pointingcrs), CRS::Type{<:SphericalCRS}) = return :pointing
 
 #### Handle input coordinates ####
 # This simply forwards the pointing processing to the pointing CRS one and leaves the range as is
@@ -65,16 +65,16 @@ end
 #### Conversion ####
 abstract type SphericalTransform <: AbstractRawCRSTransform end
 
-TransformsBase.isinvertible(::SphericalTransform) = true
-TransformsBase.isrevertible(::SphericalTransform) = true
+TransformsBase.isinvertible(::Type{<:SphericalTransform}) = return true
+TransformsBase.isrevertible(::Type{<:SphericalTransform}) = return true
 
-ncoords(::Type{<:SphericalTransform}) = 3
+ncoords(::Type{<:SphericalTransform}) = return 3
 
 struct SphericalToCartesian{PT <: Abstract2DPointingCRS} <: SphericalTransform end
 struct CartesianToSpherical{PT <: Abstract2DPointingCRS} <: SphericalTransform end
 
-TransformsBase.inverse(::SphericalToCartesian{PT}) where PT <: Abstract2DPointingCRS = CartesianToSpherical{PT}()
-TransformsBase.inverse(::CartesianToSpherical{PT}) where PT <: Abstract2DPointingCRS = SphericalToCartesian{PT}()
+TransformsBase.inverse(::SphericalToCartesian{PT}) where PT <: Abstract2DPointingCRS = return CartesianToSpherical{PT}()
+TransformsBase.inverse(::CartesianToSpherical{PT}) where PT <: Abstract2DPointingCRS = return SphericalToCartesian{PT}()
 
 function TransformsBase.apply(::SphericalToCartesian{PT}, tup::NTuple{3, <:AbstractFloat}) where PT <: Abstract2DPointingCRS
     dctup = AngularPointingToDirectionCosines{PT}()(tup[1:2])
@@ -120,7 +120,7 @@ end
 
 ##### Base.show #####
 function PlutoShowHelpers.repl_summary(c::SphericalCRS)
-    string(
+    return string(
         PlutoShowHelpers.shortname(c), 
         "{",
         PlutoShowHelpers.shortname(getcrs(linkedcrs, c)),

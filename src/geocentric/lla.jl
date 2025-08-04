@@ -39,8 +39,6 @@ LLA() = LLA(ECEF())
 # Get 0 altitude if not provided
 (crs::LLA)(lat::Number, lon::Number) = crs(lat, lon, 0)
 
-isllacrs(::Type{<:LLA}) = true
-
 @define_properties LLA [
     lat => u"°" => (:latitude,)
     lon => u"°" => (:longitude, :long)

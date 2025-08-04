@@ -15,10 +15,10 @@ input_crs(t::CRSTransform) = t.crsᵢ
 output_crs(t::CRSTransform) = t.crsₒ
 raw_transform(t::CRSTransform) = t.raw
 
-TransformsBase.isinvertible(::Type{<:CRSTransform{<:Any, <:Any, T}}) where T = TransformsBase.isinvertible(T)
-TransformsBase.isrevertible(::Type{<:CRSTransform{<:Any, <:Any, T}}) where T = TransformsBase.isrevertible(T)
+TransformsBase.isinvertible(::Type{<:CRSTransform{<:Any, <:Any, T}}) where T = return isinvertible(T)
+TransformsBase.isrevertible(::Type{<:CRSTransform{<:Any, <:Any, T}}) where T = return isrevertible(T)
 
-TransformsBase.parameters(t::AbstractCRSTransform) = getproperties(t)
+TransformsBase.parameters(t::T) where T <: CRSTransform = getproperties(t)
 
 function TransformsBase.apply(t::CRSTransform{<:Any, CRSᵢ}, c::Coordinate{CRSᵢ}) where {CRSᵢ}
     is_same_crs(crs(c), input_crs(t)) || throw(ArgumentError("The CRS of the provided coordinate ($(crs(c))) does not match the input CRS of the transform ($(input_crs(t)))."))

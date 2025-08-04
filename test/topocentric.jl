@@ -39,8 +39,8 @@ end
     @test ned.z == ned.d == ned.down == 3u"m"
 
     @testset "Allocations" begin
-        ned_crs = crs(ned)
-        enu_crs = crs(enu)
+        ned_crs = getcrs(ned)
+        enu_crs = getcrs(enu)
         @test @nallocs(change_crs(enu_crs, ned)) == 0
         @test @nallocs(change_crs(ned_crs, enu)) == 0
         # Going to ECEF

@@ -1,9 +1,10 @@
 @testsnippet setup_pointing begin
     using SatcomCoordinates
-    using SatcomCoordinates: tuplecoords, ncoords
+    using SatcomCoordinates: tuplecoords, ncoords, AngularPointingToDirectionCosines, DirectionCosinesToAngularPointing, ncoords_in, ncoords_out
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
+    using SatcomCoordinates.TransformsBase: isinvertible, isrevertible, TransformsBase
     using Test
     using TestAllocations
 end
@@ -404,5 +405,35 @@ end
             wrap_valid = -180° <= ae.az <= 180° && -180° <= tp.φ <= 180°
             return fwd_valid && rtn_valid && wrap_valid
         end
+    end
+
+    @testset "Cartesian to Pointing" begin
+        p = Cartesian(rand(2)..., rand())
+        for P in (AzEl, AzOverEl, ElOverAz, ThetaPhi, UV)
+            pt_crs = P()
+            sph = change_crs(SphericalCRS(pt_crs), p)
+            change_crs(pt_crs, p) ≈ change_crs(pt_crs, sph)
+        end
+        @test SVector(Raw(change_crs(DirectionCosines(), p))) ≈ normalize(SVector(Raw(p)))
+    end
+
+    @test getcrstype(pointingcrs, DirectionCosines()) == typeof(DirectionCosines()) == pointingcrs(typeof(DirectionCosines()))
+
+    @test_throws "not possible" getcrstransform(linkedcrs, DirectionCosines())
+
+    # Remaining Coverage
+    for P in (AzEl, AzOverEl, ElOverAz, ThetaPhi, UV)
+        dc = DirectionCosines()
+        pt = P()
+        t = AngularPointingToDirectionCosines{P}()
+        it = DirectionCosinesToAngularPointing{P}()
+        @test inverse(t) == it
+        @test inverse(it) == t
+        @test isinvertible(t)
+        @test isrevertible(t)
+        @test isinvertible(it)
+        @test isrevertible(it)
+        @test ncoords_in(t) == ncoords_out(it) != ncoords_out(t)
+        @test ncoords_in(it) == ncoords_out(t) != ncoords_in(t)
     end
 end

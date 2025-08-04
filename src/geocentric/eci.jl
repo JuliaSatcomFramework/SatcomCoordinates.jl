@@ -30,7 +30,7 @@ struct ECI{ID} <: AbstractCRS
 end
 ECI() = ECI(EarthDefault())
 # These are for resolving ambiguities between the default constructor in `coordinates.jl` and the inner one which takes an arbitrary ID
-ECI(p::Point{N, Number}) where N = ECI(p...)
-ECI(::Number) = _dimension_mismatch_error(ECI(), 1)
+ECI(p::Point{N, Number}) where N = return ECI(p...)
+ECI(::Number) = return _dimension_mismatch_error(ECI(), 1)
 
 frameid(crs::ECI) = return crs.id

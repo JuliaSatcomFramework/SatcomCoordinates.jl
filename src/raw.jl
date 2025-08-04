@@ -32,7 +32,6 @@ y === 2000.0 # true
 struct Raw{CRS <: AbstractCRS, C <: FieldOrCoordinate{CRS}} <: FieldOrCoordinate{CRS}
     wrapped::C
 end
-Raw(c::FieldOrCoordinate{CRS}) where {CRS} = return Raw{CRS, typeof(c)}(c)
 
 @inline wrapped(r::Raw) = getfield(r, :wrapped)
 @inline Base.propertynames(r::Raw) = propertynames(wrapped(r))

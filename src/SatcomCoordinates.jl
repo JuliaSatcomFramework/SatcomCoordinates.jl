@@ -27,10 +27,9 @@ include("coordinates.jl")
 export Pointing, Coordinate, change_crs
 
 include("transforms/rawaffine.jl")
-export RawAffineTransform
+export RawAffineTransform, RawRotation, RawTranslation
 
 include("transforms/rawcomposed.jl")
-export RawComposedTransform
 
 include("transforms/crstransform.jl")
 export CRSTransform

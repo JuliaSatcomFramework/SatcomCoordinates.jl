@@ -11,13 +11,16 @@ abstract type PointingTransform <: AbstractRawCRSTransform end
 struct AngularPointingToDirectionCosines{PT <: Abstract2DPointingCRS} <: PointingTransform end
 struct DirectionCosinesToAngularPointing{PT <: Abstract2DPointingCRS} <: PointingTransform end
 
-ncoords_in(::Type{<:AngularPointingToDirectionCosines{PT}}) where PT = 2
-ncoords_out(::Type{<:AngularPointingToDirectionCosines{PT}}) where PT = 3
-ncoords_in(::Type{<:DirectionCosinesToAngularPointing{PT}}) where PT = 3
-ncoords_out(::Type{<:DirectionCosinesToAngularPointing{PT}}) where PT = 2
+ncoords_in(::Type{<:AngularPointingToDirectionCosines{PT}}) where PT = return 2
+ncoords_out(::Type{<:AngularPointingToDirectionCosines{PT}}) where PT = return 3
+ncoords_in(::Type{<:DirectionCosinesToAngularPointing{PT}}) where PT = return 3
+ncoords_out(::Type{<:DirectionCosinesToAngularPointing{PT}}) where PT = return 2
 
-TransformsBase.isinvertible(::Type{<:PointingTransform}) = true
-TransformsBase.isrevertible(::Type{<:PointingTransform}) = true
+TransformsBase.isinvertible(::Type{<:PointingTransform}) = return true
+TransformsBase.isrevertible(::Type{<:PointingTransform}) = return true
+
+TransformsBase.inverse(::AngularPointingToDirectionCosines{PT}) where PT = return DirectionCosinesToAngularPointing{PT}()
+TransformsBase.inverse(::DirectionCosinesToAngularPointing{PT}) where PT = return AngularPointingToDirectionCosines{PT}()
 
 function raw_linkedcrs_transform(::AbstractPointingCRS)
     throw(ArgumentError("It is not possible to go from a Pointing CRS to its linked Cartesian CRS as the information about the distance from the origin is lost"))
@@ -160,7 +163,8 @@ function transform_tuplecoords(crsₒ::AbstractPointingCRS{CRS}, crsᵢ::Abstrac
 end
 
 # This are to handle the case of going from CRS to AbstractPointingCRS{CRS}. The other direction is explicitly not supported
-function transform_tuplecoords(::DirectionCosines{CRS}, ::CRS, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
+function transform_tuplecoords(crsₒ::DirectionCosines{CRS}, crsᵢ::CRS, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
+    is_same_crs(getcrs(linkedcrs, crsₒ), crsᵢ) || _missing_conversion_method(crsₒ, crsᵢ)
     return tup ./ hypot(tup...)
 end
 function transform_tuplecoords(crsₒ::AbstractPointingCRS{CRS}, crsᵢ::CRS, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS

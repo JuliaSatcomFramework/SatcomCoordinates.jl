@@ -23,7 +23,7 @@ struct RawComposedTransform{T1 <: Transform, T2 <: Transform} <: AbstractRawCRST
     end
 end
 
-TransformsBase.parameters(t::RawComposedTransform) = (t.t1, t.t2)
+TransformsBase.parameters(t::RawComposedTransform) = (;t1 = t.t1, t2 = t.t2)
 function TransformsBase.isinvertible(::Type{<:RawComposedTransform{T1, T2}}) where {T1, T2} 
     return isinvertible(T1) && isinvertible(T2)
 end

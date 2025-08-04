@@ -4,6 +4,7 @@
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
+    using SatcomCoordinates.TransformsBase: TransformsBase, inverse
     using SatelliteToolboxTransformations
     using Test
     using TestAllocations
@@ -36,7 +37,7 @@ end
     azel_crs = AzEl(NED(LLA(0,10,1200km)))
     @test_throws "not derived from the same" change_crs(azel_crs, sph_crs(1,2,3))
 
-    @test crs(rand(sph_crs)) == sph_crs
+    @test getcrs(rand(sph_crs)) == sph_crs
     @test rand(sph_crs).distance <= 1u"m"
 
     # We test conversion to and from the base CRS
@@ -45,6 +46,9 @@ end
     @test change_crs(sph_crs, Cartesian(0,0,1)) ≈ sph
     @test change_crs(Cartesian(), sph) ≈ Cartesian(0,0,1)
 
+    lt = getcrstransform_raw(linkedcrs, SphericalCRS())
+    lt_inv = inverse(lt)
+    @test lt == inverse(lt_inv)
     @testset "Allocations" begin
         @testset "Constructor" begin
             @test @nallocs(SphericalCRS(1,2,3)) == 0
@@ -61,4 +65,9 @@ end
             @test @nallocs(change_crs(SphericalCRS(AzEl()), sph)) == 0
         end
     end
+
+    # Show
+    s = repr(MIME"text/plain"(), SphericalCRS(AzEl()))
+    @test contains(s, "SphericalCRS")
+    @test contains(s, "AzEl")
 end

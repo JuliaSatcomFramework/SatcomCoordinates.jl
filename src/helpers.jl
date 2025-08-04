@@ -123,8 +123,8 @@ function transform_tuplecoords(crsₒ::AbstractCRS, crsᵢ::AbstractCRS, tup::An
         t = TransformsBase.inverse(raw_linkedcrs_transform(crsₒ))
         return t(tup)
     elseif is_same_crs(getcrs(rootcrs, crsₒ), getcrs(rootcrs, crsᵢ))
-        t1 = raw_rootcrs_transform(crsᵢ) # This goes from input to root
-        t2 = raw_rootcrs_transform(crsₒ) |> inverse # This goes from root to output
+        t1 = getcrstransform_raw(rootcrs, crsᵢ) # This goes from input to root
+        t2 = getcrstransform_raw(rootcrs, crsₒ) |> inverse # This goes from root to output
         return t2(t1(tup))
     else
         _missing_conversion_method(crsₒ, crsᵢ)
@@ -155,7 +155,7 @@ It is called automatically when doing `rand(crs)` where `crs` is an instance of 
 !!! note "Default implementation"
     All Cartesian CRSs have a default implementation (if not overridden) that simply generates a tuple of 3 random values via `rand(rng, T)`.
 """
-rand_tuplecoords(crs::AbstractCRS, T::Type{<:AbstractFloat} = Float64) = rand_tuplecoords(Random.default_rng(), crs, T)
+rand_tuplecoords(crs::AbstractCRS, T::Type{<:AbstractFloat} = Float64) = return rand_tuplecoords(Random.default_rng(), crs, T)
 
 function rand_tuplecoords(rng::AbstractRNG, crs::AbstractCRS, T::Type{<:AbstractFloat})
     hascrstrait(cartesiancrs, crs) || throw(ArgumentError("The default method for generating random coordinates works only for Cartesian CRSs.\nAdd a custom method to `SatcomCoordinates.rand_tuplecoords` to support random generation of coordinates in the CRS $(basetype(crs))."))

@@ -63,4 +63,11 @@ end
     sv_eci = sv_ecef_to_eci(sv, ITRF(), J2000(), eop)
     eci_sv = tuplecoords(eci_direct) |> SVector
     @test sv_eci.r ≈ eci_sv
+
+    # We test errors of the eci_to_ecef_rotation
+    @test_throws "supplying the correct" change_crs(ECI(), ECEF()(1,2,3); jd_utc)
+
+    # We test that it works for formats that support not providing eop data
+    ecef = change_crs(ECEF(), ECI()(1,2,3); jd_utc, ecef_frame = Val{:PEF}())
+    @test ecef isa Coordinate{<:ECEF}
 end

@@ -26,8 +26,6 @@ struct RawAffineTransform{R, T} <: AbstractRawCRSTransform
     end
 end
 
-Random.rand(rng::AbstractRNG, ::Random.SamplerType{RawAffineTransform}) = RawAffineTransform(rand(rng, RotMatrix3), rand(rng, SVector{3}))
-
 raw_rotation(t::RawAffineTransform) = t.rotation
 raw_translation(t::RawAffineTransform) = t.translation
 
@@ -46,8 +44,10 @@ const RawRotation{R} = RawAffineTransform{R, Identity}
 RawTranslation(translation) = RawAffineTransform(Identity(), translation)
 RawRotation(rotation) = RawAffineTransform(rotation, Identity())
 
-TransformsBase.isinvertible(::Type{<:RawAffineTransform}) = true
-TransformsBase.isrevertible(::Type{<:RawAffineTransform}) = true
+#
+
+TransformsBase.isinvertible(::Type{<:RawAffineTransform}) = return true
+TransformsBase.isrevertible(::Type{<:RawAffineTransform}) = return true
 
 function TransformsBase.apply(t::RawAffineTransform, v::NTuple{N, <:AbstractFloat}) where {N}
     N === ncoords(t) || throw(DimensionMismatch("The dimension of the input vector ($(N)) does not match the dimension of the transform ($(ncoords(t)))"))
@@ -77,3 +77,8 @@ function TransformsBase.inverse(t::RawAffineTransform)
         return RawAffineTransform(rinv, -rinv * trans)
     end
 end
+
+##### Random generation #####
+Random.rand(rng::AbstractRNG, ::Random.SamplerType{RawAffineTransform}) = return RawAffineTransform(rand(rng, RotMatrix3), rand(rng, SVector{3}))
+Random.rand(rng::AbstractRNG, ::Random.SamplerType{RawTranslation}) = return RawAffineTransform(Identity(), rand(rng, SVector{3}))
+Random.rand(rng::AbstractRNG, ::Random.SamplerType{RawRotation}) = return RawAffineTransform(rand(rng, RotMatrix3), Identity())

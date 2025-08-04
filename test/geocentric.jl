@@ -1,7 +1,10 @@
 @testsnippet setup_geocentric begin
+    using SatcomCoordinates: WGS84_PARAMS, _ellipsoidparams, ncoords
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
+    using SatcomCoordinates.Rotations
+    using SatcomCoordinates.TransformsBase: TransformsBase, inverse, isinvertible, isrevertible
     using TestAllocations
     using SatcomCoordinates
     using Test
@@ -22,6 +25,12 @@ end
         @test p1 ≉ p2
         @test p1 ≈ p1
         @test p1 ≈ change_valuetype(Float32, p1)
+
+        @test P((1,2,3)) == P(1,2,3)
+
+        # Error method for ambiguities
+        @test_throws "does not match" P(1)
+        @test_throws "does not match" P(1, 2)
     end
     @test_throws "are not equivalent" rand(ECEF()) ≈ rand(ECI())
 
@@ -30,6 +39,13 @@ end
         @test @nallocs(ECEF()(SA[1,2,3])) == 0
         @test @nallocs(ECEF(1,2,3) |> change_valuetype(Float32)) == 0
     end
+
+    # We do a transform between ECEF/ECI with a random ID. It should error because we don't have a rotation method
+    @test_throws "no method is defined" change_crs(ECEF(:s), ECI(:p)(1,2,3))
+    # We test that if we pass the matrix explicitly, this actually works
+    ecef = change_crs(ECEF(:s), ECI(:p)(1,2,3); R_eci_to_ecef = one(RotMatrix3))
+    @test ecef isa Coordinate{ECEF{Symbol}}
+    @test SVector(Raw(ecef)) ≈ SA_F64[1,2,3]
 end
 
 @testitem "LLA" setup=[setup_geocentric] begin
@@ -66,4 +82,31 @@ end
         @test @nallocs(LLA(0°,0,700km)) == 0
         @test @nallocs(LLA(0,0,700e3)) == 0
     end
+
+    # Mostly coverage on the LLA/ECEF Transform
+    t = getcrstransform_raw(linkedcrs, LLA())
+    it = inverse(t)
+    @test t == inverse(it)
+
+    ncoords(t) == 3
+
+    TransformsBase.parameters(t) == (; id = EarthDefault())
+    @test isinvertible(t) && isrevertible(t)
+    @test isinvertible(it) && isrevertible(it)
+end
+
+@testitem "ellipsoidparams" setup=[setup_geocentric] begin
+    @test ellipsoidparams(EarthDefault()) == WGS84_PARAMS
+
+    (; a, f ) = WGS84_PARAMS
+    @test _ellipsoidparams(a, f) == WGS84_PARAMS
+end
+
+@testitem "frameid" setup=[setup_geocentric] begin
+    @test frameid(ECEF()) == EarthDefault()
+    @test frameid(ECI()) == EarthDefault()
+    aff_ecef = AffineCartesian(Cartesian(), ECEF(), rand(RawAffineTransform))
+    aff_eci = AffineCartesian(Cartesian(), ECI(), rand(RawAffineTransform))
+    @test frameid(aff_ecef) == frameid(aff_eci) == EarthDefault()
+    @test_throws "does not seem to contain a frame id" frameid(Cartesian())
 end

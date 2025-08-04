@@ -44,8 +44,8 @@ struct ECEF{ID} <: AbstractCRS
 end
 ECEF() = ECEF(EarthDefault())
 # These are for resolving ambiguities between the default constructor in `coordinates.jl` and the inner one which takes an arbitrary ID
-ECEF(p::Point{N, Number}) where N = ECEF(p...)
-ECEF(::Number) = _dimension_mismatch_error(ECEF(), 1)
+ECEF(p::Point{N, Number}) where N = return ECEF(p...)
+ECEF(::Number) = return _dimension_mismatch_error(ECEF(), 1)
 
 frameid(crs::ECEF) = return crs.id
 
