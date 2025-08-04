@@ -80,13 +80,13 @@ include("geocentric/traits.jl")
 export ecefcrs, ecicrs, llacrs
 
 include("topocentric.jl")
-export NED, ENU, AER, istopocentriccrs, ecef_origin, lla_origin
+export NED, ENU, AER, ecef_origin, lla_origin
 
 include("helpers.jl")
-export linkedcrs_transform, change_crs, crs, rootcrs_transform, linkedcrstype, basecrs, cartesiancrs, linkedcrs
+export change_crs
 
 include("getters.jl")
-export getcrs, getcrstype, rootcrs
+export getcrs, getcrstype, getcrstransform_raw, getcrstransform
 
 include("deps_interface.jl")
 

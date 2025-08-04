@@ -53,7 +53,7 @@ end
 
     # Here we are saying to simply extract the coordinates and aliases from the wrapped CRS
     SatcomCoordinates.@define_properties NamedCRS [
-        getcrstype(linkedcrs, _)... # The ... is needed for proper identification by the macro. This simply mirrors the properties of the CRS that is the output of `linkedcrstype(_)` where `_` is substituted with the the specific subtype of `NamedCRS`
+        getcrstype(linkedcrs, _)... # The ... is needed for proper identification by the macro. This simply mirrors the properties of the CRS that is the output of `getcrstype(linkedcrs, _)` where `_` is substituted with the the specific subtype of `NamedCRS`
     ]
 
     @test SatcomCoordinates.units(NamedCRS{Cartesian}) == (; x = u"m", y = u"m", z = u"m")
@@ -101,5 +101,13 @@ end
         @test !hascrstrait(cartesiancrs, NamedCRS(AzOverEl(), "test"))
 
         # If we try to wrap an ECEF CRS, we see that the isecef trait does not work
+        @test !hascrstrait(ecefcrs, NamedCRS(ECEF(), "test"))
+
+        # To specify that a specific type must forward trait checks to a specific fields it holds, we need to extend the `SatcomCoordinates.crsfield` function for that type.
+        SatcomCoordinates.crsfield(::typeof(traitcrs), ::Type{<:NamedCRS}) = :crs
+        # The line above is telling the package that when extracting the CRS used for checking trait from the input (which is done with the `traitcrs` function). This is stored in the `:crs` field inside the `NamedCRS` type
+
+        # We probably need invokelatest here as we added a method to the `SatcomCoordinates.crsfield` function not at toplevel but inside the `@testset` block, and this would be a problem in 1.12 without invokelatest
+        @test invokelatest(hascrstrait, ecefcrs, NamedCRS(ECEF(), "test"))
     end
 end

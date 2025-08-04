@@ -163,49 +163,6 @@ function rand_tuplecoords(rng::AbstractRNG, crs::AbstractCRS, T::Type{<:Abstract
 end
 
 """
-    linkedcrs_transform(crs::AbstractCRS)
-
-Returns the CRSTransform that goes from the provided `crs` to its linked one (It simply returns the Identity transform in case the linked CRS is the same as the provided one).
-
-As an example, for a `LLA` CRS, the output of `linkedcrs_transform` should be a `CRSTransform` that accepts a `LLA` coordinate and returns an `ECEF` coordinate as output (in the ECEF CRS linked to the provided LLA CRS).
-
-This function relies internally on the `raw_linkedcrs_transform` function to return the raw transform. And custom CRSs shall add a method to [`raw_linkedcrs_transform`](@ref) directly.
-"""
-function linkedcrs_transform(crs::AbstractCRS)
-    raw = raw_linkedcrs_transform(crs)
-    return CRSTransform(getcrs(linkedcrs,crs), crs, raw)
-end
-
-"""
-    rootcrs_transform(crs::AbstractCRS)
-
-Returns the CRSTransform that goes from the provided `crs` to its root one (It simply returns the Identity transform in case the provided CRS is already a root CRS).
-
-# Example
-```julia
-using SatcomCoordinates
-
-# We first create a NED CRS at a specific location above Earth
-ned_crs = NED(LLA(0,0,1200km))
-
-# We then create a Spherical CRS (AzEl) that is linked to the NED CRS. This is a double nested CRS as it's itself based on a NED which is based on an ECEF CRS.
-aer_crs = SphericalCRS(AzEl(ned_crs))
-
-getcrs(linkedcrs, aer_crs) == ned_crs # The linked CRS is the one immediately below the provided CRS, which is the NED CRS
-
-getcrs(rootcrs, aer_crs) == ECEF() # The root CRS is the one at the bottom of the nested CRS, which is the ECEF CRS
-
-
-```
-
-This function relies internally on the `raw_rootcrs_transform` function to return the raw transform. And custom CRSs shall add a method to [`raw_rootcrs_transform`](@ref) directly.
-"""
-function rootcrs_transform(crs::AbstractCRS)
-    raw = raw_rootcrs_transform(crs)
-    return CRSTransform(rootcrs(crs), crs, raw)
-end
-
-"""
     raw_linkedcrs_transform(crs::AbstractCRS)
 
 Returns the raw transform that goes from the provided `crs` to its linked one.
@@ -214,21 +171,7 @@ This function should return a **raw** transformation (i.e. a transformation oper
 
 A **raw** transformation shall expects a NTuple{N, <:AbstractFloat} as input (where `N` is the number of dimensions of the CRS) and return a NTuple{N, <:AbstractFloat} as output.
 """
-function raw_linkedcrs_transform(crs::AbstractCRS)
-    linked = getcrs(linkedcrs, crs)
-    if is_same_crs(crs, linked)
-        return Identity()
-    else
-        throw(ArgumentError("The provided CRS has a linked CRS but does not seem to implement an appropriate method for `SatcomCoordinates.raw_linkedcrs_transform`, which is a required method for all custom CRSs."))
-    end
-end
-
-function raw_rootcrs_transform(crs::AbstractCRS)
-    hascrstrait(rootcrs, crs) && return Identity()
-    linked = getcrs(linkedcrs, crs)
-    raw = raw_linkedcrs_transform(crs)
-    return _compose(raw, raw_rootcrs_transform(linked))
-end
+function raw_linkedcrs_transform end
 
 """
     is_same_crs(crs1::AbstractCRS, crs2::AbstractCRS)
@@ -244,20 +187,3 @@ Custom CRSs which may be different despite having the same type (e.g. the Topoce
 is_same_crs(crs1::AbstractCRS, crs2::AbstractCRS) = false
 is_same_crs(crs1::CRS, crs2::CRS) where CRS <: AbstractCRS = true
 is_same_crs(crs1::CRS, crs2::CRS) where{DCRS <: AbstractCRS, CRS <: AbstractLinkedCRS{DCRS}} = is_same_crs(getcrs(linkedcrs, crs1), getcrs(linkedcrs, crs2))
-
-
-
-"""
-    basecrs(crs::AbstractCRS)
-    basecrs(coord::FieldOrCoordinate)
-
-Return the base CRS of the provided `crs`.
-
-For most of the CRSs, this will simply return the crs itself. However, this is useful in the case of the [`AffineLinkedCRS`](@ref) which holds a base CRS and another CRS that is linked to the base one via an affine transformation.
-
-All function checking a certain trait over an arbitrary CRS instance should use this function to first eventually unwrap the base CRS from its container.
-
-As an example, if one wants to check whether a certain CRS instance is cartesian, one should write `iscartesiancrs(basecrs(crs))` instead of `iscartesiancrs(crs)`.
-"""
-basecrs(crs::AbstractCRS) = return crs
-basecrs(coord::FieldOrCoordinate) = return crs(coord) |> basecrs
