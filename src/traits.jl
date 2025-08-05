@@ -42,7 +42,7 @@ hascrstrait(traitfunc, crs::AbstractCRS) = return hascrstrait(traitfunc, typeof(
 hascrstrait(traitfunc::Function) = Base.Fix1(hascrstrait, traitfunc)
 hascrstrait(traitfunc::Function, obj::FieldOrCoordinate) = return hascrstrait(traitfunc, getcrs(obj))
 
-function traitcrs(obj::Union{AbstractCRS, Type{<:AbstractCRS}})
+function traitcrs(obj::O) where {O <: Union{AbstractCRS, Type{<:AbstractCRS}}}
     CRS = getcrstype(obj)
     if applicable(crsfield, traitcrs, CRS)
         # We have to forward the trait to a custom field

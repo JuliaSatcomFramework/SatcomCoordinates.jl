@@ -165,7 +165,7 @@ end
 # This are to handle the case of going from CRS to AbstractPointingCRS{CRS}. The other direction is explicitly not supported
 function transform_tuplecoords(crsₒ::DirectionCosines{CRS}, crsᵢ::CRS, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
     is_same_crs(getcrs(linkedcrs, crsₒ), crsᵢ) || _missing_conversion_method(crsₒ, crsᵢ)
-    return tup ./ hypot(tup...)
+    return _normalize(tup)
 end
 function transform_tuplecoords(crsₒ::AbstractPointingCRS{CRS}, crsᵢ::CRS, tup::NTuple{3, <:AbstractFloat}) where CRS <: AbstractCRS
     dc = DirectionCosines(crsᵢ)

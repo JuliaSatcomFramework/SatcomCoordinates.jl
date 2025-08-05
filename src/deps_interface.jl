@@ -34,6 +34,8 @@ function Base.isapprox(c1::AbstractSatcomCoordinate, c2::AbstractSatcomCoordinat
     return raw_isapprox(basetype(c1), crs(c1), crs(c2), tuplecoords(c1), tuplecoords(c2); kwargs...)
 end
 
+Base.zero(crs::AbstractCRS) = return crs(ntuple(i -> 0, ncoords(crs)))
+
 """
     raw_isapprox(C, crs1, crs2, coords1, coords2; kwargs...)
 

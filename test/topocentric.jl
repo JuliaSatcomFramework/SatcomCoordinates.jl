@@ -1,5 +1,5 @@
 @testsnippet setup_topocentric begin
-    using SatcomCoordinates: WGS84_PARAMS
+    using SatcomCoordinates: WGS84_PARAMS, have_same_origin
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
@@ -62,8 +62,9 @@ end
     # ECEF/LLA origin
     ned_crs = NED(LLA(0,0,1200km))
     ned = ned_crs(1,2,3)
-    @test ecef_origin(ned_crs) == ecef_origin(ned)
-    @test lla_origin(ned_crs) == lla_origin(ned)
+    aer_crs = AER(lla_origin(ned_crs))
+    @test ecef_origin(ned_crs) == ecef_origin(ned) == ecef_origin(aer_crs)
+    @test lla_origin(ned_crs) == lla_origin(ned) == lla_origin(aer_crs)
 
     # Errors
     @test_throws "A topocentric CRS could not be found" ecef_origin(rand(Cartesian()))
@@ -81,6 +82,9 @@ end
         ned_crs = NED(LLA(ECEF(:B))(0,0,1200km))
         enu_crs = ENU(LLA(ECEF(:S))(0,0,1200km))
         @test_throws "different linked CRSs" change_crs(ned_crs, enu_crs(1,2,3))
+
+        # We test coverage
+        @test !have_same_origin(NED(LLA(ECEF(:B))(0,0,1200km)), ENU(LLA(0,0,1200km)))
     end
 
     # Construction error with wrong coordinate trait

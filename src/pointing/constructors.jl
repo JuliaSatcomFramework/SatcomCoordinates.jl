@@ -48,7 +48,7 @@ function process_unitless_coords(::Type{<:Coordinate}, crs::UV, coords::NTuple{2
 end
 
 function process_unitless_coords(::Type{<:Coordinate}, crs::DirectionCosines, coords::NTuple{3,<:AbstractFloat})
-    return coords ./ hypot(coords...)
+    return Tuple(normalize(SVector(coords)))
 end
 
 # This is the default no-arg constructor for any pointing CRS. It falls back to use the `default_wrappedcrs` function to get the default wrapped CRS for the specific CRS type.

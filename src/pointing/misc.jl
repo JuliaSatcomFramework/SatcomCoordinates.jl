@@ -22,7 +22,7 @@ end
 #### Random.rand #####
 function rand_tuplecoords(rng::AbstractRNG, ::DirectionCosines, T::Type{<:AbstractFloat})
     tup = ntuple(i -> rand(rng) - .5, 3)
-    return map(T, tup ./ hypot(tup...))
+    return map(T, _normalize(tup))
 end
 
 function rand_tuplecoords(rng::AbstractRNG, crs::UV, T::Type{<:AbstractFloat})

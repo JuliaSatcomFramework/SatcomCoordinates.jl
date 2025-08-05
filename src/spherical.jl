@@ -81,7 +81,7 @@ function TransformsBase.apply(::SphericalToCartesian{PT}, tup::NTuple{3, <:Abstr
     return dctup .* tup[3], nothing
 end
 function TransformsBase.apply(::CartesianToSpherical{PT}, tup::NTuple{3, <:AbstractFloat}) where PT <: Abstract2DPointingCRS
-    r = hypot(tup...)
+    r = norm(SVector(tup))
     pt = DirectionCosinesToAngularPointing{PT}()(tup ./ r)
     return (pt..., r), nothing
 end

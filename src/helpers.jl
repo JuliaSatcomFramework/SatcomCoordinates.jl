@@ -30,7 +30,7 @@ remove_unit(userunit::Unitful.Units, refunit::Unitful.Units, val::Number) = enfo
 
 @inline ncoords(::Type{<:AbstractSatcomCoordinate{<:Any, <:Any, N}}) where N = return N
 @inline ncoords(::Type{CRS}) where CRS <: AbstractCRS = return length(units(CRS))
-@inline ncoords(obj::Union{AbstractCRS, FieldOrCoordinate, Transform}) = return ncoords(typeof(obj))
+@inline ncoords(obj::Union{AbstractCRS, FieldOrCoordinate, Transform, Point}) = return ncoords(typeof(obj))
 # NCoords for the transformations, which have an input and output dimension
 for f in (:ncoords_out, :ncoords_in)
     @eval $f(T::Type{<:Transform}) = return ncoords(T)
@@ -52,7 +52,6 @@ ncoords(::Type{Identity}) = return AnyN()
 # Inner ncoords helpers
 ncoords(::Type{<:Rotation{N}}) where {N} = N
 ncoords(::Type{<:Point{N}}) where {N} = return N
-ncoords(v::Point) = return ncoords(typeof(v))
 
 
 units(::CRS) where CRS <: AbstractCRS = units(CRS)
@@ -86,6 +85,11 @@ end
 
 function change_crs(crsₒ::AbstractCRS, coord::AbstractSatcomCoordinate; kwargs...)
     tup = transform_tuplecoords(crsₒ, crs(coord), tuplecoords(coord); kwargs...)
+    return constructor_without_checks(basetype(typeof(coord)), crsₒ, tup)
+end
+function change_crs(traitfunc::Function, coord::AbstractSatcomCoordinate; kwargs...)
+    raw, crsₒ, crsᵢ = _getcrstransform_raw_bothcrs(traitfunc, coord)
+    tup = raw(tuplecoords(coord))
     return constructor_without_checks(basetype(typeof(coord)), crsₒ, tup)
 end
 
@@ -141,7 +145,6 @@ It is called automatically when doing `rand(crs)` where `crs` is an instance of 
 !!! note "Default implementation"
     All Cartesian CRSs have a default implementation (if not overridden) that simply generates a tuple of 3 random values via `rand(rng, T)`.
 """
-rand_tuplecoords(crs::AbstractCRS, T::Type{<:AbstractFloat} = Float64) = return rand_tuplecoords(Random.default_rng(), crs, T)
 
 function rand_tuplecoords(rng::AbstractRNG, crs::AbstractCRS, T::Type{<:AbstractFloat})
     hascrstrait(cartesiancrs, crs) || throw(ArgumentError("The default method for generating random coordinates works only for Cartesian CRSs.\nAdd a custom method to `SatcomCoordinates.rand_tuplecoords` to support random generation of coordinates in the CRS $(basetype(crs))."))
@@ -170,6 +173,9 @@ This is done in place of simply doing `crs1 == crs2` because it's slightly faste
 
 Custom CRSs which may be different despite having the same type (e.g. the Topocentric CRSs) should override this function accordingly.
 """
-is_same_crs(crs1::AbstractCRS, crs2::AbstractCRS) = false
-is_same_crs(crs1::CRS, crs2::CRS) where CRS <: AbstractCRS = true
+is_same_crs(crs1::AbstractCRS, crs2::AbstractCRS) = return false
+is_same_crs(crs1::CRS, crs2::CRS) where CRS <: AbstractCRS = return true
 is_same_crs(crs1::CRS, crs2::CRS) where{DCRS <: AbstractCRS, CRS <: AbstractLinkedCRS{DCRS}} = is_same_crs(getcrs(linkedcrs, crs1), getcrs(linkedcrs, crs2))
+
+# This is to simplify normalizing a tuple
+_normalize(tup::NTuple) = Tuple(normalize(SVector(tup)))

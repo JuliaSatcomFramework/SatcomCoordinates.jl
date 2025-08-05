@@ -1,6 +1,6 @@
 @testsnippet setup_transforms begin 
     using SatcomCoordinates
-    using SatcomCoordinates: tuplecoords, ncoords, coords, RawComposedTransform
+    using SatcomCoordinates: tuplecoords, ncoords, coords, RawComposedTransform, ncoords_in, ncoords_out
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.Rotations
@@ -114,6 +114,8 @@ end
     @test isinvertible(tsph)
     @test isrevertible(tsph)
 
+    @test ncoords_out(tsph) == ncoords_in(tsph) == 3
+
     @test SatcomCoordinates.israwtransform(tsph) == false
 
     for _ in 1:10
@@ -150,11 +152,16 @@ end
 
     @test_throws "are the Identity" compose(composed1, composed2)
 
-    # We test that composing with identity in the middle works
-    c1 = compose(sph2c, Identity())
-    c2 = compose(Identity(), inverse(sph2c))
+    # Misc coverage, the identity matches any input/output number of coordinates
+    @test ncoords(Identity) == 3
+    @test 2 == ncoords(Identity)
 
-    cid = SatcomCoordinates._compose(c1, c2)
+    # We test that composing with identity in the middle works
+    c1 = RawComposedTransform(sph2c, Identity())
+    c2 = RawComposedTransform(Identity(), inverse(sph2c))
+
+    cid = compose(c1, c2)
+    @test cid isa RawComposedTransform
     @test cid.t1 == sph2c
     @test cid.t2 == inverse(sph2c)
 

@@ -3,8 +3,8 @@ function crsfield(::typeof(linkedcrs), CRS::Type{<:AbstractCRS})
 end
 _validfieldname(s::Symbol) = s !== FIELDNAME_NOT_FOUND_SYMBOL
 
-isvalidcrs(::Union{AbstractCRS, Type{<:AbstractCRS}}) = true
-isvalidcrs(::Union{NoCRSFallback, Type{<:NoCRSFallback}}) = false
+isvalidcrs(::Union{AbstractCRS, Type{<:AbstractCRS}}) = return true
+isvalidcrs(::Union{NoCRSFallback, Type{<:NoCRSFallback}}) = return false
 
 Base.@constprop :aggressive _extract_crsfield(::Type{CRS}, fname::Symbol) where {CRS <: AbstractCRS} = return fieldtype(CRS, fname)
 Base.@constprop :aggressive _extract_crsfield(crs::CRS, fname::Symbol) where {CRS <: AbstractCRS} = return getfield(crs, fname)
@@ -25,26 +25,24 @@ end
 function _recurse_crs(traitfunc::F, obj::O) where {F <: Function, O <: Union{AbstractCRS, Type{<:AbstractCRS}}}
     out = _extract_crs(traitfunc, obj)
     isvalidcrs(out) && return out
-    hascrstrait(traitfunc, obj) && return obj
+    hascrstrait(traitfunc, obj) && return obj # Do we need this?
     linked = _extract_crs(linkedcrs, obj)
     isvalidcrs(linked) || return linked
     return _recurse_crs(traitfunc, linked)
 end
 
-_crsfallback_exception(traitfunc, CRS::Type{<:AbstractCRS}) = ArgumentError("Could not find a crs satisfying the `$traitfunc` trait while traversing the nested CRSs within the provided CRS (of type `$CRS`)")
+_crsfallback_exception(traitfunc, CRS::Type{<:AbstractCRS}) = return ArgumentError("Could not find a crs satisfying the `$traitfunc` trait while traversing the nested CRSs within the provided CRS (of type `$CRS`)")
 
-getcrs(traitfunc::Function) = Base.Fix1(getcrs, traitfunc)
 @inline getcrs(obj::O) where {O} = return getcrs(crs, obj)
-function getcrs(traitfunc::Function, crs::AbstractCRS)
+function getcrs(traitfunc::F, crs::CRS) where {F <: Function, CRS <: AbstractCRS}
     outcrs = _recurse_crs(traitfunc, crs)
     isvalidcrs(outcrs) || throw(_crsfallback_exception(traitfunc, typeof(crs)))
     return outcrs
 end
-getcrs(traitfunc::F, obj::FieldOrCoordinate) where {F <: Function} = return getcrs(traitfunc, crs(obj))
+@inline getcrs(traitfunc::F, obj) where {F <: Function} = return getcrs(traitfunc, crs(obj))
 
-getcrstype(traitfunc::Function) = Base.Fix1(getcrstype, traitfunc)
 @inline getcrstype(obj::O) where {O} = return getcrstype(crs, obj)
-getcrstype(::Function, T::Type) = throw(ArgumentError("The provided type $T is not (or does not store) a valid CRS type."))
+@inline getcrstype(obj::O) where {O <: Union{AbstractCRS, Type{<:AbstractCRS}}} = return obj isa Type ? obj : typeof(obj)
 function getcrstype(traitfunc::Function, ::Type{CRS}) where {CRS<:AbstractCRS}
     OUT = _recurse_crs(traitfunc, CRS)
     isvalidcrs(OUT) || throw(_crsfallback_exception(traitfunc, CRS))
@@ -61,13 +59,21 @@ crs(CRS::Type{<:AbstractCRS}) = return CRS
 
 # This function traverses the tree to get the raw crs transform
 
-function _getcrstransform_raw(traitfunc::Function, crs::AbstractCRS)
+function _getcrstransform_raw(traitfunc::F, crs::AbstractCRS) where {F <: Function}
     hascrstrait(linkedcrs, crs) || return Identity() # If this is false, we are at the root
     traitfunc !== linkedcrs && hascrstrait(traitfunc, crs) && return Identity() # The provided CRS is already satisfying the trait so we just return identity
     raw = raw_linkedcrs_transform(crs)
     traitfunc === linkedcrs && return raw
     linked = getcrs(linkedcrs, crs)
     return _compose(raw, _getcrstransform_raw(traitfunc, linked))
+end
+
+# This returns both the raw transform and the output CRS
+function _getcrstransform_raw_bothcrs(traitfunc::F, obj::Union{AbstractCRS, FieldOrCoordinate}) where {F <: Function}
+    crsᵢ = getcrs(obj)
+    crsₒ = _recurse_crs(traitfunc, crsᵢ) # This we use to check at compile time whether there is a nested CRS satisfying the trait
+    isvalidcrs(crsₒ) || throw(_crsfallback_exception(traitfunc, typeof(crsᵢ)))
+    return _getcrstransform_raw(traitfunc, crsᵢ), crsₒ, crsᵢ
 end
 
 """
@@ -82,12 +88,10 @@ If a CRS satisfying `traitfunc` can not be found within the CRS tree of `crsᵢ`
 
 See also: [`getcrstransform`](@ref)
 """
-function getcrstransform_raw(traitfunc::Function, crsᵢ::AbstractCRS)
-    found_crs = _recurse_crs(traitfunc, crsᵢ) # This we use to check at compile time whether there is a nested CRS satisfying the trait
-    isvalidcrs(found_crs) || throw(_crsfallback_exception(traitfunc, typeof(crsᵢ)))
-    return _getcrstransform_raw(traitfunc, crsᵢ)
+function getcrstransform_raw(traitfunc::Function, obj::Union{AbstractCRS, FieldOrCoordinate})
+    raw, crsₒ, crsᵢ = _getcrstransform_raw_bothcrs(traitfunc, obj)
+    return raw
 end
-getcrstransform_raw(traitfunc::F, obj::FieldOrCoordinate) where {F <: Function} = return getcrstransform_raw(traitfunc, getcrs(obj))
 
 """
     getcrstransform(traitfunc::Function, crsᵢ::AbstractCRS)
@@ -131,10 +135,12 @@ troot(aer_crs(0,90,0)) ≈ ecef_origin(aer_crs)
 
 See also: [`CRSTransform`](@ref), [`getcrstransform_raw`](@ref)
 """
-function getcrstransform(traitfunc::Function, crsᵢ::AbstractCRS)
-    crsₒ = _recurse_crs(traitfunc, crsᵢ)
-    isvalidcrs(crsₒ) || throw(_crsfallback_exception(traitfunc, typeof(crsᵢ)))
-    raw = _getcrstransform_raw(traitfunc, crsᵢ)
+function getcrstransform(traitfunc::Function, obj::Union{AbstractCRS, FieldOrCoordinate})
+    raw, crsₒ, crsᵢ = _getcrstransform_raw_bothcrs(traitfunc, obj)
     return CRSTransform(crsₒ, crsᵢ, raw)
 end
-getcrstransform(traitfunc::F, obj::FieldOrCoordinate) where {F <: Function} = return getcrstransform(traitfunc, getcrs(obj))
+
+# Pipe convenience forms
+for f in (:getcrs, :getcrstype, :getcrstransform, :getcrstransform_raw)
+    @eval $f(traitfunc::Function) = return Base.Fix1($f, traitfunc)
+end
