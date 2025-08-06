@@ -8,6 +8,7 @@
     using SatcomCoordinates.PlutoShowHelpers
     using SatcomCoordinates.Unitful
     using SatcomCoordinates.TransformsBase: TransformsBase, Identity
+    using SatelliteToolboxTransformations
     using Test
 end
 
