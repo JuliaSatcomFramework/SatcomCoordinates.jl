@@ -1,31 +1,29 @@
 function crsfield(::typeof(linkedcrs), CRS::Type{<:AbstractCRS})
-    return fieldname_oftype(CRS, <:, AbstractCRS)
+    return fieldname_oftype(CRS, AbstractCRS)
 end
-_validfieldname(s::Symbol) = s !== FIELDNAME_NOT_FOUND_SYMBOL
+# This is a getfield which will extract either the or the type stored in the field at the given name, based on whether the input is an instance or a Type. If the provided fieldname is not a valid field of the provided object, it will return the provided default
+_getfield(obj::O, fname::Symbol, default = NoCRSFallback()) where O = hasfield(O, fname) ? getfield(obj, fname) : default
+_getfield(::Type{O}, fname::Symbol, default = NoCRSFallback()) where O = hasfield(O, fname) ? fieldtype(O, fname) : default
+
 
 isvalidcrs(::Union{AbstractCRS, Type{<:AbstractCRS}}) = return true
 isvalidcrs(::Union{NoCRSFallback, Type{<:NoCRSFallback}}) = return false
 
-Base.@constprop :aggressive _extract_crsfield(::Type{CRS}, fname::Symbol) where {CRS <: AbstractCRS} = return fieldtype(CRS, fname)
-Base.@constprop :aggressive _extract_crsfield(crs::CRS, fname::Symbol) where {CRS <: AbstractCRS} = return getfield(crs, fname)
-
 # This function extract the instance or Type of the nested CRS satisfying the trait without recursion. It simply returns the NoCRSFallback if either 
 function _extract_crs(traitfunc::Function, obj::Union{AbstractCRS, Type{<:AbstractCRS}})
-    typeinp = obj isa Type
-    default = typeinp ? NoCRSFallback : NoCRSFallback()
+    default = NoCRSFallback()
     applicable(traitfunc, obj) && return traitfunc(obj)
-    CRS = typeinp ? obj : typeof(obj)
+    CRS = getcrstype(obj)
     applicable(crsfield, traitfunc, CRS) || return default
     fname = crsfield(traitfunc, CRS)
-    _validfieldname(fname) || return default
-    return typeinp ? fieldtype(obj, fname) : getfield(obj, fname)
+    return _getfield(obj, fname, default)
 end
 
 # This function try to recurse the provided crs (Type or instance) to find the first nested CRS (type or instance) for which the traitfunc is applicable. If no such CRS is found, it returns the NoCRSFallback (either the type or the instance, depending on whether the input object was a CRS Type or instance).
 function _recurse_crs(traitfunc::F, obj::O) where {F <: Function, O <: Union{AbstractCRS, Type{<:AbstractCRS}}}
     out = _extract_crs(traitfunc, obj)
     isvalidcrs(out) && return out
-    hascrstrait(traitfunc, obj) && return obj # Do we need this?
+    hascrstrait(traitfunc, obj) && return obj # This is needed as _extract_crs does not check trait directly
     linked = _extract_crs(linkedcrs, obj)
     isvalidcrs(linked) || return linked
     return _recurse_crs(traitfunc, linked)
@@ -64,13 +62,13 @@ function _getcrstransform_raw(traitfunc::F, crs::AbstractCRS) where {F <: Functi
     traitfunc !== linkedcrs && hascrstrait(traitfunc, crs) && return Identity() # The provided CRS is already satisfying the trait so we just return identity
     raw = raw_linkedcrs_transform(crs)
     traitfunc === linkedcrs && return raw
-    linked = getcrs(linkedcrs, crs)
+    linked = _extract_crs(linkedcrs, crs)
     return _compose(raw, _getcrstransform_raw(traitfunc, linked))
 end
 
 # This returns both the raw transform and the output CRS
 function _getcrstransform_raw_bothcrs(traitfunc::F, obj::Union{AbstractCRS, FieldOrCoordinate}) where {F <: Function}
-    crsᵢ = getcrs(obj)
+    crsᵢ = crs(obj)
     crsₒ = _recurse_crs(traitfunc, crsᵢ) # This we use to check at compile time whether there is a nested CRS satisfying the trait
     isvalidcrs(crsₒ) || throw(_crsfallback_exception(traitfunc, typeof(crsᵢ)))
     return _getcrstransform_raw(traitfunc, crsᵢ), crsₒ, crsᵢ

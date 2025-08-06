@@ -22,7 +22,7 @@ The three basic CRS traits below are not defined using this function as they rel
 - [`isrootcrs`](@ref)
 - [`islinkedcrs`](@ref)
 """
-function hascrstrait(traitfunc, ::Type{CRS}) where {CRS<:AbstractCRS}
+function hascrstrait(traitfunc::Function, ::Type{CRS}) where {CRS<:AbstractCRS}
     traitfunc === linkedcrs && return nlinked_crs(CRS) > 0 # We have a special case for the linkedcrs trait as can't check if the CRS type is the same as the input for linkedcrs
     if applicable(traitfunc, CRS)
         # We have an explicit method taking the CRS type as input, so we just check that it returns CRS itself
@@ -38,16 +38,16 @@ function hascrstrait(traitfunc, ::Type{CRS}) where {CRS<:AbstractCRS}
         end
     end
 end
-hascrstrait(traitfunc, crs::AbstractCRS) = return hascrstrait(traitfunc, typeof(crs))
+hascrstrait(traitfunc::Function, crs::AbstractCRS) = return hascrstrait(traitfunc, typeof(crs))
 hascrstrait(traitfunc::Function) = Base.Fix1(hascrstrait, traitfunc)
-hascrstrait(traitfunc::Function, obj::FieldOrCoordinate) = return hascrstrait(traitfunc, getcrs(obj))
+hascrstrait(traitfunc::Function, obj) = return hascrstrait(traitfunc, getcrs(obj))
 
 function traitcrs(obj::O) where {O <: Union{AbstractCRS, Type{<:AbstractCRS}}}
     CRS = getcrstype(obj)
     if applicable(crsfield, traitcrs, CRS)
         # We have to forward the trait to a custom field
         fname = crsfield(traitcrs, CRS)::Symbol
-        return _extract_crsfield(obj, fname)
+        return _getfield(obj, fname)
     else
         return obj
     end

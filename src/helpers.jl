@@ -92,6 +92,7 @@ function change_crs(traitfunc::Function, coord::AbstractSatcomCoordinate; kwargs
     tup = raw(tuplecoords(coord))
     return constructor_without_checks(basetype(typeof(coord)), crsₒ, tup)
 end
+change_crs(obj) = Base.Fix1(change_crs, obj)
 
 _missing_conversion_method(crsₒ, crsᵢ) = throw(ArgumentError("No conversion is defined to go from an input CRS of type `$(typeof(crsᵢ))` to an output CRS of type `$(typeof(crsₒ))`.\nConsider adding a specific method to `SatcomCoordinates.transform_tuplecoords` to support this conversion if necessary."))
 

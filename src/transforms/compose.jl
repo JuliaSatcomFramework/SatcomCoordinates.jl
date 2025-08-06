@@ -6,6 +6,7 @@ Compose the transforms `t1`, `t2`, `ts...` as if they were applied in argument o
 compose(t1::Transform, ts::Transform...) = foldl(_compose, ts; init = t1)
 
 function _compose(t1::Transform, t2::Transform)
+    Base.@assume_effects :foldable
     t1 isa Identity && return t2
     t2 isa Identity && return t1
     israwtransform(t1) && israwtransform(t2) || throw(ArgumentError("The generic `_compose` method only works for raw transforms.\nYou need to implement a custom method for `SatcomCoordinates._compose` to support the composition of the provided transforms $(typeof(t1)) and $(typeof(t2))."))
