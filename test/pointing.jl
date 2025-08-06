@@ -1,36 +1,38 @@
 @testsnippet setup_pointing begin
-    using SatcomCoordinates: numbertype, raw_svector, svector_size
+    using SatcomCoordinates
+    using SatcomCoordinates: tuplecoords, ncoords, AngularPointingToDirectionCosines, DirectionCosinesToAngularPointing, ncoords_in, ncoords_out
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
     using SatcomCoordinates.BasicTypes
+    using SatcomCoordinates.TransformsBase: isinvertible, isrevertible, TransformsBase, inverse
+    using Test
     using TestAllocations
 end
 
-@testitem "PointingVersor" setup=[setup_pointing] begin
-    p = PointingVersor(rand(3)...)
-    @test norm(raw_svector(p)) ≈ 1
+@testitem "DirectionCosines" setup=[setup_pointing] begin
+    p = DirectionCosines(rand(3)...)
+    @test hypot(tuplecoords(p)...) ≈ 1
 
-    @test svector_size(PointingVersor) == 3 == svector_size(first(fieldtypes(PointingVersor{Float64})))
+    @test ncoords(DirectionCosines) == 3 == length(p |> tuplecoords)
 
-    @test_throws "is not a valid property" rand(PointingVersor).q
+    @test_throws "is not a valid property" rand(DirectionCosines()).q
 
     # Specifying numbertype
-    p = PointingVersor{Float32}(rand(3)...)
-    @test numbertype(p) == Float32
+    @test valuetype(p) == Float64
     # Test that default numbertype is Float64
-    @test numbertype(PointingVersor(1,2,3)) == Float64
+    @test change_valuetype(Float32, p) |> valuetype == Float32
     # Test various constructors
-    @test PointingVersor(1,2,3) == PointingVersor((1,2,3)) == PointingVersor(SVector{3,Float64}(1,2,3))
+    @test DirectionCosines(1,2,3) == DirectionCosines((1,2,3)) == DirectionCosines(SVector{3,Float64}(1,2,3))
     # Test different types
-    p = PointingVersor((0.0, 0, 1f0))
+    p = DirectionCosines((0.0, 0, 1f0))
     @test p.z == 1.0 && p.z isa Float64
 
-    @test raw_svector(-p) == -raw_svector(p)
+    @test map(-, tuplecoords(p)) == tuplecoords(-p)
 
     # Test some randomness properties
     @testset "rand" begin
         NPTS = 1000
-        v = rand(PointingVersor, NPTS)
+        v = rand(DirectionCosines(), NPTS)
         @test .4 * NPTS < count(p -> p.x > 0, v) < .6 * NPTS
         @test .4 * NPTS < count(p -> p.y > 0, v) < .6 * NPTS
         @test .4 * NPTS < count(p -> p.z > 0, v) < .6 * NPTS
@@ -46,14 +48,14 @@ end
     end
 
     @testset "Allocations" begin
-        @test @nallocs(PointingVersor(1,2,3)) == 0
-        @test @nallocs(PointingVersor(SVector(1f0,2f0,3f0))) == 0
-        @test @nallocs(PointingVersor((1,2,3f0))) == 0
-        @test @nallocs(PointingVersor{Float32}(1,2,3)) == 0
+        @test @nallocs(DirectionCosines(1,2,3)) == 0
+        @test @nallocs(DirectionCosines(SVector(1f0,2f0,3f0))) == 0
+        @test @nallocs(DirectionCosines((1,2,3f0))) == 0
+        @test @nallocs(DirectionCosines(1,2,3) |> change_valuetype(Float32)) == 0
 
-        p = rand(PointingVersor)
+        p = rand(DirectionCosines())
         # Check that custom getproperty does not allocate
-        f(p) = (p.x, p.y, p.z)
+        f(p) = (p.u, p.v, p.w)
         @test @nallocs(f(p)) == 0
     end
 end
@@ -61,10 +63,10 @@ end
 @testitem "UV" setup=[setup_pointing] begin
     using SatcomCoordinates: UV_CONSTRUCTOR_TOLERANCE
     uv = UV(0,0)
-    @test numbertype(uv) == Float64
-    @test svector_size(UV) == 2
-    
-    @test numbertype(UV{Float32}(1,0)) == Float32
+    @test valuetype(uv) == Float64
+    @test ncoords(UV) == 2
+
+    @test change_valuetype(Float32, uv) |> valuetype == Float32
 
     @test UV(sqrt(1 + 1e-5), 0).u == 1
     @test_throws "tolerance" UV(sqrt(1+1.1e-5), 0)
@@ -79,7 +81,7 @@ end
     # Test randomness
     @testset "rand" begin
         NPTS = 1000
-        v = rand(UV, NPTS)
+        v = rand(UV(), NPTS)
         @test .4 * NPTS < count(p -> p.u > 0, v) < .6 * NPTS
         @test .4 * NPTS < count(p -> p.v > 0, v) < .6 * NPTS
 
@@ -93,7 +95,7 @@ end
     # Test allocations
     @testset "Allocations" begin
         @test @nallocs(UV(1,0)) == 0
-        @test @nallocs(UV{Float32}(1,0)) == 0
+        @test @nallocs(UV(1,0) |> change_valuetype(Float32)) == 0
         @test @nallocs(UV(((1,0)))) == 0
         @test @nallocs(UV(SVector(1,0))) == 0
     end
@@ -101,19 +103,20 @@ end
 
 @testitem "ThetaPhi" setup=[setup_pointing] begin
     tp = ThetaPhi(0,0)
-    @test svector_size(ThetaPhi) == 2
-    @test numbertype(tp) == Float64
+    @test tp isa Coordinate{<:ThetaPhi}
+    @test ncoords(ThetaPhi) == 2
+    @test valuetype(tp) == Float64
     @test tp.θ == 0°
     @test tp.φ == 0°
     @test tp.θ isa Deg{Float64}
     @test tp.φ isa Deg{Float64}
 
-    @test_throws "is not a valid property" rand(ThetaPhi).q
+    @test_throws "is not a valid property" rand(ThetaPhi()).q
 
-    tp = ThetaPhi{Float32}(1,0)
-    @test numbertype(tp) == Float32
+    tp = ThetaPhi(1,0) |> change_valuetype(Float32)
+    @test valuetype(tp) == Float32
     @test tp.θ isa Deg{Float32}
-    @test tp.θ ≈ 1° atol = 1e-6 # We need tolerance as we go store in rad and get deg back from getproperty
+    @test tp.θ ≈ 1° 
 
     @test ThetaPhi(1,0) == ThetaPhi((1,0)) == ThetaPhi(SVector(1,0)) 
 
@@ -127,13 +130,13 @@ end
     @test tp.φ ≈ 150°
 
     tp = ThetaPhi(100, 130) # No wrapping
-    @test tp.θ ≈ 100°
-    @test tp.φ ≈ 130°
+    @test tp.theta ≈ 100° # We also use the alias for theta
+    @test tp.phi ≈ 130° # We also use the alias for phi
 
     # Test some randomness
     @testset "rand" begin
         NPTS = 1000
-        v = rand(ThetaPhi, NPTS)
+        v = rand(ThetaPhi(), NPTS)
         @test .4 * NPTS < count(p -> p.θ > 90°, v) < .6 * NPTS
         @test .4 * NPTS < count(p -> p.φ > 0°, v) < .6 * NPTS
 
@@ -147,17 +150,17 @@ end
     # Allocations
     @testset "Allocations" begin
         @test @nallocs(ThetaPhi(1,0)) == 0
-        @test @nallocs(ThetaPhi{Float32}(1,0)) == 0
+        @test @nallocs(ThetaPhi(1,0) |> change_valuetype(Float32)) == 0
         @test @nallocs(ThetaPhi(((1,0)))) == 0
         @test @nallocs(ThetaPhi(SVector(1,0))) == 0
 
-        f(tp) = (tp.θ, tp.φ)
+        f(tp) = (tp.t, tp.p)
         @test @nallocs(f(tp)) == 0
     end
 
     @testset "expected_angles" begin
         # Test expected angle signs
-        function expected_angles(tp::ThetaPhi, p::PointingVersor)
+        function expected_angles(tp::Coordinate{<:ThetaPhi}, p::Coordinate{<:DirectionCosines})
             valid_theta = if p.z >= 0
                 0° <= tp.θ < 90°
             else
@@ -182,8 +185,8 @@ end
         end
         npts = 100
         for _ in 1:npts
-            p = rand(PointingVersor)
-            tp = convert(ThetaPhi, p)
+            p = rand(DirectionCosines())
+            tp = change_crs(ThetaPhi(), p)
             @test expected_angles(tp, p)
         end
     end
@@ -191,14 +194,15 @@ end
 
 @testitem "AzOverEl/ElOverAz/AzEl" setup=[setup_pointing] begin
     for P in (AzOverEl, ElOverAz, AzEl)
-        @test svector_size(P) == 2
+        @test ncoords(P) == 2
         p = P(1,2)
-        @test numbertype(p) == Float64
+        @test p isa Coordinate{<:P}
+        @test valuetype(p) == Float64
         @test p.az == 1°
         @test p.el == 2°
         @test p.az isa Deg{Float64}
 
-        @test_throws "is not a valid property" rand(P).q
+        @test_throws "is not a valid property" rand(P()).q
 
         # Test constructors with tuple or SVector
         @test P(1,2) == P((1,2)) == P(SVector(1,2))
@@ -218,7 +222,7 @@ end
         # Test some randomness
         @testset "rand" begin
             NPTS = 1000
-            v = rand(P, NPTS)
+            v = rand(P(), NPTS)
             @test .4 * NPTS < count(p -> p.az > 0, v) < .6 * NPTS
             @test .4 * NPTS < count(p -> p.el > 0, v) < .6 * NPTS
 
@@ -228,10 +232,9 @@ end
             @test 85° ≤ maximum(p -> p.el, v) ≤ 90°
             @test -90° ≤ minimum(p -> p.el, v) ≤ -85°
         end
-
-        # Allocations
     end
     @testset "Allocations" begin
+        # We need to separate per type here to avoid phantom allocations when shadowing the type with a variable (e.g. `P = ElOverAz`)
         @test @nallocs(ElOverAz(1,0)) == 0
         @test @nallocs(ElOverAz(1f0,0f0)) == 0
         @test @nallocs(ElOverAz((1,0))) == 0
@@ -250,7 +253,7 @@ end
 
     @testset "AzOverEl expected_angles" begin
         # Test expected angle signs
-        function expected_angles(x::AzOverEl, p::PointingVersor)
+        function expected_angles(x::Coordinate{<:AzOverEl}, p::Coordinate{<:DirectionCosines})
             valid_el = if p.z >= 0
                 if p.y >= 0
                     0° <= x.el <= 90°
@@ -283,15 +286,15 @@ end
         end
         npts = 100
         @test all(1:npts) do _
-            x = rand(AzOverEl)
-            p = convert(PointingVersor, x)
+            x = rand(AzOverEl())
+            p = change_crs(DirectionCosines(), x)
             expected_angles(x, p)
         end
     end
 
     @testset "ElOverAz expected_angles" begin
         # Test expected angle signs
-        function expected_angles(x::ElOverAz, p::PointingVersor)
+        function expected_angles(x::Coordinate{<:ElOverAz}, p::Coordinate{<:DirectionCosines})
             valid_el = if p.y >= 0
                 0° <= x.el <= 90°
             else
@@ -316,15 +319,15 @@ end
         end
         npts = 100
         @test all(1:npts) do _
-            x = rand(ElOverAz)
-            p = convert(PointingVersor, x)
+            x = rand(ElOverAz())
+            p = change_crs(DirectionCosines(), x)
             expected_angles(x, p)
         end
     end
 
     @testset "AzEl expected_angles" begin
         # Test expected angle signs
-        function expected_angles(x::AzEl, p::PointingVersor)
+        function expected_angles(x::Coordinate{<:AzEl}, p::Coordinate{<:DirectionCosines})
             valid_el = if p.z >= 0
                 0° <= x.el <= 90°
             else
@@ -349,58 +352,88 @@ end
         end
         npts = 100
         @test all(1:npts) do _
-            x = rand(AzEl)
-            p = convert(PointingVersor, x)
+            x = rand(AzEl())
+            p = change_crs(DirectionCosines(), x)
             expected_angles(x, p)
         end
     end
 end
 
 @testitem "Pointing Negation" begin
-    p = rand(PointingVersor)
-    @test -p ≈ PointingVersor(-p.x, -p.y, -p.z)
+    p = rand(DirectionCosines())
+    @test -p ≈ DirectionCosines(-p.u, -p.v, -p.w)
     for P in (AzEl, AzOverEl, ElOverAz, ThetaPhi)
         @test all(1:100) do _
-            ap = rand(P)
-            convert(PointingVersor, -ap) ≈ -convert(PointingVersor, ap)
+            ap = rand(P())
+            change_crs(DirectionCosines(), -ap) ≈ -change_crs(DirectionCosines(), ap)
         end
     end
 end
 
 @testitem "isapprox/convert" setup=[setup_pointing] begin
-    types = (PointingVersor, ThetaPhi, AzOverEl, ElOverAz, UV, AzEl)
+    types = (DirectionCosines, ThetaPhi, AzOverEl, ElOverAz, UV, AzEl)
     for P in types
-        p = rand(P)
-        pNaN = P(Val{NaN}())
+        p = rand(P())
+        pNaN = P(ntuple(i -> NaN, ncoords(P())))
         @test isnan(pNaN)
-        @test convert(P{Float32}, p) |> numbertype == Float32
-        @test convert(P{Float64}, p) === p
         for V in setdiff(types, (P, UV)) # We skip UV due to half-hemisphere errors
-            v = convert(V, p)
+            v = change_crs(V(), p)
             @test v ≈ p # Test forward conversion
-            @test convert(P, v) ≈ p # Test reverse conversion
+            @test change_crs(P(), v) ≈ p # Test reverse conversion
+            @test @nallocs(change_crs(P(), v)) == 0
         end
         for V in setdiff(types, (P,)) # We skip UV due to half-hemisphere errors
             # We test that NaNs are progagated
-            @test isnan(convert(V, pNaN))
+            @test isnan(change_crs(V(), pNaN))
+            @test @nallocs(change_crs(V(), pNaN)) == 0
         end
     end
 
     for P in setdiff(types, (UV,))
-        p = convert(P, PointingVersor(0,0,-1))
-        @test_throws "half-hemisphere" convert(UV, p)
+        p = change_crs(P(), DirectionCosines(0,0,-1))
+        @test_throws "half-hemisphere" change_crs(UV(), p)
     end
 
     @testset "AzEl <-> ThetaPhi" begin
         @test all(1:100) do _
-            tp = rand(ThetaPhi)
-            p = convert(PointingVersor, tp)
-            ae = convert(AzEl, tp)
+            tp = rand(ThetaPhi())
+            p = change_crs(DirectionCosines(), tp)
+            ae = change_crs(AzEl(), tp)
             fwd_valid =  ae ≈ p
-            tp′ = convert(ThetaPhi, ae)
+            tp′ = change_crs(ThetaPhi(), ae)
             rtn_valid = tp′ ≈ tp
             wrap_valid = -180° <= ae.az <= 180° && -180° <= tp.φ <= 180°
             return fwd_valid && rtn_valid && wrap_valid
         end
+    end
+
+    @testset "Cartesian to Pointing" begin
+        p = Cartesian(rand(2)..., rand())
+        for P in (AzEl, AzOverEl, ElOverAz, ThetaPhi, UV)
+            pt_crs = P()
+            sph = change_crs(SphericalCRS(pt_crs), p)
+            change_crs(pt_crs, p) ≈ change_crs(pt_crs, sph)
+        end
+        @test SVector(Raw(change_crs(DirectionCosines(), p))) ≈ normalize(SVector(Raw(p)))
+    end
+
+    @test getcrstype(pointingcrs, DirectionCosines()) == typeof(DirectionCosines()) == pointingcrs(typeof(DirectionCosines()))
+
+    @test_throws "not possible" getcrstransform(linkedcrs, DirectionCosines())
+
+    # Remaining Coverage
+    for P in (AzEl, AzOverEl, ElOverAz, ThetaPhi, UV)
+        dc = DirectionCosines()
+        pt = P()
+        t = AngularPointingToDirectionCosines{P}()
+        it = DirectionCosinesToAngularPointing{P}()
+        @test inverse(t) == it
+        @test inverse(it) == t
+        @test isinvertible(t)
+        @test isrevertible(t)
+        @test isinvertible(it)
+        @test isrevertible(it)
+        @test ncoords_in(t) == ncoords_out(it) != ncoords_out(t)
+        @test ncoords_in(it) == ncoords_out(t) != ncoords_in(t)
     end
 end

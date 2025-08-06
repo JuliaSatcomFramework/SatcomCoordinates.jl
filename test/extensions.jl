@@ -1,93 +1,73 @@
 @testsnippet setup_extensions begin
     using SatcomCoordinates
-    using SatcomCoordinates: raw_properties, raw_svector
+    using SatcomCoordinates: tuplecoords
+    using SatcomCoordinates.StaticArrays
     using Test
     using TestAllocations
 end
 
-@testitem "SatelliteToolboxBase Extension" setup=[setup_extensions] begin
-    using SatelliteToolboxBase: SatelliteToolboxBase, Ellipsoid, WGS84_ELLIPSOID
-    
-    e = Ellipsoid(6371e3, 0)
-    @test e isa Ellipsoid{Float64}
-    @test change_numbertype(Float32, e) isa Ellipsoid{Float32}
-    @test change_numbertype(Float64, e) === e
-
-    @testset "Allocations" begin
-        @test @nallocs(change_numbertype($Float32, e)) == 0
-        @test @nallocs(change_numbertype($Float64, e)) == 0
-    end
-end
-
 @testitem "SatelliteToolboxTransformations Extension" setup=[setup_extensions] begin
-    using SatelliteToolboxBase: Ellipsoid, WGS84_ELLIPSOID
-    using SatelliteToolboxTransformations: geodetic_to_ecef, ecef_to_geodetic
-
-    e = Ellipsoid(6371e3, 0)
-
-    # Test default WGS84_ELLIPSOID
-    @test geodetic_to_ecef(rand(LLA{Float64})) isa ECEF{Float64}
-    @test geodetic_to_ecef(rand(LLA{Float32})) isa ECEF{Float32}
-
-    @test ecef_to_geodetic(rand(ECEF{Float64})) isa LLA{Float64}
-    @test ecef_to_geodetic(rand(ECEF{Float32})) isa LLA{Float32}
-
-    # Test with custom ellipsoid
-    @test geodetic_to_ecef(rand(LLA{Float64}), ellipsoid=e) isa ECEF{Float64}
-    @test geodetic_to_ecef(rand(LLA{Float32}), ellipsoid=e) isa ECEF{Float32}
-
-    @test ecef_to_geodetic(rand(ECEF{Float64}), ellipsoid=e) isa LLA{Float64}
-    @test ecef_to_geodetic(rand(ECEF{Float32}), ellipsoid=e) isa LLA{Float32}
-
-    # Some test for specific values
-    ecef = geodetic_to_ecef(LLA(0,0,0)) |> raw_svector
-    @test ecef ≈ [WGS84_ELLIPSOID.a, 0, 0]
-
-    ecef = geodetic_to_ecef(LLA(90,0,0)) |> raw_svector
-    @test ecef ≈ [0, 0, WGS84_ELLIPSOID.b]
+    using SatelliteToolboxTransformations
 
     # Test some random fwd and rtn equivalence
     @test all(1:100) do _
-        lla = rand(LLA)
-        ecef = geodetic_to_ecef(lla)
-        lla′ = ecef_to_geodetic(ecef)
+        lla = rand(LLA())
+        ecef = change_crs(ECEF(), lla)
+        lla′ = change_crs(LLA(), ecef)
         lla ≈ lla′
     end
 
     @testset "Allocations" begin
-        @test @nallocs(geodetic_to_ecef(rand(LLA{Float64}))) == 0
-        @test @nallocs(geodetic_to_ecef(rand(LLA{Float32}))) == 0
-
-        @test @nallocs(geodetic_to_ecef(rand(LLA{Float64}); ellipsoid=e)) == 0
-        @test @nallocs(geodetic_to_ecef(rand(LLA{Float32}); ellipsoid=e)) == 0
-
-        @test @nallocs(ecef_to_geodetic(rand(ECEF{Float64}))) == 0
-        @test @nallocs(ecef_to_geodetic(rand(ECEF{Float32}))) == 0
-
-        @test @nallocs(ecef_to_geodetic(rand(ECEF{Float64}); ellipsoid=e)) == 0
-        @test @nallocs(ecef_to_geodetic(rand(ECEF{Float32}); ellipsoid=e)) == 0
+        @test @nallocs(change_crs(ECEF(), rand(LLA()))) == 0
+        @test @nallocs(change_crs(LLA(), rand(ECEF()))) == 0
     end
-end
 
-@testitem "CountriesBorders Extension" setup=[setup_extensions] begin
-    using SatcomCoordinates: SatcomCoordinates, Deg
-    using CountriesBorders: CountriesBorders, LATLON, LatLon, extract_countries
+    e = Ellipsoid(6371e3, 0)
 
-    lla_rome = LLA(41.9°, 12.5°, 0km)
-    lla_madrid = LLA(40.416°, -3.703°)
+    ellparams = ellipsoidparams(e)
+    @test ellparams.b ≈ ellparams.a
 
-    ll_rome = LatLon(lla_rome)
-    @test ll_rome.lat ≈ change_numbertype(Float32, lla_rome).lat
-    @test ll_rome.lon ≈ change_numbertype(Float32, lla_rome).lon
+    # We test that if we use the Ellipsoid directly as an ID, we don't get equivalent ECEF over the pole
+    sph_ecef = ECEF(e)
+    sph_lla = LLA(sph_ecef)
 
-    ll_rome_F64 = convert(LATLON{Float64}, lla_rome)
-    @test ll_rome_F64.lat ≈ lla_rome.lat
-    @test ll_rome_F64.lon ≈ lla_rome.lon
+    npole = sph_lla(90, 0, 0)
+    
+    # Simple approx errors because the CRSs are different
+    @test_throws "only works between CRSs that are equivalent" change_crs(ECEF(), LLA(90,0,0)) ≉ change_crs(sph_ecef, npole)
 
-    @test LLA(ll_rome_F64) ≈ lla_rome
+    sph_ecef_npole = change_crs(sph_ecef, npole)
+    ecef_npole = change_crs(ECEF(), LLA(90,0,0))
 
-    dmn = extract_countries("italy")
+    @test Raw(sph_ecef_npole).z ≈ e.a
+    @test Raw(ecef_npole).z < e.a - 10e3  # More than 10km off as this is based on WGS84
 
-    @test lla_rome in dmn
-    @test lla_madrid ∉ dmn
+    # We test now conversion between ECEF and ECI
+    ecef = change_crs(ECEF(), LLA(0,0,1200km))
+
+    # We compute the rotation matrix directly using the SatelliteToolboxTransformations package
+    eop = fetch_iers_eop()
+    jd_utc = 0
+    R = r_eci_to_ecef(Val{:J2000}(), Val{:ITRF}(), jd_utc, eop)
+
+    # We test that we can convert directly 
+    eci_direct = change_crs(ECI(), ecef; R_eci_to_ecef = R)
+    # Alternatively, we can have the code call the function from SatelliteToolboxTransformations to compute the rotation based on jd_utc and eop_data
+    eci_indirect = change_crs(ECI(), ecef; jd_utc, eop_data = eop)
+    @test eci_direct ≈ eci_indirect
+
+    # We also test with the direct output of SatelliteToolbox
+    v = a = zero(SVector{3})
+    p = tuplecoords(ecef) |> SVector
+    sv = OrbitStateVector(jd_utc, tuplecoords(ecef) |> SVector, v, a)
+    sv_eci = sv_ecef_to_eci(sv, ITRF(), J2000(), eop)
+    eci_sv = tuplecoords(eci_direct) |> SVector
+    @test sv_eci.r ≈ eci_sv
+
+    # We test errors of the eci_to_ecef_rotation
+    @test_throws "supplying the correct" change_crs(ECI(), ECEF()(1,2,3); jd_utc)
+
+    # We test that it works for formats that support not providing eop data
+    ecef = change_crs(ECEF(), ECI()(1,2,3); jd_utc, ecef_frame = Val{:PEF}())
+    @test ecef isa Coordinate{<:ECEF}
 end

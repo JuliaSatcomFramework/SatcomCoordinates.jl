@@ -1,64 +1,93 @@
 module SatcomCoordinates
 
-using BasicTypes: BasicTypes, constructor_without_checks, to_degrees, to_meters, Met, Deg, Rad, UnitfulAngleQuantity, ValidAngle, Point2D, Point3D, Point, PS, ValidDistance, to_radians, basetype, asdeg, stripdeg, Length
-using ConstructionBase: ConstructionBase, getproperties, getfields
+using BasicTypes: BasicTypes, constructor_without_checks, to_degrees, to_meters, Met, Deg, Rad, UnitfulAngleQuantity, ValidAngle, Point2D, Point3D, Point, PS, ValidDistance, to_radians, asdeg, stripdeg, Length, enforce_unit, enforce_unitless, valuetype, change_valuetype, common_valuetype, promote_valuetype, getproperty_oftype, basetype, bypass_bottom, Optional, NotProvided, @fallback, fieldname_oftype, FIELDNAME_NOT_FOUND_SYMBOL, NotFound
+using ConstructionBase: ConstructionBase, getproperties, getfields, constructorof
 using StaticArrays: StaticArrays, FieldVector, SVector, @SVector, SA, StaticMatrix, StaticVector
 using LinearAlgebra: LinearAlgebra, normalize, norm
 using PlutoShowHelpers: PlutoShowHelpers, DefaultShowOverload, HideWhenCompact, DualDisplayAngle, DisplayLength, InsidePluto, OutsidePluto, HideWhenFull, Ellipsis, repl_summary, shortname, longname, show_namedtuple
 using Random: Random, SamplerType, AbstractRNG
-using Rotations: Rotations, Rotation, nearest_rotation, RotMatrix3
+using Rotations: Rotations, Rotation, nearest_rotation, RotMatrix, RotMatrix3
 using TransformsBase: TransformsBase, Transform, Identity, isinvertible, isrevertible, inverse, apply
 using Unitful: Unitful, Quantity, ustrip, rad, @u_str, °, km, Units, NoUnits
 
 # From deps
 export °, km, @u_str # From Unitful
-export to_degrees, to_meters # From BasicTypes
 export Identity # From TransformsBase
 
-include("types/abstract_types.jl")
-export AbstractSatcomCoordinate, AngularPointing, AbstractPointing, AbstractCRSTransform, AbstractFieldValue, AbstractPosition
-public AbstractPointingOffset
+include("define_properties.jl")
+public @define_properties
 
-include("types/traits.jl")
+include("abstract_types.jl")
+export AbstractCRS, AbstractPointingCRS, AbstractSatcomCoordinate, AbstractCRSTransform, AbstractLinkedCRS
 
-include("types/pointing.jl")
-export PointingVersor, UV, ThetaPhi, AzEl, AzOverEl, ElOverAz
+include("traits.jl")
+export hascrstrait, traitcrs, rootcrs, linkedcrs, cartesiancrs
 
-include("types/pointing_offsets.jl") 
-public PointingOffset
+include("coordinates.jl")
+export Pointing, Coordinate, change_crs
 
-include("types/geocentric.jl") 
-export ECEF, ECI, LLA 
+include("transforms/rawaffine.jl")
+export RawAffineTransform, RawRotation, RawTranslation
 
-include("types/topocentric.jl") 
-export ENU, NED, AER 
+include("transforms/rawcomposed.jl")
 
-include("types/local.jl") 
-export LocalCartesian, GeneralizedSpherical 
+include("transforms/crstransform.jl")
+export CRSTransform
 
-include("types/transforms.jl") 
-export CRSRotation, BasicCRSTransform, InverseTransform 
+include("transforms/compose.jl")
+export compose
 
-include("types/type_aliases.jl") 
-export Spherical, AzElDistance
+include("transforms/traits.jl")
+export isaffinetransform, israwtransform
 
-include("functions/traits.jl")
+include("raw.jl")
+export Raw
 
-include("functions/pointing.jl")
-include("functions/pointing_offsets.jl")
-export get_angular_distance, get_angular_offset, add_angular_offset
+include("pointing/types.jl")
+export UV, ThetaPhi, AzEl, AzOverEl, ElOverAz, DirectionCosines
 
-include("functions/geocentric.jl")
-include("functions/topocentric.jl")
-include("functions/local.jl")
-include("functions/transforms.jl")
-public origin, rotation
+include("pointing/constructors.jl")
 
-include("functions/fieldvalues.jl")
+include("pointing/transforms.jl")
 
-include("utils.jl")
-export numbertype, enforce_numbertype, has_numbertype, change_numbertype, default_numbertype, raw_properties, raw_svector, raw_properties
+include("pointing/misc.jl")
 
-include("functions/fallbacks.jl")
+include("pointing/traits.jl")
+export pointingcrs
+
+include("cartesian.jl")
+export Cartesian, AffineCartesian
+
+include("spherical.jl")
+export SphericalCRS
+
+include("geocentric/basics.jl")
+export frameid, ellipsoidparams, EarthDefault
+
+include("geocentric/ecef.jl")
+export ECEF
+
+include("geocentric/eci.jl")
+export ECI
+
+include("geocentric/lla.jl")
+export LLA
+
+include("geocentric/transforms.jl")
+
+include("geocentric/traits.jl")
+export ecefcrs, ecicrs, llacrs
+
+include("topocentric.jl")
+export NED, ENU, AER, ecef_origin, lla_origin, topocrs
+
+include("helpers.jl")
+export change_crs
+
+include("getters.jl")
+export getcrs, getcrstype, getcrstransform_raw, getcrstransform
+
+include("deps_interface.jl")
+
 
 end # module SatComCoordinates

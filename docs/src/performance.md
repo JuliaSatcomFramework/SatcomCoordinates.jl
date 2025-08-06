@@ -3,12 +3,12 @@
 ```@example asd
 using PrettyChairmarks
 using SatcomCoordinates
-uv = rand(UV)
-# We convert from UV instead of doing all rand to avoid error for the limited domain of UV
-tp = convert(ThetaPhi, uv)
-el_az = convert(ElOverAz, uv)
-az_el = convert(AzOverEl, uv)
-pv = convert(PointingVersor, uv)
+uv = rand(UV())
+# We change_crs from UV instead of doing all rand to avoid error for the limited domain of UV
+tp = change_crs(ThetaPhi(), uv)
+el_az = change_crs(ElOverAz(), uv)
+az_el = change_crs(AzOverEl(), uv)
+pv = change_crs(DirectionCosines(), uv)
 ```
 
 ## Construction
@@ -28,9 +28,9 @@ pv = convert(PointingVersor, uv)
 ```@example asd
 @bs Tuple(rand(2)) AzOverEl(_...)
 ```
-### PointingVersor
+### DirectionCosines
 ```@example asd
-@bs Tuple(rand(3)) PointingVersor(_...)
+@bs Tuple(rand(3)) DirectionCosines(_...)
 ```
 ### ECEF
 ```@example asd
@@ -46,74 +46,74 @@ pv = convert(PointingVersor, uv)
 ```
 
 ## Conversions
-### From PointingVersor
+### From DirectionCosines
 ```@example asd
-@bs convert(UV, $pv)
+@bs change_crs(UV(), $pv)
 ```
 ```@example asd
-@bs convert(ThetaPhi, $pv)
+@bs change_crs(ThetaPhi(), $pv)
 ```
 ```@example asd
-@bs convert(ElOverAz, $pv)
+@bs change_crs(ElOverAz(), $pv)
 ```
 ```@example asd
-@bs convert(AzOverEl, $pv)
+@bs change_crs(AzOverEl(), $pv)
 ```
 
 ### from UV
 ```@example asd
-@bs convert(ThetaPhi, $uv)
+@bs change_crs(ThetaPhi(), $uv)
 ```
 ```@example asd
-@bs convert(ElOverAz, $uv)
+@bs change_crs(ElOverAz(), $uv)
 ```
 ```@example asd
-@bs convert(AzOverEl, $uv)
+@bs change_crs(AzOverEl(), $uv)
 ```
 ```@example asd
-@bs convert(PointingVersor, $uv)
+@bs change_crs(DirectionCosines(), $uv)
 ```
 
 ### from ThetaPhi
 ```@example asd
-@bs convert(UV, $tp)
+@bs change_crs(UV(), $tp)
 ```
 ```@example asd
-@bs convert(ElOverAz, $tp)
+@bs change_crs(ElOverAz(), $tp)
 ```
 ```@example asd
-@bs convert(AzOverEl, $tp)
+@bs change_crs(AzOverEl(), $tp)
 ```
 ```@example asd
-@bs convert(PointingVersor, $tp)
+@bs change_crs(DirectionCosines(), $tp)
 ```
 
 ### from ElOverAz
 ```@example asd
-@bs convert(UV, $el_az)
+@bs change_crs(UV(), $el_az)
 ```
 ```@example asd
-@bs convert(ThetaPhi, $el_az)
+@bs change_crs(ThetaPhi(), $el_az)
 ```
 ```@example asd
-@bs convert(AzOverEl, $el_az)
+@bs change_crs(AzOverEl(), $el_az)
 ```
 ```@example asd
-@bs convert(PointingVersor, $el_az)
+@bs change_crs(DirectionCosines(), $el_az)
 ```
 
 ### from AzOverEl
 ```@example asd
-@bs convert(UV, $az_el)
+@bs change_crs(UV(), $az_el)
 ```
 ```@example asd
-@bs convert(ThetaPhi, $az_el)
+@bs change_crs(ThetaPhi(), $az_el)
 ```
 ```@example asd
-@bs convert(ElOverAz, $az_el)
+@bs change_crs(ElOverAz(), $az_el)
 ```
 ```@example asd
-@bs convert(PointingVersor, $az_el)
+@bs change_crs(DirectionCosines(), $az_el)
 ```
 
 ## Utilities
@@ -131,7 +131,7 @@ pv = convert(PointingVersor, uv)
 @bs Tuple(rand(AzOverEl, 2)) get_angular_distance(_...)
 ```
 ```@example asd
-@bs Tuple(rand(PointingVersor, 2)) get_angular_distance(_...)
+@bs Tuple(rand(DirectionCosines, 2)) get_angular_distance(_...)
 ```
 ### get_angular_offset
 ```@example asd
@@ -147,7 +147,7 @@ pv = convert(PointingVersor, uv)
 @bs Tuple(rand(AzOverEl, 2)) get_angular_offset(_...)
 ```
 ```@example asd
-@bs Tuple(rand(PointingVersor, 2)) get_angular_offset(_...)
+@bs Tuple(rand(DirectionCosines, 2)) get_angular_offset(_...)
 ```
 ### add_angular_offset
 ```@example asd
@@ -164,5 +164,5 @@ pv = convert(PointingVersor, uv)
 @bs (rand(AzOverEl), rand(ThetaPhi)) add_angular_offset(_...)
 ```
 ```@example asd
-@bs (rand(PointingVersor), rand(ThetaPhi)) add_angular_offset(_...)
+@bs (rand(DirectionCosines), rand(ThetaPhi)) add_angular_offset(_...)
 ```

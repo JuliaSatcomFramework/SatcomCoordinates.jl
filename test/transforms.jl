@@ -1,116 +1,172 @@
-@testsnippet setup_transforms begin
+@testsnippet setup_transforms begin 
     using SatcomCoordinates
-    using SatcomCoordinates: numbertype, raw_svector, raw_properties, @u_str, has_pointingtype, pointing_type, rotation, origin, AbstractCRSRotation
+    using SatcomCoordinates: tuplecoords, ncoords, coords, RawComposedTransform, ncoords_in, ncoords_out
     using SatcomCoordinates.LinearAlgebra
     using SatcomCoordinates.StaticArrays
-    using SatcomCoordinates.BasicTypes
     using SatcomCoordinates.Rotations
-    using SatcomCoordinates.TransformsBase: TransformsBase, inverse, parameters, Identity, isinvertible, isrevertible, →
+    using SatcomCoordinates.BasicTypes
+    using SatcomCoordinates.TransformsBase: TransformsBase, identity, inverse, isinvertible, isrevertible, apply
+    using SatcomCoordinates.PlutoShowHelpers
+    using SatelliteToolboxTransformations
+    using Test
     using TestAllocations
-
-    apply(t, args...) = TransformsBase.apply(t, args...) |> first
-    apply(t) = Base.Fix1(apply, t)
 end
 
-@testitem "CRS Transforms" setup=[setup_transforms] begin
-    @test rand(CRSRotation) isa CRSRotation{Float64}
-    @test rand(CRSRotation{Float32}) isa CRSRotation{Float32}
+@testitem "getcrstransform" setup=[setup_transforms] begin
+    # We first create a NED CRS at a specific location above Earth
+    enu_crs = ENU(LLA(0, 0, 1200km))
 
-    @test rand(BasicCRSTransform) isa BasicCRSTransform{Float64}
-    @test rand(BasicCRSTransform{Float32}) isa BasicCRSTransform{Float32}
+    # We then create a Spherical CRS (AzEl) that is linked to the ENU CRS. This is a double nested CRS as it's itself based on a ENU which is based on an ECEF CRS.
+    aer_crs = SphericalCRS(AzEl(enu_crs))
 
-    p = rand(LocalCartesian)
+    @test getcrs(linkedcrs, aer_crs) == enu_crs # The linked CRS is the one immediately below the provided CRS, which is the ENU CRS
 
-    R = rand(SMatrix{3, 3})
-    t = BasicCRSTransform(R, rand(LocalCartesian))
-    r = CRSRotation(R)
-    RotationNaN = (a = rand(3,3); a[1] = NaN; a) |> RotMatrix3 |> CRSRotation
+    @test getcrs(rootcrs, aer_crs) == ECEF() # The root CRS is the one at the bottom of the nested CRS, which is the ECEF CRS
 
-    @test !isnan(t)
-    @test !isnan(r)
-    @test isnan(RotationNaN)
-
-    AffineNaN = BasicCRSTransform(R, LocalCartesian(NaN, NaN, NaN))
-    @test isnan(AffineNaN)
+    # Extract the transformation towards the linked CRS (NED)
+    tlinked = getcrstransform(linkedcrs, aer_crs)
 
 
-    @test norm(R) ≉ norm(r.rotation) ≈ sqrt(3)
+    # 90° el, 10m distance is (0,0,10) in ENU
+    @test tlinked(aer_crs(0, 90, 10)) ≈ enu_crs(0, 0, 10) # The transformation is applied to the coordinate
 
-    @test rotation(r) === r
+    # We now extract the transformation towards the root CRS (ECEF)
+    troot = getcrstransform(rootcrs, aer_crs)
 
-    @test isrevertible(t)
-    @test isinvertible(t)
+    # Check that the origin is correctly transformed
+    @test troot(aer_crs(0, 90, 0)) ≈ ecef_origin(aer_crs)
 
-    nt = parameters(t |> rotation)
-    @test nt.rotation isa RotMatrix3
+end
 
-    nt = parameters(t)
-    @test nt.rotation === rotation(t)
-    @test nt.origin === origin(t)
+@testitem "RawAffineTransform" setup=[setup_transforms] begin
 
-    @test t === inverse(inverse(t))
-    @test inverse(rotation(t)) === rotation(inverse(t))
+    # We create a random rotation matrix
+    translation = SVector(10,0,0)
 
-    fwd = apply(t, p)
-    rvs = apply(inverse(t), fwd)
-    @test rvs ≈ p
+    # We create a random translation vector
+    rotation = RotZ(90u"°")
 
-    # Getproperty
-    i = inverse(t)
-    @test i.transform === t
-    @test i.rotation === t.rotation
-    @test i.origin === t.origin
+    rawrotation = RawRotation(rotation)
+    rawtranslation = RawTranslation(translation)
 
-    @test !isnan(i)
-    @test isnan(AffineNaN |> inverse)
+    @test isinvertible(rawrotation)
+    @test isrevertible(rawrotation)
 
-    @testset "Allocations" begin
-        @test @nallocs(apply(t, p)) == 0
-        @test @nallocs(apply(inverse(t), p)) == 0
-    end
+    # We test inversion of either pure rotation or pure translation will keep it pure
+    @test inverse(rawrotation) isa RawRotation
+    @test inverse(rawtranslation) isa RawTranslation
 
-    t = BasicCRSTransform(Identity(), zero(LocalCartesian))
-    @test rotation(t) === Identity() === rotation(Identity())
-    @test p ≈ apply(t, p)
+    @test rawrotation(SA_F64[0,0,10] |> Tuple) |> SVector ≈ SA_F64[0,0,10] # Rotating around Z doesn't do anything here
+    @test rawtranslation(SA_F64[0,0,10] |> Tuple) |> SVector ≈ SA_F64[10,0,10] # Rotating around Z doesn't do anything here
+end
 
-    r1, r2 = rand(CRSRotation, 2)
-    r3 = r1 → r2
-    p1 = p |> apply(r1) |> apply(r2)
-    p2 = p |> apply(r3)
-    @test p1 ≈ p2
+@testitem "RawComposedTransform" setup=[setup_transforms] begin
+    # We create a random rotation matrix
+    translation = SVector(10,0,0)
 
-    # Convert
-    @test convert(CRSRotation, r1) === r1
-    @test convert(CRSRotation{Float64}, r1) === r1
-    @test convert(CRSRotation{Float32}, r1) !== r1
+    # We create a random translation vector
+    rotation = RotZ(90u"°")
 
-    @test convert(BasicCRSTransform, t) === t
-    @test convert(BasicCRSTransform{Float64}, t) === t
-    @test convert(BasicCRSTransform{Float32}, t) !== t
+    rawrotation = RawRotation(rotation)
+    rawtranslation = RawTranslation(translation)
 
-    @test convert(InverseTransform, inverse(t)) === inverse(t)
-    @test convert(InverseTransform{Float64}, inverse(t)) === inverse(t)
-    @test convert(InverseTransform{Float32}, inverse(t)) !== inverse(t)
+    composed1 = RawComposedTransform(rawrotation, rawtranslation)
+    composed2 = RawComposedTransform(rawtranslation, rawrotation)
 
-    @testset "AbstractCRSTransform" begin
-        if !eval(:(@isdefined MyRotation))
-            eval(:(struct MyRotation <: AbstractCRSRotation{Float64}
-                rotation::CRSRotation{Float64, RotMatrix3{Float64}}
-            end))
-        end
-        MyRotation = eval(:MyRotation)
+    # The specific composed1 is actually affine, but we don't consider this affine in general as this type is only used constructed internally as part of `compose` and that always returns directly a `RawAffineTransform` when combining two affine transforms
+    @test !isaffinetransform(composed1)
 
-        r = MyRotation(rand(RotMatrix3{Float64}) |> CRSRotation)
+    @test TransformsBase.parameters(composed1) == (;t1 = rawrotation, t2 = rawtranslation)
+    @test TransformsBase.parameters(composed2) == (;t1 = rawtranslation, t2 = rawrotation)
 
-        @test !isnan(r)
-        @test isnan(MyRotation(RotationNaN))
+    @test isinvertible(composed1)
+    @test isrevertible(composed1)
 
-        p = rand(LocalCartesian)
-        a1 = apply(r, p)
-        a2 = apply(r.rotation, p)
-        @test a1 ≈ a2
-        @test apply(inverse(r), a1) ≈ p
+    @test isinvertible(composed2)
+    @test isrevertible(composed2)
+
+    affine1 = RawAffineTransform(rotation, translation)
+    # By default, in a RawAffineTransform the rotation is applied before the translation, so we have to create the Affine equivalent to `composed2` by directly using compose
+    affine2 = compose(rawtranslation, rawrotation)
+
+    @test affine1 isa RawAffineTransform
+    @test isaffinetransform(affine1)
+
+    for _ in 1:10
+        tup = Tuple(rand(3))
+        @test SVector(affine1(tup)) ≈ SVector(composed1(tup))
+        @test SVector(affine2(tup)) ≈ SVector(composed2(tup))
     end
 end
 
+@testitem "CRSTransform" setup=[setup_transforms] begin
+    sph_crs = SphericalCRS()
+    cart_crs = Cartesian()
 
+    tsph = getcrstransform(rootcrs, sph_crs)
+    tsph_raw = SatcomCoordinates.raw_transform(tsph)
+
+    @test SatcomCoordinates.output_crs(tsph) == cart_crs
+    @test SatcomCoordinates.input_crs(tsph) == sph_crs
+    @test tsph_raw isa SatcomCoordinates.SphericalToCartesian
+
+    # Other misc tests for coverage
+    @test isinvertible(tsph)
+    @test isrevertible(tsph)
+
+    @test ncoords_out(tsph) == ncoords_in(tsph) == 3
+
+    @test SatcomCoordinates.israwtransform(tsph) == false
+
+    for _ in 1:10
+        rs = rand(sph_crs)
+        @test rs |> tsph |> inverse(tsph) ≈ rs
+    end
+
+    @test TransformsBase.parameters(tsph) == (;crsₒ = cart_crs, crsᵢ = sph_crs, raw = tsph_raw)
+end
+
+@testitem "Compose" setup=[setup_transforms] begin
+
+    @test compose(rand(RawAffineTransform), rand(RawTranslation)) isa RawAffineTransform
+    @test compose(rand(RawAffineTransform), rand(RawRotation)) isa RawAffineTransform
+    @test compose(rand(RawTranslation), rand(RawAffineTransform)) isa RawAffineTransform
+    @test compose(rand(RawRotation), rand(RawAffineTransform)) isa RawAffineTransform
+
+    sph2c = getcrstransform_raw(linkedcrs, SphericalCRS())
+    afft = rand(RawAffineTransform)
+
+    composed1 = compose(sph2c, afft)
+    composed2 = compose(afft, sph2c)
+
+    c1valid = compose(composed1, rand(RawAffineTransform))
+    @test c1valid isa RawComposedTransform
+    @test c1valid.t1 == composed1.t1
+
+    @test_throws "if both `t1.t2` and `t2` are affine transforms" compose(composed2, rand(RawAffineTransform))
+    @test_throws "if both `t1` and `t2.t1` are affine transforms" compose(rand(RawAffineTransform), composed1)
+
+    c2valid = compose(rand(RawAffineTransform), composed2)
+    @test c2valid isa RawComposedTransform
+    @test c2valid.t2 == composed2.t2
+
+    @test_throws "are the Identity" compose(composed1, composed2)
+
+    # Misc coverage, the identity matches any input/output number of coordinates
+    @test ncoords(Identity) == 3
+    @test 2 == ncoords(Identity)
+
+    # We test that composing with identity in the middle works
+    c1 = RawComposedTransform(sph2c, Identity())
+    c2 = RawComposedTransform(Identity(), inverse(sph2c))
+
+    cid = compose(c1, c2)
+    @test cid isa RawComposedTransform
+    @test cid.t1 == sph2c
+    @test cid.t2 == inverse(sph2c)
+
+    for _ in 1:10
+        rs = rand(3) |> Tuple
+        @test SVector(cid(rs)) ≈ SVector(rs)
+    end
+end
